@@ -1,0 +1,20 @@
+{
+    "name": "coisa/error-handler",
+    "description": "Error Handler Library",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Felipe Sayão Lobato Abreu",
+            "email": "contato@felipeabreu.com.br"
+        }
+    ],
+    "require": {
+        "php": "^7.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "CoiSA\\ErrorHandler\\": "src/"
+        }
+    }
+}

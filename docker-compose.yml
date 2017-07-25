@@ -1,0 +1,10 @@
+version: '3'
+services:
+  web:
+    build: .
+    image: coisa/error-handler
+    container_name: error-handler
+    ports:
+      - 80:8888
+    volumes:
+      - ./:/opt/project
