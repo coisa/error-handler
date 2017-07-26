@@ -42,6 +42,7 @@ abstract class DebugHandler implements HandlerInterface
     {
         DebugHelper::export($throwable, $this->pretty);
 
-        return $this->exit ?: null;
+        return $this->exit ? $throwable->getCode() :
+            null;
     }
 }
