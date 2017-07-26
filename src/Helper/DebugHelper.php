@@ -27,7 +27,7 @@ class DebugHelper
      * @param string $dump
      * @return string
      */
-    public static function pretty(string $dump)
+    public static function prettify(string $dump)
     {
         // @TODO highlight code
 
@@ -43,7 +43,7 @@ class DebugHelper
     {
         $print = (string) print_r($mixed, true);
 
-        return $pretty ? self::pre($print) :
+        return $pretty ? self::prettify($print) :
             $print;
     }
 
@@ -56,7 +56,7 @@ class DebugHelper
     {
         $exported = var_export($expression, true) ?: $expression;
 
-        return $pretty ? self::pre($exported) :
+        return $pretty ? self::prettify($exported) :
             $exported;
     }
 
@@ -76,7 +76,7 @@ class DebugHelper
 
         $dump = ob_get_clean();
 
-        return $pretty ? self::pre($dump) :
+        return $pretty ? self::prettify($dump) :
             $dump;
     }
 }
