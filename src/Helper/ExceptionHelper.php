@@ -31,11 +31,10 @@ class ExceptionHelper
     /**
      * @param Throwable $throwable
      * @param int $options [optional]
-     * @param int $depth [optional]
      * @return string
      */
-    public static function toJson(Throwable $throwable, $options = 0, $depth = 512): string
+    public static function toJson(Throwable $throwable, $options = 0): string
     {
-        return json_encode(self::toArray($throwable), $options, $depth);
+        return json_encode(self::toArray($throwable), $options);
     }
 }
