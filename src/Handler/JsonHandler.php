@@ -15,31 +15,17 @@ use CoiSA\ErrorHandler\Helper\ExceptionHelper;
  */
 class JsonHandler implements HandlerInterface
 {
-    /** @const int json_encode default options */
-    const DEFAULT_OPTIONS =
-        JSON_FORCE_OBJECT |
-        JSON_PRETTY_PRINT |
-        JSON_UNESCAPED_SLASHES |
-        JSON_UNESCAPED_UNICODE |
-        JSON_PARTIAL_OUTPUT_ON_ERROR |
-        JSON_PRESERVE_ZERO_FRACTION;
-
     /** @var int json_encode options */
     private $options;
-
-    /** @var int json_encode depth */
-    private $depth;
 
     /**
      * JsonHandler constructor.
      *
-     * @param int $options
-     * @param int $depth optional
+     * @param int $options [optional]
      */
-    public function __construct(int $options = self::DEFAULT_OPTIONS, int $depth = 512)
+    public function __construct(int $options = null)
     {
         $this->options = $options;
-        $this->depth = $depth;
     }
 
     /**
@@ -55,7 +41,7 @@ class JsonHandler implements HandlerInterface
             header('Content-Type: application/json;charset=utf-8');
         }
 
-        echo ExceptionHelper::toJson($throwable, $this->options, $this->depth);
+        echo ExceptionHelper::toJson($throwable, $this->options);
 
         return $throwable->getCode();
     }
