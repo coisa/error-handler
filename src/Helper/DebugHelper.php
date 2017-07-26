@@ -41,7 +41,7 @@ class DebugHelper
      */
     public static function print_r($mixed, bool $pretty = true): string
     {
-        $print = print_r($mixed, true);
+        $print = (string) print_r($mixed, true);
 
         return $pretty ? self::pre($print) :
             $print;
@@ -54,7 +54,7 @@ class DebugHelper
      */
     public static function export($expression, bool $pretty = true): string
     {
-        $exported = var_export($expression, true);
+        $exported = var_export($expression, true) ?: $expression;
 
         return $pretty ? self::pre($exported) :
             $exported;
