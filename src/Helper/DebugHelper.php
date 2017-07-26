@@ -7,8 +7,6 @@
 
 namespace CoiSA\ErrorHandler\Helper;
 
-use Throwable;
-
 /**
  * Class DebugHelper
  */
