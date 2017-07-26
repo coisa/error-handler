@@ -38,46 +38,4 @@ class ExceptionHelper
     {
         return json_encode(self::toArray($throwable), $options, $depth);
     }
-
-    /**
-     * @param string $dump
-     * @return string
-     */
-    public static function pre(string $dump): string
-    {
-        return "<pre>{$dump}</pre>";
-    }
-
-    /**
-     * @param Throwable $throwable
-     * @param bool $pre
-     * @return string
-     */
-    public static function export(Throwable $throwable, bool $pre = false): string
-    {
-        $exported = var_export($throwable, true);
-
-        return $pre ? self::pre($exported) :
-            $exported;
-    }
-
-    /**
-     * @param Throwable $throwable
-     * @param bool $pre
-     * @return string
-     */
-    public static function dump(Throwable $throwable, bool $pre = false): string
-    {
-        ob_start();
-        try {
-            var_dump($throwable);
-        } catch (\Throwable $exception) {
-            // DO NOTHING
-        }
-
-        $dump = ob_get_clean();
-
-        return $pre ? self::pre($dump) :
-            $dump;
-    }
 }
