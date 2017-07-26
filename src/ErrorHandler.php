@@ -137,7 +137,7 @@ class ErrorHandler implements ErrorHandlerInterface
     {
         $error = error_get_last();
 
-        if ($error) {
+        if (!empty($error)) {
             $this->prevent = true;
 
             $exception = new \ErrorException(
