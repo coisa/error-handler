@@ -7,6 +7,8 @@
 
 namespace CoiSA\ErrorHandler\Handler;
 
+use CoiSA\ErrorHandler\Helper\DebugHelper;
+
 /**
  * Class DebugHandler
  * @package CoiSA\ErrorHandler\Handler
@@ -30,5 +32,16 @@ abstract class DebugHandler implements HandlerInterface
     {
         $this->pretty = $pretty;
         $this->exit = $exit;
+    }
+
+    /**
+     * @param \Throwable $throwable
+     * @return int|null
+     */
+    public function __invoke(\Throwable $throwable): ?int
+    {
+        DebugHelper::export($throwable, $this->pretty);
+
+        return $this->exit ?: null;
     }
 }
