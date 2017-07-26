@@ -17,11 +17,11 @@ class JsonHandler implements HandlerInterface
 {
     /** @const int json_encode default options */
     const DEFAULT_OPTIONS =
-        JSON_FORCE_OBJECT &
-        JSON_PRETTY_PRINT &
-        JSON_UNESCAPED_SLASHES &
-        JSON_UNESCAPED_UNICODE &
-        JSON_PARTIAL_OUTPUT_ON_ERROR &
+        JSON_FORCE_OBJECT |
+        JSON_PRETTY_PRINT |
+        JSON_UNESCAPED_SLASHES |
+        JSON_UNESCAPED_UNICODE |
+        JSON_PARTIAL_OUTPUT_ON_ERROR |
         JSON_PRESERVE_ZERO_FRACTION;
 
     /** @var int json_encode options */
