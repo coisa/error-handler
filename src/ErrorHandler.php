@@ -120,7 +120,7 @@ class ErrorHandler implements ErrorHandlerInterface
                 exit($signal);
             }
         } catch (\Throwable $exception) {
-            while ($level = ob_get_level()) {
+            while (ob_get_level()) {
                 ob_end_clean();
             }
 
