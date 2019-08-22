@@ -1,9 +1,13 @@
 <?php
 
+namespace CoiSA\ErrorHandler\Handler;
+
 /**
- * Class CallableExceptionHandler
+ * Class CallableThrowableHandler
+ *
+ * @package CoiSA\ErrorHandler\Handler
  */
-final class CallableExceptionHandler implements ExceptionHandlerInterface
+final class CallableThrowableHandler implements ThrowableHandlerInterface
 {
     /**
      * @var callable
@@ -21,9 +25,9 @@ final class CallableExceptionHandler implements ExceptionHandlerInterface
     }
 
     /**
-     * @param Throwable $throwable
+     * @param \Throwable $throwable
      */
-    public function handleException(\Throwable $throwable): void
+    public function handleThrowable(\Throwable $throwable): void
     {
         ($this->handler)($throwable);
     }

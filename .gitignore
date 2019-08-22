@@ -1,4 +1,7 @@
 /.idea/
+/docs/coverage/
 /vendor/
+/tests/clover.xml
+.phpunit.result.cache
 composer.phar
 composer.lock
