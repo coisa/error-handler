@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+declare(strict_types=1);
+
 namespace CoiSA\ErrorHandler\EventDispatcher\Listener;
 
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
@@ -27,20 +38,20 @@ final class LogErrorEventListener
      * LogErrorEventListener constructor.
      *
      * @param LoggerInterface $logger
-     * @param string $logLevel
+     * @param string          $logLevel
      */
     public function __construct(
         LoggerInterface $logger,
         string $logLevel = LogLevel::ERROR
     ) {
-        $this->logger = $logger;
+        $this->logger   = $logger;
         $this->logLevel = $logLevel;
     }
 
     /**
      * @param ErrorEventInterface $errorEvent
      */
-    public function __invoke(ErrorEventInterface $errorEvent)
+    public function __invoke(ErrorEventInterface $errorEvent): void
     {
         $this->logger->log($this->logLevel, (string) $errorEvent);
     }

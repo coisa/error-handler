@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+declare(strict_types=1);
+
 namespace CoiSA\ErrorHandler\Http\Middleware;
 
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
@@ -37,8 +48,8 @@ final class ThrowableHandlerMiddleware implements MiddlewareInterface
      * ThrowableHandlerMiddleware constructor.
      *
      * @param ThrowableHandlerInterface $throwableHandler
-     * @param ResponseFactoryInterface $responseFactory
-     * @param StreamFactoryInterface $streamFactory
+     * @param ResponseFactoryInterface  $responseFactory
+     * @param StreamFactoryInterface    $streamFactory
      */
     public function __construct(
         ThrowableHandlerInterface $throwableHandler,
@@ -46,16 +57,17 @@ final class ThrowableHandlerMiddleware implements MiddlewareInterface
         StreamFactoryInterface $streamFactory
     ) {
         $this->throwableHandler = $throwableHandler;
-        $this->responseFactory = $responseFactory;
-        $this->streamFactory = $streamFactory;
+        $this->responseFactory  = $responseFactory;
+        $this->streamFactory    = $streamFactory;
     }
 
     /**
-     * @param ServerRequestInterface $request
+     * @param ServerRequestInterface  $request
      * @param RequestHandlerInterface $handler
      *
-     * @return ResponseInterface
      * @throws \Throwable
+     *
+     * @return ResponseInterface
      *
      * @TODO transform throwable code to HTTP code
      */
@@ -82,9 +94,9 @@ final class ThrowableHandlerMiddleware implements MiddlewareInterface
      */
     private function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
-        ob_start();
+        \ob_start();
         $this->throwableHandler->handleThrowable($throwable);
-        $buffer = ob_get_clean();
+        $buffer = \ob_get_clean();
 
         return $this->streamFactory->createStream($buffer);
     }

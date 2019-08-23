@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+declare(strict_types=1);
+
 namespace CoiSA\ErrorHandler\Http\Middleware;
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
@@ -29,23 +40,24 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     /**
      * ErrorHandlerMiddleware constructor.
      *
-     * @param ErrorHandlerInterface $errorHandler
+     * @param ErrorHandlerInterface   $errorHandler
      * @param ThrowableRequestHandler $throwableHandlerHandler
      */
     public function __construct(
         ErrorHandlerInterface $errorHandler,
         ThrowableRequestHandler $throwableHandlerHandler
     ) {
-        $this->errorHandler = $errorHandler;
+        $this->errorHandler            = $errorHandler;
         $this->throwableHandlerHandler = $throwableHandlerHandler;
     }
 
     /**
-     * @param ServerRequestInterface $request
+     * @param ServerRequestInterface  $request
      * @param RequestHandlerInterface $handler
      *
-     * @return ResponseInterface
      * @throws \Throwable
+     *
+     * @return ResponseInterface
      */
     public function process(
         ServerRequestInterface $request,
@@ -65,7 +77,6 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         } finally {
             $this->errorHandler->unregister();
         }
-
 
         return $response;
     }

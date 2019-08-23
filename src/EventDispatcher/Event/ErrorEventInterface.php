@@ -1,8 +1,17 @@
 <?php
 
-namespace CoiSA\ErrorHandler\EventDispatcher\Event;
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ */
 
-use Psr\EventDispatcher\StoppableEventInterface;
+declare(strict_types=1);
+
+namespace CoiSA\ErrorHandler\EventDispatcher\Event;
 
 /**
  * Interface ErrorEventInterface
@@ -12,12 +21,12 @@ use Psr\EventDispatcher\StoppableEventInterface;
 interface ErrorEventInterface
 {
     /**
-     * @return \Throwable
-     */
-    public function getTrowable(): \Throwable;
-
-    /**
      * @return string
      */
     public function __toString(): string;
+
+    /**
+     * @return \Throwable
+     */
+    public function getTrowable(): \Throwable;
 }

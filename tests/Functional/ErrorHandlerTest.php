@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+declare(strict_types=1);
+
 namespace CoiSA\ErrorHandler\Test\Functional;
 
 use CoiSA\ErrorHandler\ErrorHandler;
@@ -14,12 +25,12 @@ use PHPUnit\Framework\TestCase;
  */
 final class ErrorHandlerTest extends TestCase
 {
-    public function test_error_handler_will_handle_exception()
+    public function test_error_handler_will_handle_exception(): void
     {
-        $message = \uniqid('test', true);
+        $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $handler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception) {
+        $handler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception): void {
             $this->assertInstanceOf(\Throwable::class, $throwable);
             $this->assertSame($exception, $throwable);
         });
@@ -31,12 +42,12 @@ final class ErrorHandlerTest extends TestCase
         $errorHandler->unregister();
     }
 
-    public function test_error_handler_will_catch_exception()
+    public function test_error_handler_will_catch_exception(): void
     {
-        $message = \uniqid('test', true);
+        $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $handler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception) {
+        $handler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception): void {
             $this->assertInstanceOf(\Throwable::class, $throwable);
             $this->assertSame($exception, $throwable);
         });
@@ -45,12 +56,13 @@ final class ErrorHandlerTest extends TestCase
         $errorHandler->register();
 
         $this->expectException(\InvalidArgumentException::class);
+
         throw $exception;
     }
 
-    public function test_error_handler_will_catch_php_error()
+    public function test_error_handler_will_catch_php_error(): void
     {
-        $handler = new CallableThrowableHandler(function (\Throwable $throwable) {
+        $handler = new CallableThrowableHandler(function (\Throwable $throwable): void {
             $this->assertInstanceOf(ErrorException::class, $throwable);
         });
 
@@ -61,9 +73,9 @@ final class ErrorHandlerTest extends TestCase
         \trigger_error(\uniqid('test', true));
     }
 
-    public function test_error_handler_will_handle_php_error()
+    public function test_error_handler_will_handle_php_error(): void
     {
-        $handler = new CallableThrowableHandler(function (\Throwable $throwable) {
+        $handler = new CallableThrowableHandler(function (\Throwable $throwable): void {
             $this->assertInstanceOf(ErrorException::class, $throwable);
         });
 
@@ -75,7 +87,7 @@ final class ErrorHandlerTest extends TestCase
         $errorHandler->handlePhpError(
             \random_int(1, 100),
             \uniqid('test', true),
-            \tempnam(sys_get_temp_dir(), 'test'),
+            \tempnam(\sys_get_temp_dir(), 'test'),
             \random_int(1, 100)
         );
 

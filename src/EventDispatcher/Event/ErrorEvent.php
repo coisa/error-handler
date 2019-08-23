@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+declare(strict_types=1);
+
 namespace CoiSA\ErrorHandler\EventDispatcher\Event;
 
 /**
@@ -27,18 +38,18 @@ final class ErrorEvent implements ErrorEventInterface
     }
 
     /**
-     * @return \Throwable
-     */
-    public function getTrowable(): \Throwable
-    {
-        return $this->throwable;
-    }
-
-    /**
      * @return string
      */
     public function __toString(): string
     {
         return (string) $this->getTrowable();
+    }
+
+    /**
+     * @return \Throwable
+     */
+    public function getTrowable(): \Throwable
+    {
+        return $this->throwable;
     }
 }

@@ -1,9 +1,15 @@
 <?php
+
 /**
- * @author Felipe Sayão Lobato Abreu <contato@felipeabreu.com.br>
- * @package CoiSA\ErrorHandler
- * @since 2017-07-24
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler;
 
@@ -18,7 +24,8 @@ use CoiSA\ErrorHandler\Handler\ThrowErrorExceptionPhpErrorHandler;
  *
  * @package CoiSA\ErrorHandler
  */
-class ErrorHandler implements ErrorHandlerInterface,
+class ErrorHandler implements
+    ErrorHandlerInterface,
     ThrowableHandlerInterface,
     PhpErrorHandlerInterface,
     ShutdownHandlerInterface
@@ -46,9 +53,9 @@ class ErrorHandler implements ErrorHandlerInterface,
     /**
      * ErrorHandler constructor.
      *
-     * @param ThrowableHandlerInterface $throwableHandler
-     * @param PhpErrorHandlerInterface|null $phpErrorHandler
-     * @param ShutdownHandlerInterface|null $shutdownHandler
+     * @param ThrowableHandlerInterface     $throwableHandler
+     * @param null|PhpErrorHandlerInterface $phpErrorHandler
+     * @param null|ShutdownHandlerInterface $shutdownHandler
      */
     public function __construct(
         ThrowableHandlerInterface $throwableHandler,
@@ -100,10 +107,10 @@ class ErrorHandler implements ErrorHandlerInterface,
     }
 
     /**
-     * @param int $code
+     * @param int    $code
      * @param string $message
      * @param string $filename
-     * @param int $line
+     * @param int    $line
      *
      * @throws \ErrorException
      */

@@ -22,8 +22,8 @@
     </filter>
     <logging>
         <log type="coverage-clover" target="tests/clover.xml" lowUpperBound="35" highLowerBound="70"/>
-        <log type="coverage-html" target="docs/coverage" lowUpperBound="35" highLowerBound="70"/>
+        <log type="coverage-html" target="tests/html" lowUpperBound="35" highLowerBound="70"/>
         <log type="coverage-text" target="php://stdout" lowUpperBound="35" highLowerBound="70" />
-        <log type="testdox-html" target="docs/coverage/testdox.html" lowUpperBound="35" highLowerBound="70"/>
+        <log type="testdox-html" target="tests/testdox.html" lowUpperBound="35" highLowerBound="70"/>
     </logging>
 </phpunit>
