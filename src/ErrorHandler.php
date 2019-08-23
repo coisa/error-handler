@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler;
 
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
-use CoiSA\ErrorHandler\Handler\PhpLastErrorShutdownHandlerHandler;
+use CoiSA\ErrorHandler\Handler\PhpLastErrorShutdownHandler;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowErrorExceptionPhpErrorHandler;
@@ -64,7 +64,7 @@ class ErrorHandler implements
     ) {
         $this->trowableHandler = $throwableHandler;
         $this->phpErrorHandler = $phpErrorHandler ?? new ThrowErrorExceptionPhpErrorHandler();
-        $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandlerHandler($this->phpErrorHandler);
+        $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandler($this->phpErrorHandler);
     }
 
     /**

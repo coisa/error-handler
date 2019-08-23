@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Handler;
 
 /**
- * Class PhpLastErrorShutdownHandlerHandler
+ * Class PhpLastErrorShutdownHandler
  *
  * @package CoiSA\ErrorHandler\Handler
  */
-final class PhpLastErrorShutdownHandlerHandler implements ShutdownHandlerInterface
+final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
 {
     /**
      * @var PhpErrorHandlerInterface
@@ -26,7 +26,7 @@ final class PhpLastErrorShutdownHandlerHandler implements ShutdownHandlerInterfa
     private $phpErrorHandler;
 
     /**
-     * PhpLastErrorShutdownHandlerHandler constructor.
+     * PhpLastErrorShutdownHandler constructor.
      *
      * @param PhpErrorHandlerInterface $phpErrorHandler
      */
