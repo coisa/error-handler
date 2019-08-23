@@ -14,9 +14,17 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Test\Functional;
 
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
+use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
 use CoiSA\ErrorHandler\Exception\ErrorException;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 /**
  * Class ErrorHandlerTest
@@ -91,6 +99,47 @@ final class ErrorHandlerTest extends TestCase
             \random_int(1, 100)
         );
 
+        $errorHandler->unregister();
+    }
+
+    public function test_error_handler_with_event_dispatcher_handler_will_dispatch_error_event(): void
+    {
+        $eventDispatcher = $this->prophesize(EventDispatcher::class);
+        $eventDispatcher->dispatch(Argument::type(ErrorEventInterface::class))->shouldBeCalledOnce();
+
+        $handler = new DispatchErrorEventThrowableHandler($eventDispatcher->reveal());
+
+        $errorHandler = new ErrorHandler($handler);
+        $errorHandler->register();
+
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
+
+        $errorHandler->handleThrowable($exception);
+        $errorHandler->unregister();
+    }
+
+    public function test_error_handler_with_event_dispatcher_handler_and_log_error_event_listener_will_log_error_event(): void
+    {
+        $logger = $this->prophesize(LoggerInterface::class);
+        $logger->log(LogLevel::ERROR, Argument::type('string'))->shouldBeCalledOnce();
+
+        $listener = new LogErrorEventListener($logger->reveal());
+
+        $eventDispatcher = $this->prophesize(EventDispatcher::class);
+        $eventDispatcher->dispatch(Argument::type(ErrorEventInterface::class))->will(function () use ($listener): void {
+            ($listener)(new ErrorEvent(new \Exception()));
+        });
+
+        $handler = new DispatchErrorEventThrowableHandler($eventDispatcher->reveal());
+
+        $errorHandler = new ErrorHandler($handler);
+        $errorHandler->register();
+
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
+
+        $errorHandler->handleThrowable($exception);
         $errorHandler->unregister();
     }
 }

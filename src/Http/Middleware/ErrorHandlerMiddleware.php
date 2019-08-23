@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Http\Middleware;
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
-use CoiSA\ErrorHandler\Http\RequestHandler\ThrowableRequestHandler;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -33,29 +33,27 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     private $errorHandler;
 
     /**
-     * @var ThrowableRequestHandler
+     * @var ThrowableResponseFactoryInterface
      */
-    private $throwableHandlerHandler;
+    private $throwableResponseFactory;
 
     /**
      * ErrorHandlerMiddleware constructor.
      *
-     * @param ErrorHandlerInterface   $errorHandler
-     * @param ThrowableRequestHandler $throwableHandlerHandler
+     * @param ErrorHandlerInterface             $errorHandler
+     * @param ThrowableResponseFactoryInterface $throwableResponseFactory
      */
     public function __construct(
         ErrorHandlerInterface $errorHandler,
-        ThrowableRequestHandler $throwableHandlerHandler
+        ThrowableResponseFactoryInterface $throwableResponseFactory
     ) {
-        $this->errorHandler            = $errorHandler;
-        $this->throwableHandlerHandler = $throwableHandlerHandler;
+        $this->errorHandler             = $errorHandler;
+        $this->throwableResponseFactory = $throwableResponseFactory;
     }
 
     /**
      * @param ServerRequestInterface  $request
      * @param RequestHandlerInterface $handler
-     *
-     * @throws \Throwable
      *
      * @return ResponseInterface
      */
@@ -66,18 +64,11 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         $this->errorHandler->register();
 
         try {
-            $response = $this->throwableHandlerHandler->process($request, $handler);
+            return $handler->handle($request);
         } catch (\Throwable $throwable) {
-            $errorRequest = $request->withAttribute(
-                ThrowableRequestHandler::class,
-                $throwable
-            );
-
-            $response = $this->throwableHandlerHandler->handle($errorRequest);
+            return $this->throwableResponseFactory->createResponseFromThrowable($throwable);
         } finally {
             $this->errorHandler->unregister();
         }
-
-        return $response;
     }
 }
