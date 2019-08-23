@@ -50,9 +50,13 @@ final class LogErrorEventListener
 
     /**
      * @param ErrorEventInterface $errorEvent
+     *
+     * @return ErrorEventInterface
      */
-    public function __invoke(ErrorEventInterface $errorEvent): void
+    public function __invoke(ErrorEventInterface $errorEvent): ErrorEventInterface
     {
         $this->logger->log($this->logLevel, (string) $errorEvent);
+
+        return $errorEvent;
     }
 }
