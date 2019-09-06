@@ -14,17 +14,19 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Test\Functional;
 
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
+use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
+use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\Exception\ErrorException;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
+use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
+use Phly\EventDispatcher\EventDispatcher;
 use PHPUnit\Framework\TestCase;
-use Prophecy\Argument;
-use Psr\Log\LoggerInterface;
-use Psr\Log\LogLevel;
-use Symfony\Component\EventDispatcher\EventDispatcher;
+use Psr\Log\AbstractLogger;
 
 /**
  * Class ErrorHandlerTest
@@ -104,42 +106,62 @@ final class ErrorHandlerTest extends TestCase
 
     public function test_error_handler_with_event_dispatcher_handler_will_dispatch_error_event(): void
     {
-        $eventDispatcher = $this->prophesize(EventDispatcher::class);
-        $eventDispatcher->dispatch(Argument::type(ErrorEventInterface::class))->shouldBeCalledOnce();
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
 
-        $handler = new DispatchErrorEventThrowableHandler($eventDispatcher->reveal());
+        $eventDispatcher = new EventDispatcher(
+            new ErrorEventListenerProvider(
+                new LogErrorEventListener($this->getTestLogger($this)),
+                new ErrorEventCallableListener(function (ErrorEventInterface $errorEvent) use ($exception): void {
+                    $this->assertSame($exception, $errorEvent->getTrowable());
+                })
+            )
+        );
+        $handler = new DispatchErrorEventThrowableHandler($eventDispatcher);
 
         $errorHandler = new ErrorHandler($handler);
         $errorHandler->register();
-
-        $message   = \uniqid('test', true);
-        $exception = new \InvalidArgumentException($message);
 
         $errorHandler->handleThrowable($exception);
         $errorHandler->unregister();
     }
 
-    public function test_error_handler_with_event_dispatcher_handler_and_log_error_event_listener_will_log_error_event(): void
+    public function test_error_handler_with_dispatch_throwable_handler_will_dispatch_throwable(): void
     {
-        $logger = $this->prophesize(LoggerInterface::class);
-        $logger->log(LogLevel::ERROR, Argument::type('string'))->shouldBeCalledOnce();
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
 
-        $listener = new LogErrorEventListener($logger->reveal());
+        $eventDispatcher = new EventDispatcher(
+            new ThrowableListenerProvider(
+                new ThrowableCallableListener(function (\Throwable $throwable) use ($exception): void {
+                    $this->assertSame($exception, $throwable);
+                })
+            )
+        );
 
-        $eventDispatcher = $this->prophesize(EventDispatcher::class);
-        $eventDispatcher->dispatch(Argument::type(ErrorEventInterface::class))->will(function () use ($listener): void {
-            ($listener)(new ErrorEvent(new \Exception()));
-        });
-
-        $handler = new DispatchErrorEventThrowableHandler($eventDispatcher->reveal());
+        $handler = new DispatchThrowableHandler($eventDispatcher);
 
         $errorHandler = new ErrorHandler($handler);
         $errorHandler->register();
 
-        $message   = \uniqid('test', true);
-        $exception = new \InvalidArgumentException($message);
-
         $errorHandler->handleThrowable($exception);
         $errorHandler->unregister();
+    }
+
+    private function getTestLogger(TestCase $test)
+    {
+        return new class($test) extends AbstractLogger {
+            private $test;
+
+            public function __construct(TestCase $test)
+            {
+                $this->test = $test;
+            }
+
+            public function log($level, $message, array $context = []): void
+            {
+                $this->test::assertTrue(true);
+            }
+        };
     }
 }
