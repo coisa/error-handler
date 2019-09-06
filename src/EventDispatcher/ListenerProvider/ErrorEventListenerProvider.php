@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\ListenerProvider;
 
-use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
+use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
@@ -24,19 +24,18 @@ use Psr\EventDispatcher\ListenerProviderInterface;
 final class ErrorEventListenerProvider implements ListenerProviderInterface
 {
     /**
-     * @var LogErrorEventListener
+     * @var callable[]
      */
-    private $logErrorEventListener;
+    private $listeners;
 
     /**
      * ErrorEventListenerProvider constructor.
      *
-     * @param LogErrorEventListener $logErrorEventListener
+     * @param callable ...$listeners
      */
-    public function __construct(
-        LogErrorEventListener $logErrorEventListener
-    ) {
-        $this->logErrorEventListener = $logErrorEventListener;
+    public function __construct(callable ...$listeners)
+    {
+        $this->listeners = $listeners;
     }
 
     /**
@@ -46,6 +45,12 @@ final class ErrorEventListenerProvider implements ListenerProviderInterface
      */
     public function getListenersForEvent(object $event): iterable
     {
-        yield $this->logErrorEventListener;
+        if (!$event instanceof ErrorEvent) {
+            return [];
+        }
+
+        foreach ($this->listeners as $listener) {
+            yield $listener;
+        }
     }
 }
