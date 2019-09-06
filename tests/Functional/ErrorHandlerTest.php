@@ -83,6 +83,21 @@ final class ErrorHandlerTest extends TestCase
         \trigger_error(\uniqid('test', true));
     }
 
+    public function test_error_handler_will_be_silent_when_error_reporting_set_not_to_listen(): void
+    {
+        \error_reporting(E_ALL ^ E_USER_WARNING);
+
+        $handler = new CallableThrowableHandler(function (\Throwable $throwable): void {
+            $this->assertInstanceOf(ErrorException::class, $throwable);
+        });
+
+        $errorHandler = new ErrorHandler($handler);
+        $errorHandler->register();
+
+        \trigger_error(\uniqid('test', true), E_USER_WARNING);
+        $this->expectNotToPerformAssertions();
+    }
+
     public function test_error_handler_will_handle_php_error(): void
     {
         $handler = new CallableThrowableHandler(function (\Throwable $throwable): void {
