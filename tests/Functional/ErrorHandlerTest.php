@@ -25,6 +25,7 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use Phly\EventDispatcher\EventDispatcher;
+use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 
@@ -124,17 +125,11 @@ final class ErrorHandlerTest extends TestCase
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $eventDispatcher = new EventDispatcher(
-            new ErrorEventListenerProvider(
-                new LogErrorEventListener($this->getTestLogger($this)),
-                new ErrorEventCallableListener(function (ErrorEventInterface $errorEvent) use ($exception): void {
-                    $this->assertSame($exception, $errorEvent->getTrowable());
-                })
-            )
-        );
-        $handler = new DispatchErrorEventThrowableHandler($eventDispatcher);
+        $eventDispatcher = $this->getEventDispatcher($exception);
 
+        $handler      = new DispatchErrorEventThrowableHandler($eventDispatcher);
         $errorHandler = new ErrorHandler($handler);
+
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -146,17 +141,11 @@ final class ErrorHandlerTest extends TestCase
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $eventDispatcher = new EventDispatcher(
-            new ThrowableListenerProvider(
-                new ThrowableCallableListener(function (\Throwable $throwable) use ($exception): void {
-                    $this->assertSame($exception, $throwable);
-                })
-            )
-        );
+        $eventDispatcher = $this->getEventDispatcher($exception);
 
-        $handler = new DispatchThrowableHandler($eventDispatcher);
-
+        $handler      = new DispatchThrowableHandler($eventDispatcher);
         $errorHandler = new ErrorHandler($handler);
+
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -178,5 +167,34 @@ final class ErrorHandlerTest extends TestCase
                 $this->test::assertTrue(true);
             }
         };
+    }
+
+    /**
+     * @param \InvalidArgumentException $exception
+     *
+     * @return EventDispatcher
+     */
+    private function getEventDispatcher(\InvalidArgumentException $exception): EventDispatcher
+    {
+        $listenerProvider = new ListenerProviderAggregate();
+
+        $listenerProvider->attach(
+            new ThrowableListenerProvider(
+                new ThrowableCallableListener(function (\Throwable $throwable) use ($exception): void {
+                    $this->assertSame($exception, $throwable);
+                })
+            )
+        );
+
+        $listenerProvider->attach(
+            new ErrorEventListenerProvider(
+                new LogErrorEventListener($this->getTestLogger($this)),
+                new ErrorEventCallableListener(function (ErrorEventInterface $errorEvent) use ($exception): void {
+                    $this->assertSame($exception, $errorEvent->getTrowable());
+                })
+            )
+        );
+
+        return new EventDispatcher($listenerProvider);
     }
 }

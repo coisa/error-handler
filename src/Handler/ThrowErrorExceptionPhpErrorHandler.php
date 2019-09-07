@@ -32,7 +32,7 @@ final class ThrowErrorExceptionPhpErrorHandler implements PhpErrorHandlerInterfa
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
-        if (!(error_reporting() & $code)) {
+        if (!(\error_reporting() & $code)) {
             return;
         }
 

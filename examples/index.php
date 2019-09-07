@@ -15,17 +15,22 @@ require __DIR__ . '/../vendor/autoload.php';
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
-\error_reporting(E_ALL);
-\ini_set('display_errors', 1);
-
-$handler = new CallableThrowableHandler(function (Throwable $throwable): void {
-    echo 'Throwable error!' . "\n";
-    \var_dump($throwable);
+$firstHandler = new CallableThrowableHandler(function (Throwable $throwable): void {
+    echo 'First Handler' . "\n";
+    echo $throwable;
 });
 
-$errorHandler = new ErrorHandler($handler);
-$errorHandler->register();
+$secondHandler = new CallableThrowableHandler(function (Throwable $throwable): void {
+    echo 'Second Handler' . "\n";
 
-$previous = new RuntimeException('Testing error handler level 1', 123);
+    // Raise exception to previous error-handler!?
+    throw $throwable;
+});
 
-throw new InvalidArgumentException('Testing error handler level 2', 321, $previous);
+$firstErrorHandler  = new ErrorHandler($firstHandler);
+$secondErrorHandler = new ErrorHandler($secondHandler);
+
+$firstErrorHandler->register();
+$secondErrorHandler->register();
+
+throw new InvalidArgumentException('Exception', 321);
