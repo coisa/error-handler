@@ -23,11 +23,30 @@ use Psr\Container\ContainerInterface;
 final class ErrorHandlerContainer implements ContainerInterface
 {
     /**
-     * @var array
+     * @var ContainerInterface
      */
-    private $factories = [
-        // @TODO add object factories
-    ];
+    private $container;
+
+    /**
+     * @var string[]
+     */
+    private $factories;
+
+    /**
+     * @var object[]
+     */
+    private $instances;
+
+    /**
+     * ErrorHandlerContainer constructor.
+     *
+     * @param null|ContainerInterface $container
+     */
+    public function __construct(ContainerInterface $container = null)
+    {
+        $this->factories = (new ConfigProvider())->getFactories();
+        $this->container = $container;
+    }
 
     /**
      * @param string $id
@@ -36,7 +55,8 @@ final class ErrorHandlerContainer implements ContainerInterface
      */
     public function has($id)
     {
-        return \array_key_exists($id, $this->factories);
+        return ($this->container && $this->container->has($id))
+            || \array_key_exists($id, $this->factories);
     }
 
     /**
@@ -49,26 +69,21 @@ final class ErrorHandlerContainer implements ContainerInterface
      */
     public function get($id)
     {
-        try {
-            return ($this->getFactory($id))($this);
-        } catch (Exception\NotFoundException $notFoundException) {
-            throw $notFoundException;
-        } catch (\Throwable $throwable) {
-            throw Exception\ContainerException::createFromThrowable($throwable);
+        if ($this->container && $this->container->has($id)) {
+            return $this->container->get($id);
         }
-    }
 
-    /**
-     * @param string $id
-     * @param string $factory
-     *
-     * @return $this
-     */
-    public function setFactory(string $id, string $factory): self
-    {
-        $this->factories[$id] = $factory;
+        if (!isset($this->instances[$id])) {
+            try {
+                $this->instances[$id] = ($this->getFactory($id))($this);
+            } catch (Exception\NotFoundException $notFoundException) {
+                throw $notFoundException;
+            } catch (\Throwable $throwable) {
+                throw Exception\ContainerException::createFromThrowable($throwable);
+            }
+        }
 
-        return $this;
+        return $this->instances[$id];
     }
 
     /**
@@ -76,14 +91,14 @@ final class ErrorHandlerContainer implements ContainerInterface
      *
      * @throws Exception\NotFoundException
      *
-     * @return mixed
+     * @return callable
      */
-    public function getFactory(string $id)
+    private function getFactory(string $id): callable
     {
         if (false === $this->has($id)) {
             throw new Exception\NotFoundException(\sprintf('Factory for class %s was not found', $id));
         }
 
-        return $this->factories[$id];
+        return new $this->factories[$id];
     }
 }
