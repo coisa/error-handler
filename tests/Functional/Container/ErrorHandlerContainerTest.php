@@ -19,11 +19,13 @@ use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Test\Log\AssertThrowableTestCaseLogger;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
 use PHPUnit\Framework\TestCase;
@@ -137,7 +139,12 @@ final class ErrorHandlerContainerTest extends TestCase
             $this->assertSame($exception, $throwable);
         });
 
+        $logErrorEventListener = new LogErrorEventListener(
+            new AssertThrowableTestCaseLogger($this, $exception)
+        );
+
         $this->listenerProvider->attach(new ErrorEventListenerProvider($errorEventCallableListener));
+        $this->listenerProvider->attach(new ErrorEventListenerProvider($logErrorEventListener));
         $this->listenerProvider->attach(new ThrowableListenerProvider($throwableListener));
 
         $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
