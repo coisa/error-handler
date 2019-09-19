@@ -36,5 +36,10 @@
         "cs-check": "php-cs-fixer fix --dry-run --diff",
         "cs-fix": "php-cs-fixer fix",
         "test": "phpunit"
+    },
+    "extra": {
+        "zf": {
+            "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
+        }
     }
 }
