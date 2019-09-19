@@ -45,12 +45,6 @@ final class ThrowableHandlerAggregateFactory
             $handlers[] = $container->get(DispatchErrorEventThrowableHandler::class);
         }
 
-        if (empty($handlers)) {
-            $handlers[] = new CallableThrowableHandler(function (\Throwable $throwable): void {
-                echo (string) $throwable;
-            });
-        }
-
         return new ThrowableHandlerAggregate(...$handlers);
     }
 }

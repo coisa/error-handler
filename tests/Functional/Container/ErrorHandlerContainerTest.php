@@ -80,7 +80,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $this->assertInstanceOf($service, $this->container->get($service));
     }
 
-    public function testErrorHandlerWithoutHandlerWillEchoOutput(): void
+    public function testErrorHandlerWithoutHandlerWillDoNothing(): void
     {
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
@@ -88,7 +88,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler = $this->container->get(ErrorHandler::class);
         $errorHandler->register();
 
-        $this->expectOutputRegex('/^InvalidArgumentException: ' . $message . '/');
+        $this->expectNotToPerformAssertions();
         $errorHandler->handleThrowable($exception);
     }
 
