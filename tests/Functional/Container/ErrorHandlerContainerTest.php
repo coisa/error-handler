@@ -19,7 +19,9 @@ use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
+use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use Phly\EventDispatcher\EventDispatcher;
@@ -60,17 +62,17 @@ final class ErrorHandlerContainerTest extends TestCase
     {
         $factories = (new ConfigProvider())->getFactories();
 
-        return array_chunk(array_keys($factories), 1);
+        return \array_chunk(\array_keys($factories), 1);
     }
 
     /** @dataProvider provideServiceProviderClassNames */
-    public function testContainerHasConfigProviderFactories(string $service)
+    public function testContainerHasConfigProviderFactories(string $service): void
     {
         $this->assertTrue($this->container->has($service));
     }
 
     /** @dataProvider provideServiceProviderClassNames */
-    public function testContainerProvideConfigProviderFactories(string $service)
+    public function testContainerProvideConfigProviderFactories(string $service): void
     {
         $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
         $this->assertInstanceOf($service, $this->container->get($service));
@@ -125,13 +127,19 @@ final class ErrorHandlerContainerTest extends TestCase
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $listener = new ErrorEventCallableListener(function (ErrorEventInterface $event) use ($exception): void {
+        $errorEventCallableListener = new ErrorEventCallableListener(function (ErrorEventInterface $event) use ($exception): void {
             $this->assertInstanceOf(ErrorEvent::class, $event);
             $this->assertSame($exception, $event->getThrowable());
             $this->assertSame((string) $exception, (string) $event);
         });
 
-        $this->listenerProvider->attach(new ErrorEventListenerProvider($listener));
+        $throwableListener = new ThrowableCallableListener(function (\Throwable $throwable) use ($exception): void {
+            $this->assertSame($exception, $throwable);
+        });
+
+        $this->listenerProvider->attach(new ErrorEventListenerProvider($errorEventCallableListener));
+        $this->listenerProvider->attach(new ThrowableListenerProvider($throwableListener));
+
         $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
 
         $errorHandler = $this->container->get(ErrorHandler::class);
