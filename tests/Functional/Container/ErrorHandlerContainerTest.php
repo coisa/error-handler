@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\Container;
 
+use CoiSA\ErrorHandler\Container\ConfigProvider;
 use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
@@ -53,6 +54,26 @@ final class ErrorHandlerContainerTest extends TestCase
 
         $this->listenerProvider = new ListenerProviderAggregate();
         $this->eventDispatcher  = new EventDispatcher($this->listenerProvider);
+    }
+
+    public function provideServiceProviderClassNames()
+    {
+        $factories = (new ConfigProvider())->getFactories();
+
+        return array_chunk(array_keys($factories), 1);
+    }
+
+    /** @dataProvider provideServiceProviderClassNames */
+    public function testContainerHasConfigProviderFactories(string $service)
+    {
+        $this->assertTrue($this->container->has($service));
+    }
+
+    /** @dataProvider provideServiceProviderClassNames */
+    public function testContainerProvideConfigProviderFactories(string $service)
+    {
+        $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
+        $this->assertInstanceOf($service, $this->container->get($service));
     }
 
     public function testErrorHandlerWithoutHandlerWillEchoOutput(): void
