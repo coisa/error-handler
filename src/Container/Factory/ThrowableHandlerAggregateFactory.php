@@ -18,6 +18,7 @@ use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class ThrowableHandlerAggregateFactory
@@ -39,11 +40,8 @@ final class ThrowableHandlerAggregateFactory
             $handlers[] = $container->get(CallableThrowableHandler::class);
         }
 
-        if ($container->has(DispatchThrowableHandler::class)) {
+        if ($container->has(EventDispatcherInterface::class)) {
             $handlers[] = $container->get(DispatchThrowableHandler::class);
-        }
-
-        if ($container->has(DispatchErrorEventThrowableHandler::class)) {
             $handlers[] = $container->get(DispatchErrorEventThrowableHandler::class);
         }
 

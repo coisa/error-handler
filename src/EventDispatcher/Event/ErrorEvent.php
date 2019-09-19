@@ -42,13 +42,13 @@ final class ErrorEvent implements ErrorEventInterface
      */
     public function __toString(): string
     {
-        return (string) $this->getTrowable();
+        return (string) $this->getThrowable();
     }
 
     /**
      * @return \Throwable
      */
-    public function getTrowable(): \Throwable
+    public function getThrowable(): \Throwable
     {
         return $this->throwable;
     }

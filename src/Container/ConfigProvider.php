@@ -49,8 +49,10 @@ final class ConfigProvider
     public function getFactories(): array
     {
         return [
-            ErrorHandler::class                      => Factory\ErrorHandlerFactory::class,
-            Handler\ThrowableHandlerInterface::class => Factory\ThrowableHandlerAggregateFactory::class,
+            ErrorHandler::class                               => Factory\ErrorHandlerFactory::class,
+            Handler\ThrowableHandlerInterface::class          => Factory\ThrowableHandlerAggregateFactory::class,
+            Handler\DispatchErrorEventThrowableHandler::class => Factory\DispatchErrorEventThrowableHandlerFactory::class,
+            Handler\DispatchThrowableHandler::class           => Factory\DispatchThrowableHandlerFactory::class,
         ];
     }
 }

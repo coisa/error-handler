@@ -190,7 +190,7 @@ final class ErrorHandlerTest extends TestCase
             new ErrorEventListenerProvider(
                 new LogErrorEventListener($this->getTestLogger($this)),
                 new ErrorEventCallableListener(function (ErrorEventInterface $errorEvent) use ($exception): void {
-                    $this->assertSame($exception, $errorEvent->getTrowable());
+                    $this->assertSame($exception, $errorEvent->getThrowable());
                 })
             )
         );

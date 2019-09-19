@@ -29,7 +29,8 @@
     "require-dev": {
         "phpunit/phpunit": "^8.3",
         "friendsofphp/php-cs-fixer": "^2.15",
-        "phly/phly-event-dispatcher": "^1.0"
+        "phly/phly-event-dispatcher": "^1.0",
+        "zendframework/zend-servicemanager": "^3.4"
     },
     "scripts": {
         "cs-check": "php-cs-fixer fix --dry-run --diff",

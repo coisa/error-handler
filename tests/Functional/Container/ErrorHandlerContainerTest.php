@@ -15,7 +15,17 @@ namespace CoiSA\ErrorHandler\Test\Functional\Container;
 
 use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
+use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
+use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use Phly\EventDispatcher\EventDispatcher;
+use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Zend\ServiceManager\ServiceManager;
 
 /**
  * Class ErrorHandlerContainerTest
@@ -24,25 +34,88 @@ use PHPUnit\Framework\TestCase;
  */
 final class ErrorHandlerContainerTest extends TestCase
 {
-    public function testGetErrorHandlerWillReturnErrorHandler()
-    {
-        $container = new ErrorHandlerContainer();
-        $errorHandler = $container->get(ErrorHandler::class);
+    /** @var ServiceManager */
+    private $serviceManager;
 
-        $this->assertInstanceOf(ErrorHandler::class, $errorHandler);
+    /** @var ErrorHandlerContainer */
+    private $container;
+
+    /** @var EventDispatcher */
+    private $eventDispatcher;
+
+    /** @var ListenerProviderAggregate */
+    private $listenerProvider;
+
+    public function setUp(): void
+    {
+        $this->serviceManager = new ServiceManager();
+        $this->container      = new ErrorHandlerContainer($this->serviceManager);
+
+        $this->listenerProvider = new ListenerProviderAggregate();
+        $this->eventDispatcher  = new EventDispatcher($this->listenerProvider);
     }
 
-    public function testGetErrorHandlerFromContainerWillHandleException()
+    public function testErrorHandlerWithoutHandlerWillEchoOutput(): void
     {
-        $container = new ErrorHandlerContainer();
-
-        $errorHandler = $container->get(ErrorHandler::class);
-        $errorHandler->register();
-
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
         $this->expectOutputRegex('/^InvalidArgumentException: ' . $message . '/');
+        $errorHandler->handleThrowable($exception);
+    }
+
+    public function testCallableHandlerWillHandleThrowable(): void
+    {
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
+
+        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception): void {
+            $this->assertSame($exception, $throwable);
+        });
+        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
+        $errorHandler->handleThrowable($exception);
+    }
+
+    public function testCallableHandlerFromAggregationWillHandleThrowable(): void
+    {
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
+
+        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception): void {
+            $this->assertSame($exception, $throwable);
+        });
+        $this->serviceManager->setService(CallableThrowableHandler::class, $callableThrowableHandler);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
+        $errorHandler->handleThrowable($exception);
+    }
+
+    public function testEventDispatcherCallableHandlerWillHandleThrowable(): void
+    {
+        $message   = \uniqid('test', true);
+        $exception = new \InvalidArgumentException($message);
+
+        $listener = new ErrorEventCallableListener(function (ErrorEventInterface $event) use ($exception): void {
+            $this->assertInstanceOf(ErrorEvent::class, $event);
+            $this->assertSame($exception, $event->getThrowable());
+            $this->assertSame((string) $exception, (string) $event);
+        });
+
+        $this->listenerProvider->attach(new ErrorEventListenerProvider($listener));
+        $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
         $errorHandler->handleThrowable($exception);
     }
 }

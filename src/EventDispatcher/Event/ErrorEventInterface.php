@@ -28,5 +28,5 @@ interface ErrorEventInterface
     /**
      * @return \Throwable
      */
-    public function getTrowable(): \Throwable;
+    public function getThrowable(): \Throwable;
 }
