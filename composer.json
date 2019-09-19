@@ -2,7 +2,7 @@
     "name": "coisa/error-handler",
     "description": "Error Handler Library",
     "type": "library",
-    "license": "Apache License 2.0",
+    "license": "MIT",
     "authors": [
         {
             "name": "Felipe Sayão Lobato Abreu",
