@@ -43,9 +43,7 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
     {
         $error = \error_get_last();
 
-        if (false === \is_array($error)
-            || $error['type'] !== E_ERROR
-        ) {
+        if (!\is_array($error) || !$this->isCatchableFatalError($error['type'])) {
             return;
         }
 
@@ -55,5 +53,22 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
             $error['file'],
             $error['line']
         );
+    }
+
+    /**
+     * @param int $level
+     *
+     * @return bool
+     */
+    private function isCatchableFatalError(int $level)
+    {
+        $errors = E_ERROR;
+        $errors |= E_PARSE;
+        $errors |= E_CORE_ERROR;
+        $errors |= E_CORE_WARNING;
+        $errors |= E_COMPILE_ERROR;
+        $errors |= E_COMPILE_WARNING;
+
+        return ($level & $errors) > 0;
     }
 }

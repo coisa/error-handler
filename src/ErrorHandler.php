@@ -64,7 +64,7 @@ class ErrorHandler implements
     ) {
         $this->trowableHandler = $throwableHandler;
         $this->phpErrorHandler = $phpErrorHandler ?? new ThrowErrorExceptionPhpErrorHandler();
-        $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandler($this->phpErrorHandler);
+        $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandler($this);
     }
 
     /**
@@ -116,7 +116,11 @@ class ErrorHandler implements
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
-        $this->phpErrorHandler->handlePhpError($code, $message, $filename, $line);
+        try {
+            $this->phpErrorHandler->handlePhpError($code, $message, $filename, $line);
+        } catch (\ErrorException $throwable) {
+            $this->handleThrowable($throwable);
+        }
     }
 
     /**
@@ -128,6 +132,10 @@ class ErrorHandler implements
             return;
         }
 
-        $this->shutdownHandler->handleShutdown();
+        try {
+            $this->shutdownHandler->handleShutdown();
+        } catch (\Throwable $throwable) {
+            $this->handleThrowable($throwable);
+        }
     }
 }

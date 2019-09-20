@@ -16,6 +16,7 @@ namespace CoiSA\ErrorHandler\Test\Functional\Container;
 use CoiSA\ErrorHandler\Container\ConfigProvider;
 use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Exception\ErrorException;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
@@ -153,5 +154,35 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
+    }
+
+    public function testErrorHandlerRespectErrorReporting()
+    {
+        $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
+            $this->assertTrue(false);
+        });
+        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
+        $oldLevel = error_reporting(E_ALL ^ E_USER_NOTICE);
+        trigger_error('Test error reporting', E_USER_NOTICE);
+        error_reporting($oldLevel);
+
+        $this->assertTrue(true);
+    }
+
+    public function testThrowErrorExceptionPhpErrorHandlerThrowErrorException()
+    {
+        $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
+            $this->assertInstanceOf(ErrorException::class, $throwable);
+        });
+        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
+        \trigger_error('Test user error', E_USER_ERROR);
     }
 }
