@@ -15,6 +15,8 @@ namespace CoiSA\ErrorHandler\Container;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler;
+use CoiSA\ErrorHandler\Http\Message;
+use CoiSA\ErrorHandler\Http\Middleware;
 
 /**
  * Class ConfigProvider
@@ -49,10 +51,17 @@ final class ConfigProvider
     public function getFactories(): array
     {
         return [
+            Handler\ThrowableHandlerInterface::class          => new Factory\AliasFactory(Handler\ThrowableHandlerAggregate::class),
+            Message\ThrowableResponseFactoryInterface::class  => new Factory\AliasFactory(Message\ThrowableResponseFactory::class),
+            Message\ThrowableStreamFactoryInterface::class    => new Factory\AliasFactory(Message\ThrowableStreamFactory::class),
+
             ErrorHandler::class                               => Factory\ErrorHandlerFactory::class,
-            Handler\ThrowableHandlerInterface::class          => Factory\ThrowableHandlerAggregateFactory::class,
+            Handler\ThrowableHandlerAggregate::class          => Factory\ThrowableHandlerAggregateFactory::class,
             Handler\DispatchErrorEventThrowableHandler::class => Factory\DispatchErrorEventThrowableHandlerFactory::class,
             Handler\DispatchThrowableHandler::class           => Factory\DispatchThrowableHandlerFactory::class,
+            Message\ThrowableResponseFactory::class           => Factory\ThrowableResponseFactoryFactory::class,
+            Message\ThrowableStreamFactory::class             => Factory\ThrowableStreamFactoryFactory::class,
+            Middleware\ErrorHandlerMiddleware::class          => Factory\ErrorHandlerMiddlewareFactory::class,
         ];
     }
 }

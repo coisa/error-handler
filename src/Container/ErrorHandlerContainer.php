@@ -99,6 +99,8 @@ final class ErrorHandlerContainer implements ContainerInterface
             throw new Exception\NotFoundException(\sprintf('Factory for class %s was not found', $id));
         }
 
-        return new $this->factories[$id];
+        $factory = $this->factories[$id];
+
+        return \is_callable($factory) ? $factory : new $factory;
     }
 }

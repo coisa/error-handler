@@ -56,13 +56,24 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
      */
     public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
     {
-        // @TODO change to HTTP code
         $code    = $throwable->getCode();
         $message = $throwable->getMessage();
 
-        $response = $this->responseFactory->createResponse($code, $message);
+        $statusCode = $this->getStatusCode($code);
+
+        $response = $this->responseFactory->createResponse($statusCode, $message);
         $stream   = $this->streamFactory->createStreamFromThrowable($throwable);
 
         return $response->withBody($stream);
+    }
+
+    /**
+     * @param int $code
+     *
+     * @return int
+     */
+    private function getStatusCode(int $code): int
+    {
+        return $code >= 400 && $code <= 500 ? $code : 500;
     }
 }

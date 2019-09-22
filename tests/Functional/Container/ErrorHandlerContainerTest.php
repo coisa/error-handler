@@ -16,7 +16,6 @@ namespace CoiSA\ErrorHandler\Test\Functional\Container;
 use CoiSA\ErrorHandler\Container\ConfigProvider;
 use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\Exception\ErrorException;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
@@ -24,13 +23,22 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
+use CoiSA\ErrorHandler\Exception\ErrorException;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\Test\Log\AssertThrowableTestCaseLogger;
+use CoiSA\Http\Handler\CallableHandler;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Zend\Diactoros\ResponseFactory;
+use Zend\Diactoros\ServerRequest;
+use Zend\Diactoros\StreamFactory;
 use Zend\ServiceManager\ServiceManager;
 
 /**
@@ -59,6 +67,9 @@ final class ErrorHandlerContainerTest extends TestCase
 
         $this->listenerProvider = new ListenerProviderAggregate();
         $this->eventDispatcher  = new EventDispatcher($this->listenerProvider);
+
+        $this->serviceManager->setService(ResponseFactoryInterface::class, new ResponseFactory());
+        $this->serviceManager->setService(StreamFactoryInterface::class, new StreamFactory());
     }
 
     public function provideServiceProviderClassNames()
@@ -156,7 +167,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler->handleThrowable($exception);
     }
 
-    public function testErrorHandlerRespectErrorReporting()
+    public function testErrorHandlerRespectErrorReporting(): void
     {
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
             $this->assertTrue(false);
@@ -166,14 +177,14 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler = $this->container->get(ErrorHandler::class);
         $errorHandler->register();
 
-        $oldLevel = error_reporting(E_ALL ^ E_USER_NOTICE);
-        trigger_error('Test error reporting', E_USER_NOTICE);
-        error_reporting($oldLevel);
+        $oldLevel = \error_reporting(E_ALL ^ E_USER_NOTICE);
+        \trigger_error('Test error reporting', E_USER_NOTICE);
+        \error_reporting($oldLevel);
 
         $this->assertTrue(true);
     }
 
-    public function testThrowErrorExceptionPhpErrorHandlerThrowErrorException()
+    public function testThrowErrorExceptionPhpErrorHandlerThrowErrorException(): void
     {
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
             $this->assertInstanceOf(ErrorException::class, $throwable);
@@ -184,5 +195,38 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler->register();
 
         \trigger_error('Test user error', E_USER_ERROR);
+    }
+
+    public function testErrorHandlerMiddlewareHandleRequestException()
+    {
+        $exception = new \InvalidArgumentException(\uniqid('test', true), \random_int(400, 500));
+
+        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable): void {
+            echo \json_encode([
+                'code' => $throwable->getCode(),
+                'message' => $throwable->getMessage(),
+            ]);
+        });
+        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
+        $serverRequest = new ServerRequest();
+        $requestHandler = new CallableHandler(function () use ($exception) {
+            throw $exception;
+        });
+
+        $middleware = $this->container->get(ErrorHandlerMiddleware::class);
+        $response = $middleware->process($serverRequest, $requestHandler);
+
+        $this->assertInstanceOf(ResponseInterface::class, $response);
+        $this->assertSame($exception->getCode(), $response->getStatusCode());
+
+        $body = \json_decode((string) $response->getBody(), true);
+
+        $this->assertIsArray($body);
+        $this->assertSame($exception->getCode(), $body['code']);
+        $this->assertSame($exception->getMessage(), $body['message']);
     }
 }
