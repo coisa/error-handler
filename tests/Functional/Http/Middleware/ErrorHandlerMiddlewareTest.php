@@ -32,32 +32,32 @@ use Zend\Diactoros\StreamFactory;
  */
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
-    public function testErrorHandlerMiddlewareHandleRequestException()
+    public function testErrorHandlerMiddlewareHandleRequestException(): void
     {
         $exception = new \InvalidArgumentException(\uniqid('test', true), \random_int(400, 500));
 
         $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable): void {
             echo \json_encode([
-                'code' => $throwable->getCode(),
+                'code'    => $throwable->getCode(),
                 'message' => $throwable->getMessage(),
             ]);
         });
 
-        $streamFactory = new StreamFactory();
+        $streamFactory  = new StreamFactory();
         $reponseFactory = new ResponseFactory();
-        $serverRequest = new ServerRequest();
+        $serverRequest  = new ServerRequest();
 
-        $requestHandler = new CallableHandler(function () use ($exception) {
+        $requestHandler = new CallableHandler(function () use ($exception): void {
             throw $exception;
         });
 
         $errorHandler = new ErrorHandler($callableThrowableHandler);
 
-        $throwableStreamFactory = new ThrowableStreamFactory($streamFactory, $callableThrowableHandler);
+        $throwableStreamFactory   = new ThrowableStreamFactory($streamFactory, $callableThrowableHandler);
         $throwableResponseFactory = new ThrowableResponseFactory($throwableStreamFactory, $reponseFactory);
 
         $middleware = new ErrorHandlerMiddleware($errorHandler, $throwableResponseFactory);
-        $response = $middleware->process($serverRequest, $requestHandler);
+        $response   = $middleware->process($serverRequest, $requestHandler);
 
         $this->assertInstanceOf(ResponseInterface::class, $response);
         $this->assertSame($exception->getCode(), $response->getStatusCode());

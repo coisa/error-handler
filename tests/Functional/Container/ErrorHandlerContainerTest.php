@@ -197,13 +197,13 @@ final class ErrorHandlerContainerTest extends TestCase
         \trigger_error('Test user error', E_USER_ERROR);
     }
 
-    public function testErrorHandlerMiddlewareHandleRequestException()
+    public function testErrorHandlerMiddlewareHandleRequestException(): void
     {
         $exception = new \InvalidArgumentException(\uniqid('test', true), \random_int(400, 500));
 
         $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable): void {
             echo \json_encode([
-                'code' => $throwable->getCode(),
+                'code'    => $throwable->getCode(),
                 'message' => $throwable->getMessage(),
             ]);
         });
@@ -212,13 +212,13 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler = $this->container->get(ErrorHandler::class);
         $errorHandler->register();
 
-        $serverRequest = new ServerRequest();
-        $requestHandler = new CallableHandler(function () use ($exception) {
+        $serverRequest  = new ServerRequest();
+        $requestHandler = new CallableHandler(function () use ($exception): void {
             throw $exception;
         });
 
         $middleware = $this->container->get(ErrorHandlerMiddleware::class);
-        $response = $middleware->process($serverRequest, $requestHandler);
+        $response   = $middleware->process($serverRequest, $requestHandler);
 
         $this->assertInstanceOf(ResponseInterface::class, $response);
         $this->assertSame($exception->getCode(), $response->getStatusCode());
