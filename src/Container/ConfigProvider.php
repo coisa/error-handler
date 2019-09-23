@@ -13,10 +13,17 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container;
 
+use CoiSA\ErrorHandler\Container\Factory\AliasFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\Handler;
-use CoiSA\ErrorHandler\Http\Message;
-use CoiSA\ErrorHandler\Http\Middleware;
+use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
+use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
+use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 
 /**
  * Class ConfigProvider
@@ -51,17 +58,16 @@ final class ConfigProvider
     public function getFactories(): array
     {
         return [
-            Handler\ThrowableHandlerInterface::class          => new Factory\AliasFactory(Handler\ThrowableHandlerAggregate::class),
-            Message\ThrowableResponseFactoryInterface::class  => new Factory\AliasFactory(Message\ThrowableResponseFactory::class),
-            Message\ThrowableStreamFactoryInterface::class    => new Factory\AliasFactory(Message\ThrowableStreamFactory::class),
-
-            ErrorHandler::class                               => Factory\ErrorHandlerFactory::class,
-            Handler\ThrowableHandlerAggregate::class          => Factory\ThrowableHandlerAggregateFactory::class,
-            Handler\DispatchErrorEventThrowableHandler::class => Factory\DispatchErrorEventThrowableHandlerFactory::class,
-            Handler\DispatchThrowableHandler::class           => Factory\DispatchThrowableHandlerFactory::class,
-            Message\ThrowableResponseFactory::class           => Factory\ThrowableResponseFactoryFactory::class,
-            Message\ThrowableStreamFactory::class             => Factory\ThrowableStreamFactoryFactory::class,
-            Middleware\ErrorHandlerMiddleware::class          => Factory\ErrorHandlerMiddlewareFactory::class,
+            ErrorHandler::class                       => Factory\ErrorHandlerFactory::class,
+            ErrorHandlerMiddleware::class             => Factory\ErrorHandlerMiddlewareFactory::class,
+            DispatchErrorEventThrowableHandler::class => Factory\DispatchErrorEventThrowableHandlerFactory::class,
+            DispatchThrowableHandler::class           => Factory\DispatchThrowableHandlerFactory::class,
+            ThrowableHandlerAggregate::class          => Factory\ThrowableHandlerAggregateFactory::class,
+            ThrowableHandlerInterface::class          => new AliasFactory(ThrowableHandlerAggregate::class),
+            ThrowableResponseFactory::class           => Factory\ThrowableResponseFactoryFactory::class,
+            ThrowableResponseFactoryInterface::class  => new AliasFactory(ThrowableResponseFactory::class),
+            ThrowableStreamFactory::class             => Factory\ThrowableStreamFactoryFactory::class,
+            ThrowableStreamFactoryInterface::class    => new AliasFactory(ThrowableStreamFactory::class),
         ];
     }
 }

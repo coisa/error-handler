@@ -6,5 +6,6 @@ vendor/
 *.cache
 *.yml
 phpcs.xml
+phpstan.neon
 Dockerfile
 README.md

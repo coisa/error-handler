@@ -17,7 +17,6 @@ use CoiSA\ErrorHandler\Container\ConfigProvider;
 use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
-use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
@@ -109,7 +108,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception): void {
+        $callableThrowableHandler = new CallableThrowableHandler(function ($throwable) use ($exception): void {
             $this->assertSame($exception, $throwable);
         });
         $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
@@ -125,7 +124,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable) use ($exception): void {
+        $callableThrowableHandler = new CallableThrowableHandler(function ($throwable) use ($exception): void {
             $this->assertSame($exception, $throwable);
         });
         $this->serviceManager->setService(CallableThrowableHandler::class, $callableThrowableHandler);
@@ -141,7 +140,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $message   = \uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $errorEventCallableListener = new ErrorEventCallableListener(function (ErrorEventInterface $event) use ($exception): void {
+        $errorEventCallableListener = new ErrorEventCallableListener(function ($event) use ($exception): void {
             $this->assertInstanceOf(ErrorEvent::class, $event);
             $this->assertSame($exception, $event->getThrowable());
             $this->assertSame((string) $exception, (string) $event);

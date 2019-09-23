@@ -23,7 +23,7 @@ use Psr\Container\ContainerInterface;
 final class ErrorHandlerContainer implements ContainerInterface
 {
     /**
-     * @var ContainerInterface
+     * @var null|ContainerInterface
      */
     private $container;
 

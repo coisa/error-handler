@@ -13,10 +13,8 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * Class ThrowableResponseFactory
@@ -26,7 +24,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 final class ThrowableResponseFactory implements ThrowableResponseFactoryInterface
 {
     /**
-     * @var StreamFactoryInterface
+     * @var ThrowableStreamFactoryInterface
      */
     private $streamFactory;
 
@@ -36,10 +34,10 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
     private $responseFactory;
 
     /**
-     * ThrowableStreamFactory constructor.
+     * ThrowableResponseFactory constructor.
      *
-     * @param StreamFactoryInterface    $streamFactory
-     * @param ThrowableHandlerInterface $throwableHandler
+     * @param ThrowableStreamFactoryInterface $streamFactory
+     * @param ResponseFactoryInterface        $responseFactory
      */
     public function __construct(
         ThrowableStreamFactoryInterface $streamFactory,

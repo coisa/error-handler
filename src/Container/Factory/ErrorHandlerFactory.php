@@ -34,8 +34,12 @@ final class ErrorHandlerFactory
     public function __invoke(ContainerInterface $container): ErrorHandler
     {
         $throwableHandler = $container->get(ThrowableHandlerInterface::class);
-        $phpErrorHandler  = $container->has(PhpErrorHandlerInterface::class) ? $container->get(PhpErrorHandlerInterface::class) : null;
-        $shutdownHandler  = $container->has(ShutdownHandlerInterface::class) ? $container->get(ShutdownHandlerInterface::class) : null;
+
+        $phpErrorHandler  = $container->has(PhpErrorHandlerInterface::class) ?
+            $container->get(PhpErrorHandlerInterface::class) : null;
+
+        $shutdownHandler  = $container->has(ShutdownHandlerInterface::class) ?
+            $container->get(ShutdownHandlerInterface::class) : null;
 
         return new ErrorHandler($throwableHandler, $phpErrorHandler, $shutdownHandler);
     }
