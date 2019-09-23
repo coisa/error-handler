@@ -1,9 +1,16 @@
+variables:
+  DOCKER_DRIVER: overlay2
+
+services:
+  - docker:stable-dind
+
 stages:
   - lint
   - build
   - test
 
 include:
+  - template: Container-Scanning.gitlab-ci.yml
   - template: Dependency-Scanning.gitlab-ci.yml
   - template: SAST.gitlab-ci.yml
 
@@ -21,6 +28,8 @@ phpunit:
   variables:
     APP_VERSION: $CI_BUILD_REF_SLUG
     COMPOSE_FILE: docker-compose.yml
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
     - docker-compose build
     - docker-compose run --rm phpunit
