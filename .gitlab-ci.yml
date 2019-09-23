@@ -24,8 +24,6 @@ phpunit:
     COMPOSE_FILE: docker-compose.yml
   services:
     - docker:stable-dind
-  before_script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
   script:
     - docker-compose build
     - docker-compose run --rm phpunit
