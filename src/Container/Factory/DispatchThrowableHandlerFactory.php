@@ -10,9 +10,7 @@
  */
 
 declare(strict_types=1);
-/**
- * @package CoiSA\ErrorHandler\Container\Factory
- */
+
 namespace CoiSA\ErrorHandler\Container\Factory;
 
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
