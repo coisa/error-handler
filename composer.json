@@ -40,6 +40,9 @@
         "test": "phpunit --coverage-text"
     },
     "extra": {
+        "branch-alias": {
+            "dev-v2": "2.0.x-dev"
+        },
         "zf": {
             "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
         }
