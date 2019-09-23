@@ -101,6 +101,6 @@ final class ErrorHandlerContainer implements ContainerInterface
 
         $factory = $this->factories[$id];
 
-        return \is_callable($factory) ? $factory : new $factory;
+        return \is_callable($factory) ? $factory : new $factory();
     }
 }
