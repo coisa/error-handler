@@ -25,9 +25,22 @@ final class ThrowableHandlerAggregate implements ThrowableHandlerInterface
      */
     private $handlers;
 
+    /**
+     * ThrowableHandlerAggregate constructor.
+     *
+     * @param ThrowableHandlerInterface ...$throwableHandlers
+     */
     public function __construct(ThrowableHandlerInterface ...$throwableHandlers)
     {
         $this->handlers = $throwableHandlers;
+    }
+
+    /**
+     * @param ThrowableHandlerInterface $throwableHandler
+     */
+    public function attach(ThrowableHandlerInterface $throwableHandler): void
+    {
+        $this->handlers[] = $throwableHandler;
     }
 
     /**

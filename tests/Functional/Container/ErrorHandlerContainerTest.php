@@ -154,9 +154,14 @@ final class ErrorHandlerContainerTest extends TestCase
             new AssertThrowableTestCaseLogger($this, $exception)
         );
 
-        $this->listenerProvider->attach(new ErrorEventListenerProvider($errorEventCallableListener));
-        $this->listenerProvider->attach(new ErrorEventListenerProvider($logErrorEventListener));
-        $this->listenerProvider->attach(new ThrowableListenerProvider($throwableListener));
+        $errorEventListenerProvider = new ErrorEventListenerProvider($errorEventCallableListener);
+        $errorEventListenerProvider->attach($logErrorEventListener);
+
+        $throwableListenerProvider = new ThrowableListenerProvider($throwableListener);
+        $throwableListenerProvider->attach($throwableListener);
+
+        $this->listenerProvider->attach($errorEventListenerProvider);
+        $this->listenerProvider->attach($throwableListenerProvider);
 
         $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
 

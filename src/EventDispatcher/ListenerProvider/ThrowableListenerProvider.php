@@ -38,6 +38,14 @@ final class ThrowableListenerProvider implements ListenerProviderInterface
     }
 
     /**
+     * @param callable $listener
+     */
+    public function attach(callable $listener): void
+    {
+        $this->listeners[] = $listener;
+    }
+
+    /**
      * @param object $event
      *
      * @return iterable

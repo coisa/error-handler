@@ -34,17 +34,17 @@ final class ThrowableHandlerAggregateFactory
      */
     public function __invoke(ContainerInterface $container): ThrowableHandlerAggregate
     {
-        $handlers = [];
+        $handler = new ThrowableHandlerAggregate();
 
         if ($container->has(CallableThrowableHandler::class)) {
-            $handlers[] = $container->get(CallableThrowableHandler::class);
+            $handler->attach($container->get(CallableThrowableHandler::class));
         }
 
         if ($container->has(EventDispatcherInterface::class)) {
-            $handlers[] = $container->get(DispatchThrowableHandler::class);
-            $handlers[] = $container->get(DispatchErrorEventThrowableHandler::class);
+            $handler->attach($container->get(DispatchThrowableHandler::class));
+            $handler->attach($container->get(DispatchErrorEventThrowableHandler::class));
         }
 
-        return new ThrowableHandlerAggregate(...$handlers);
+        return $handler;
     }
 }
