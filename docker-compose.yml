@@ -7,11 +7,11 @@ services:
       args:
         APP_DIR: ${APP_DIR:-/app}
         APP_VERSION: ${APP_VERSION:-latest}
-    image: registry.gitlab.com/coisa/error-handler:${APP_VERSION:-latest}
+    image: coisa/error-handler:${APP_VERSION:-latest}
     entrypoint: composer
 
   phpunit:
     depends_on:
       - composer
-    image: registry.gitlab.com/coisa/error-handler:${APP_VERSION:-latest}
+    image: coisa/error-handler:${APP_VERSION:-latest}
     command: composer test
