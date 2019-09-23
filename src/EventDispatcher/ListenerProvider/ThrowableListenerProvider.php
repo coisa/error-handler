@@ -28,7 +28,7 @@ final class ThrowableListenerProvider implements ListenerProviderInterface
     private $listeners;
 
     /**
-     * ErrorEventListenerProvider constructor.
+     * ThrowableListenerProvider constructor.
      *
      * @param callable ...$listeners
      */
