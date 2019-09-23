@@ -16,7 +16,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-v2": "2.0.x-dev"
+            "dev-master": "v2.x-dev"
         },
         "zf": {
             "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
