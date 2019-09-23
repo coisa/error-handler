@@ -23,7 +23,7 @@ interface ShutdownHandlerInterface
     /**
      * Handle shutdown events.
      * This method SHOULD handle catchable fatal errors.
-     * It MAY throw an exception delegating errors to exception handler.
+     * It MAY throw an exception delegating errors to throwable handler.
      */
     public function handleShutdown(): void;
 }

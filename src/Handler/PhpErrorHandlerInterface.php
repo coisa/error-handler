@@ -22,7 +22,7 @@ interface PhpErrorHandlerInterface
 {
     /**
      * Handle php runtime errors.
-     * This method MAY throw an exception delegating errors to exception handler.
+     * This method MAY throw an exception delegating errors to throwable handler.
      *
      * @param int    $code
      * @param string $message
