@@ -1,0 +1,7 @@
+includes:
+  - vendor/jangregor/phpstan-prophecy/src/extension.neon
+
+parameters:
+  ignoreErrors:
+    - message: '/^Parameter \#1 \$error_handler of function set_error_handler expects/'
+      path: src/ErrorHandler.php

@@ -11,22 +11,22 @@
 
 declare(strict_types=1);
 
-namespace CoiSA\ErrorHandler;
+namespace CoiSA\ErrorHandler\EventDispatcher\Event;
 
 /**
- * Interface ErrorHandlerInterface
+ * Interface ErrorEventInterface
  *
- * @package CoiSA\ErrorHandler
+ * @package CoiSA\ErrorHandler\EventDispatcher\Event
  */
-interface ErrorHandlerInterface
+interface ErrorEventInterface
 {
     /**
-     * Register error-handler
+     * @return string
      */
-    public function register(): void;
+    public function __toString(): string;
 
     /**
-     * Unregister error-handler
+     * @return \Throwable
      */
-    public function unregister(): void;
+    public function getThrowable(): \Throwable;
 }

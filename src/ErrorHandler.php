@@ -1,151 +1,141 @@
 <?php
+
 /**
- * @author Felipe Sayão Lobato Abreu <contato@felipeabreu.com.br>
- * @package CoiSA\ErrorHandler
- * @since 2017-07-24
+ * This file is part of coisa/error-handler.
+ *
+ * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler;
 
+use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\PhpLastErrorShutdownHandler;
+use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ThrowErrorExceptionPhpErrorHandler;
+
 /**
  * Class ErrorHandler
+ *
  * @package CoiSA\ErrorHandler
  */
-class ErrorHandler implements ErrorHandlerInterface
+class ErrorHandler implements
+    ErrorHandlerInterface,
+    ThrowableHandlerInterface,
+    PhpErrorHandlerInterface,
+    ShutdownHandlerInterface
 {
     /**
-     * @var callable Error handler
+     * @var PhpErrorHandlerInterface
      */
-    private $handler;
+    private $phpErrorHandler;
 
     /**
-     * @var int Error level type
+     * @var ThrowableHandlerInterface
      */
-    private $error_types;
+    private $trowableHandler;
+
+    /**
+     * @var ShutdownHandlerInterface
+     */
+    private $shutdownHandler;
 
     /**
      * @var bool
      */
-    private $prevent = false;
+    private $isRegistered = false;
 
     /**
      * ErrorHandler constructor.
      *
-     * @param callable $handler
-     * @param int $error_types
+     * @param ThrowableHandlerInterface     $throwableHandler
+     * @param null|PhpErrorHandlerInterface $phpErrorHandler
+     * @param null|ShutdownHandlerInterface $shutdownHandler
      */
-    public function __construct(callable $handler, int $error_types = E_ALL | E_STRICT)
-    {
-        ob_start();
-
-        $this->initialize($handler, $error_types);
-        $this->register();
-    }
-
-    /**
-     * Restore previous error handler
-     */
-    public function __destruct()
-    {
-        restore_error_handler();
-        restore_exception_handler();
-    }
-
-    /**
-     * Initialize object
-     *
-     * @param callable $handler
-     * @param int $error_types
-     */
-    protected function initialize(callable $handler, int $error_types): void
-    {
-        $this->handler = $handler;
-        $this->error_types = $error_types;
+    public function __construct(
+        ThrowableHandlerInterface $throwableHandler,
+        PhpErrorHandlerInterface $phpErrorHandler = null,
+        ShutdownHandlerInterface $shutdownHandler = null
+    ) {
+        $this->trowableHandler = $throwableHandler;
+        $this->phpErrorHandler = $phpErrorHandler ?? new ThrowErrorExceptionPhpErrorHandler();
+        $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandler($this);
     }
 
     /**
      * Register error handler
      */
-    private function register(): void
+    public function register(): void
     {
-        set_error_handler([$this, self::ERROR_HANDLER], $this->error_types);
-        set_exception_handler([$this, self::EXCEPTION_HANDLER]);
-        register_shutdown_function([$this, self::SHUTDOWN_HANDLER]);
+        if ($this->isRegistered) {
+            return;
+        }
+
+        \set_error_handler([$this, 'handlePhpError']);
+        \set_exception_handler([$this, 'handleThrowable']);
+        \register_shutdown_function([$this, 'handleShutdown']);
+
+        $this->isRegistered = true;
     }
 
     /**
-     * Handles php errors
+     * Unregister error-handler
+     */
+    public function unregister(): void
+    {
+        if (false === $this->isRegistered) {
+            return;
+        }
+
+        \restore_error_handler();
+        \restore_exception_handler();
+
+        $this->isRegistered = false;
+    }
+
+    /**
+     * @param \Throwable $throwable
+     */
+    public function handleThrowable(\Throwable $throwable): void
+    {
+        $this->trowableHandler->handleThrowable($throwable);
+    }
+
+    /**
+     * @param int    $code
+     * @param string $message
+     * @param string $filename
+     * @param int    $line
      *
-     * @param int $errno
-     * @param string $errstr
-     * @param string $errfile [optional]
-     * @param int $errline [optional]
-     * @return bool
      * @throws \ErrorException
      */
-    public function handleError(int $errno, string $errstr, string $errfile = null, int $errline = null): bool
+    public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
-        if (!(error_reporting() & $errno)) {
-            // This error code is not included in error_reporting, so let it fall
-            // through to the standard PHP error handler
-            return false;
-        }
-
-        throw new \ErrorException($errstr, $errno, $errno, $errfile, $errline);
-    }
-
-    /**
-     * Handles exception throws
-     *
-     * @param \Throwable $exception
-     * @throws \Throwable
-     */
-    public function handleException(\Throwable $exception): void
-    {
-        /** @var callable $handler */
-        $handler = $this->handler;
-
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
-
         try {
-            ob_start();
-
-            $signal = $handler($exception);
-            ob_end_flush();
-
-            if ($signal) {
-                // @TODO Set HTTP_CODE
-                exit($signal);
-            }
-        } catch (\Throwable $exception) {
-            while (ob_get_level()) {
-                ob_end_clean();
-            }
-
-            if ($this->prevent === false) {
-                throw $exception;
-            }
+            $this->phpErrorHandler->handlePhpError($code, $message, $filename, $line);
+        } catch (\ErrorException $throwable) {
+            $this->handleThrowable($throwable);
         }
     }
 
     /**
-     * Handles shutdown function
+     * Handle shutdown if registered
      */
     public function handleShutdown(): void
     {
-        $error = error_get_last();
+        if (false === $this->isRegistered) {
+            return;
+        }
 
-        if (!empty($error)) {
-            $this->prevent = true;
-
-            $exception = new \ErrorException(
-                $error['message'], $error['type'], $error['type'],
-                $error['file'],  $error['line']
-            );
-
-            $this->handleException($exception);
+        try {
+            $this->shutdownHandler->handleShutdown();
+        } catch (\Throwable $throwable) {
+            $this->handleThrowable($throwable);
         }
     }
 }
