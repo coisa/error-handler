@@ -7,7 +7,7 @@ include:
   - template: Dependency-Scanning.gitlab-ci.yml
   - template: SAST.gitlab-ci.yml
 
-php-lint:
+lint:
   stage: lint
   image: php:7.2-alpine
   script:
@@ -24,3 +24,5 @@ phpunit:
   script:
     - docker-compose build
     - docker-compose run --rm phpunit
+  tags:
+    - docker
