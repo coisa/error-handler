@@ -28,7 +28,7 @@ final class DispatchThrowableHandler implements ThrowableHandlerInterface
     private $eventDispatcher;
 
     /**
-     * DispatchEventThrowableHandler constructor.
+     * DispatchThrowableHandler constructor.
      *
      * @param EventDispatcherInterface $eventDispatcher
      */
