@@ -57,7 +57,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
     {
         \ob_start();
         $this->throwableHandler->handleThrowable($throwable);
-        $buffer = \ob_get_clean() ?: '';
+        $buffer = \ob_get_clean() ?: (string) $throwable;
 
         return $this->streamFactory->createStream($buffer);
     }
