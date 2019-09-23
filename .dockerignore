@@ -2,7 +2,9 @@
 .git*
 .idea/
 vendor/
+.php_cs
 *.cache
 *.yml
+phpcs.xml
 Dockerfile
 README.md
