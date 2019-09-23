@@ -18,5 +18,8 @@ reinstall: clean vendor
 clean:
 	rm -rf vendor
 
-vendor:
+/usr/local/bin/composer:
+	curl -s https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
+
+vendor: /usr/local/bin/composer
 	$(COMPOSER_BIN) install $(COMPOSER_FLAGS)

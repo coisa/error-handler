@@ -6,14 +6,18 @@ ARG APP_VERSION="latest"
 ENV APP_DIR="${APP_DIR}" \
     APP_VERSION="${APP_VERSION}"
 
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
-
 RUN apk add --update \
         make \
         git \
         zip \
         unzip \
     ;
+
+RUN apk add --no-cache $PHPIZE_DEPS && \
+    pecl install xdebug-2.6.0 && \
+    docker-php-ext-enable xdebug
+
+COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 RUN addgroup app && \
     adduser -D -h ${APP_DIR} -G app app && \
