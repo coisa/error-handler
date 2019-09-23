@@ -21,6 +21,9 @@ namespace CoiSA\ErrorHandler\Handler;
 interface PhpErrorHandlerInterface
 {
     /**
+     * Handle php runtime errors.
+     * This method MAY throw an exception delegating errors to exception handler.
+     *
      * @param int    $code
      * @param string $message
      * @param string $filename

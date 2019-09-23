@@ -21,7 +21,9 @@ namespace CoiSA\ErrorHandler\Handler;
 interface ShutdownHandlerInterface
 {
     /**
-     * Handle shutdown function
+     * Handle shutdown events.
+     * This method SHOULD handle catchable fatal errors.
+     * It MAY throw an exception delegating errors to exception handler.
      */
     public function handleShutdown(): void;
 }

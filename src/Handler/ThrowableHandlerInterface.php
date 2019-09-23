@@ -21,6 +21,8 @@ namespace CoiSA\ErrorHandler\Handler;
 interface ThrowableHandlerInterface
 {
     /**
+     * This method SHOULD NOT throw exceptions.
+     *
      * @param \Throwable $throwable
      */
     public function handleThrowable(\Throwable $throwable): void;
