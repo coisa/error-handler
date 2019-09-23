@@ -1,10 +1,17 @@
-version: '3'
+version: '3.7'
 services:
-  web:
-    build: .
-    image: coisa/error-handler
-    container_name: error-handler
-    ports:
-      - 80:8888
-    volumes:
-      - ./:/opt/project
+  composer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_DIR: ${APP_DIR:-/app}
+        APP_VERSION: ${APP_VERSION:-latest}
+    image: coisa/error-handler:${APP_VERSION:-latest}
+    entrypoint: composer
+
+  phpunit:
+    depends_on:
+      - composer
+    image: coisa/error-handler:${APP_VERSION:-latest}
+    command: composer test

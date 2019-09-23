@@ -1,0 +1,26 @@
+stages:
+  - lint
+  - build
+  - test
+
+include:
+  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: SAST.gitlab-ci.yml
+
+php-lint:
+  stage: lint
+  image: php:7.2-alpine
+  script:
+    - find . ! -path "*/vendor/*" -name "*.php" -type f -print0 | xargs -P 10 -n 1 -0 php -l;
+
+phpunit:
+  stage: test
+  image:
+    name: docker/compose:1.24.1
+    entrypoint: [""]
+  variables:
+    APP_VERSION: $CI_BUILD_REF_SLUG
+    COMPOSE_FILE: docker-compose.yml
+  script:
+    - docker-compose build
+    - docker-compose run --rm phpunit

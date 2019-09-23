@@ -1,8 +1,7 @@
-/.idea/
-/vendor/
-/tests/html/
-/tests/clover.xml
-/tests/testdox.html
-.php_cs.cache
-.phpunit.result.cache
-composer.phar
+.composer/
+.idea/
+vendor/
+tests/html/
+tests/clover.xml
+tests/testdox.html
+.*.cache

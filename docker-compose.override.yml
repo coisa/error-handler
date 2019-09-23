@@ -1,0 +1,9 @@
+version: '3.7'
+services:
+  composer:
+    volumes:
+      - ./:${APP_DIR:-/app}
+
+  phpunit:
+    volumes:
+      - ./:${APP_DIR:-/app}
