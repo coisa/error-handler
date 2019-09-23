@@ -65,6 +65,6 @@
             "phpcbf"
         ],
         "sniff": "phpcs",
-        "test": "phpunit --coverage-text"
+        "test": "phpunit --colors=always"
     }
 }
