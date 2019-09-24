@@ -17,6 +17,7 @@ use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\Container\Exception\ContainerException;
 use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
@@ -50,7 +51,8 @@ final class ErrorHandlerContainerTest extends TestCase
     public function testGetWithServiceThatThrowsExceptionWillThrowContainerException(): void
     {
         $this->innerContainer->has(ErrorHandler::class)->willReturn(false);
-        $this->innerContainer->get(ErrorHandler::class)->willThrow(\UnexpectedValueException::class);
+        $this->innerContainer->has(ThrowableHandlerInterface::class)->willReturn(true);
+        $this->innerContainer->get(ThrowableHandlerInterface::class)->willThrow(\UnexpectedValueException::class);
 
         $container = new ErrorHandlerContainer($this->innerContainer->reveal());
 
