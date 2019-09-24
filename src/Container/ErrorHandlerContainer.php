@@ -33,6 +33,11 @@ final class ErrorHandlerContainer implements ContainerInterface
     private $factories;
 
     /**
+     * @var string[]
+     */
+    private $aliases;
+
+    /**
      * @var object[]
      */
     private $instances;
@@ -44,7 +49,11 @@ final class ErrorHandlerContainer implements ContainerInterface
      */
     public function __construct(ContainerInterface $container = null)
     {
-        $this->factories = (new ConfigProvider())->getFactories();
+        $configProvider = new ConfigProvider();
+
+        $this->factories = $configProvider->getFactories();
+        $this->aliases   = $configProvider->getAliases();
+
         $this->container = $container;
     }
 
@@ -56,6 +65,7 @@ final class ErrorHandlerContainer implements ContainerInterface
     public function has($id)
     {
         return ($this->container && $this->container->has($id))
+            || \array_key_exists($id, $this->aliases)
             || \array_key_exists($id, $this->factories);
     }
 
@@ -99,8 +109,10 @@ final class ErrorHandlerContainer implements ContainerInterface
             throw new Exception\NotFoundException(\sprintf('Factory for class %s was not found', $id));
         }
 
-        $factory = $this->factories[$id];
+        if (isset($this->aliases[$id])) {
+            return new Factory\AliasFactory($this->aliases[$id]);
+        }
 
-        return \is_callable($factory) ? $factory : new $factory();
+        return new $this->factories[$id]();
     }
 }

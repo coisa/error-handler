@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container;
 
-use CoiSA\ErrorHandler\Container\Factory\AliasFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
@@ -48,7 +47,20 @@ final class ConfigProvider
     public function getDependencies(): array
     {
         return [
+            'aliases'   => $this->getAliases(),
             'factories' => $this->getFactories(),
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getAliases(): array
+    {
+        return [
+            ThrowableHandlerInterface::class         => ThrowableHandlerAggregate::class,
+            ThrowableResponseFactoryInterface::class => ThrowableResponseFactory::class,
+            ThrowableStreamFactoryInterface::class   => ThrowableStreamFactory::class,
         ];
     }
 
@@ -63,11 +75,8 @@ final class ConfigProvider
             DispatchErrorEventThrowableHandler::class => Factory\DispatchErrorEventThrowableHandlerFactory::class,
             DispatchThrowableHandler::class           => Factory\DispatchThrowableHandlerFactory::class,
             ThrowableHandlerAggregate::class          => Factory\ThrowableHandlerAggregateFactory::class,
-            ThrowableHandlerInterface::class          => new AliasFactory(ThrowableHandlerAggregate::class),
             ThrowableResponseFactory::class           => Factory\ThrowableResponseFactoryFactory::class,
-            ThrowableResponseFactoryInterface::class  => new AliasFactory(ThrowableResponseFactory::class),
             ThrowableStreamFactory::class             => Factory\ThrowableStreamFactoryFactory::class,
-            ThrowableStreamFactoryInterface::class    => new AliasFactory(ThrowableStreamFactory::class),
         ];
     }
 }
