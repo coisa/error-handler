@@ -23,7 +23,9 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\Exception\ErrorException;
+use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\Test\Log\AssertThrowableTestCaseLogger;
@@ -232,5 +234,42 @@ final class ErrorHandlerContainerTest extends TestCase
         $this->assertIsArray($body);
         $this->assertSame($exception->getCode(), $body['code']);
         $this->assertSame($exception->getMessage(), $body['message']);
+    }
+
+    public function testUnregisteredErrorHandlerHandleShutdownWillDoNothing(): void
+    {
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->handleShutdown();
+
+        $output = $this->getActualOutput();
+        $this->assertEmpty($output);
+    }
+
+    public function testErrorHandlerHandleShutdownWithErrorWillHandledByThrowableHandler(): void
+    {
+        $exception = new \InvalidArgumentException(\uniqid('test', true), \random_int(400, 500));
+
+        $callableThrowableHandler = new CallableThrowableHandler(function ($throwable) use ($exception): void {
+            $this->assertSame($exception, $throwable);
+        });
+
+        $callableShutdownHandler = new CallableShutdownHandler(function () use ($exception): void {
+            throw $exception;
+        });
+
+        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+        $this->serviceManager->setService(ShutdownHandlerInterface::class, $callableShutdownHandler);
+
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->register();
+
+        $errorHandler->handleShutdown();
+    }
+
+    public function testUnregisterNotRegisteredErrorHandlerShouldNotThrowExceptions(): void
+    {
+        $errorHandler = $this->container->get(ErrorHandler::class);
+        $errorHandler->unregister();
+        $this->assertTrue(true);
     }
 }

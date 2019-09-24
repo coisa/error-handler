@@ -21,7 +21,6 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
-use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class ErrorHandlerContainerTest
