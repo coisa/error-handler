@@ -1,34 +1,43 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of coisa/error-handler.
  *
- * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
- *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
-
-declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Handler;
 
 /**
  * Class CallableShutdownHandler
  *
+ * Handles shutdown processes by delegating execution to a provided callable.
+ * This class SHALL ensure that the callable provided during instantiation
+ * is executed during the shutdown phase.
+ *
  * @package CoiSA\ErrorHandler\Handler
  */
 final class CallableShutdownHandler implements ShutdownHandlerInterface
 {
     /**
-     * @var callable
+     * @var callable The callable handler executed during shutdown.
      */
     private $handler;
 
     /**
-     * CallableShutdownHandler constructor.
+     * Constructs a CallableShutdownHandler instance.
      *
-     * @param callable $handler
+     * This constructor SHALL accept a callable to be executed during shutdown.
+     *
+     * @param callable $handler The callable that will handle shutdown events.
      */
     public function __construct(callable $handler)
     {
@@ -36,7 +45,11 @@ final class CallableShutdownHandler implements ShutdownHandlerInterface
     }
 
     /**
-     * {@inheritDoc}
+     * Handles the shutdown process.
+     *
+     * This method SHALL invoke the provided callable handler during shutdown.
+     *
+     * @return void
      */
     public function handleShutdown(): void
     {

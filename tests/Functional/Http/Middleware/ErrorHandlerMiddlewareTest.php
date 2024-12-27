@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of coisa/error-handler.
  *
- * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
- *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
-
-declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\Container;
 
@@ -18,38 +21,49 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
-use CoiSA\Http\Handler\CallableHandler;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Zend\Diactoros\ResponseFactory;
-use Zend\Diactoros\ServerRequest;
-use Zend\Diactoros\StreamFactory;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Class ErrorHandlerMiddlewareTest
+ * Class ErrorHandlerMiddlewareTest.
  *
  * @package CoiSA\ErrorHandler\Test\Functional\Container
+ *
+ * @internal
+ * @coversNothing
  */
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
     public function testErrorHandlerMiddlewareHandleRequestException(): void
     {
-        $exception = new \InvalidArgumentException(\uniqid('test', true), \random_int(400, 500));
+        $exception = new \InvalidArgumentException(uniqid('test', true), random_int(400, 500));
 
         $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable): void {
-            echo \json_encode([
+            echo json_encode([
                 'code'    => $throwable->getCode(),
                 'message' => $throwable->getMessage(),
             ]);
         });
 
-        $streamFactory  = new StreamFactory();
-        $reponseFactory = new ResponseFactory();
-        $serverRequest  = new ServerRequest();
+        $streamFactory  = $reponseFactory = new Psr17Factory();
+        $serverRequest  = $streamFactory->createServerRequest('GET', 'http://localhost');
 
-        $requestHandler = new CallableHandler(function () use ($exception): void {
-            throw $exception;
-        });
+        $requestHandler = new class ($exception) implements RequestHandlerInterface {
+            private $exception;
+
+            public function __construct(\Throwable $exception)
+            {
+                $this->exception = $exception;
+            }
+
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                throw $this->exception;
+            }
+        };
 
         $errorHandler = new ErrorHandler($callableThrowableHandler);
 
@@ -59,13 +73,13 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $middleware = new ErrorHandlerMiddleware($errorHandler, $throwableResponseFactory);
         $response   = $middleware->process($serverRequest, $requestHandler);
 
-        $this->assertInstanceOf(ResponseInterface::class, $response);
-        $this->assertSame($exception->getCode(), $response->getStatusCode());
+        static::assertInstanceOf(ResponseInterface::class, $response);
+        static::assertSame($exception->getCode(), $response->getStatusCode());
 
-        $body = \json_decode((string) $response->getBody(), true);
+        $body = json_decode((string) $response->getBody(), true);
 
-        $this->assertIsArray($body);
-        $this->assertSame($exception->getCode(), $body['code']);
-        $this->assertSame($exception->getMessage(), $body['message']);
+        static::assertIsArray($body);
+        static::assertSame($exception->getCode(), $body['code']);
+        static::assertSame($exception->getMessage(), $body['message']);
     }
 }

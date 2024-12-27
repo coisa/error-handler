@@ -6,28 +6,28 @@
     "authors": [
         {
             "name": "Felipe Sayão Lobato Abreu",
-            "email": "github@felipeabreu.com.br"
+            "email": "github@mentordosnerds.com.br"
         }
     ],
     "config": {
         "sort-packages": true,
         "prefer-stable": true,
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "ocramius/package-versions": true
+        }
     },
     "extra": {
-        "branch-alias": {
-            "dev-master": "v2.x-dev"
-        },
-        "zf": {
+        "laminas": {
             "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
         }
     },
     "require": {
-        "php": "^7.2",
+        "php": "^7.4 || ^8.0",
         "psr/http-server-middleware": "^1.0",
-        "psr/http-factory": "^1.0",
+        "psr/http-factory": "^1.1",
         "psr/event-dispatcher": "^1.0",
-        "psr/log": "^1.1"
+        "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -40,16 +40,17 @@
         }
     },
     "require-dev": {
-        "coisa/http": "1.0.x-dev",
-        "friendsofphp/php-cs-fixer": "^2.15",
-        "jangregor/phpstan-prophecy": "^0.4.2",
+        "coisa/php-cs-fixer": "^2.1",
+        "laminas/laminas-servicemanager": "^4.3",
+        "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1",
         "phly/phly-event-dispatcher": "^1.0",
-        "phpstan/phpstan": "^0.11.16",
-        "phpstan/phpstan-strict-rules": "^0.11.1",
-        "phpunit/phpunit": "^8.3",
-        "squizlabs/php_codesniffer": "^3.4",
-        "zendframework/zend-diactoros": "^2.1",
-        "zendframework/zend-servicemanager": "^3.4"
+        "phpspec/prophecy": "^1.20",
+        "phpstan/phpstan": "^1.12",
+        "phpstan/phpstan-strict-rules": "^1.6",
+        "phpunit/phpunit": "^8.5",
+        "psr/container": "^1.0 || ^2.0",
+        "squizlabs/php_codesniffer": "^3.11"
     },
     "scripts": {
         "check": [

@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of coisa/error-handler.
  *
- * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
- *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
-
-declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\Container;
 
@@ -23,9 +26,12 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
 
 /**
- * Class ErrorHandlerContainerTest
+ * Class ErrorHandlerContainerTest.
  *
  * @package CoiSA\ErrorHandler\Test\Unit\Container
+ *
+ * @internal
+ * @coversNothing
  */
 final class ErrorHandlerContainerTest extends TestCase
 {
@@ -35,7 +41,7 @@ final class ErrorHandlerContainerTest extends TestCase
     /** @var ErrorHandlerContainer */
     private $container;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->innerContainer = $this->prophesize(ContainerInterface::class);
         $this->container      = new ErrorHandlerContainer($this->innerContainer->reveal());
@@ -44,7 +50,9 @@ final class ErrorHandlerContainerTest extends TestCase
     public function testGetWithInvalidServiceWillThrowNotFoundException(): void
     {
         $this->expectException(NotFoundException::class);
-        $this->container->get(\uniqid('test', true));
+        $index = uniqid('test', true);
+        $this->innerContainer->has($index)->willReturn(false);
+        $this->container->get($index);
     }
 
     public function testGetWithServiceThatThrowsExceptionWillThrowContainerException(): void

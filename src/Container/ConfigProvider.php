@@ -1,15 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * This file is part of coisa/error-handler.
  *
- * (c) Felipe Sayão Lobato Abreu <github@felipeabreu.com.br>
- *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
-
-declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container;
 
@@ -27,12 +30,22 @@ use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 /**
  * Class ConfigProvider
  *
+ * Provides configuration for dependency injection containers.
+ * This class SHALL define aliases, factories, and other dependencies
+ * required for the proper functioning of the error-handler library.
+ *
  * @package CoiSA\ErrorHandler\Container
  */
 final class ConfigProvider
 {
     /**
-     * @return array
+     * Invokes the configuration provider.
+     *
+     * This method SHALL return an array containing the configuration
+     * for dependency injection containers, including dependencies, aliases,
+     * and factories.
+     *
+     * @return array The configuration array.
      */
     public function __invoke(): array
     {
@@ -42,7 +55,12 @@ final class ConfigProvider
     }
 
     /**
-     * @return array
+     * Retrieves the dependencies configuration.
+     *
+     * This method SHALL define aliases and factories used for resolving
+     * dependencies in the container.
+     *
+     * @return array An array containing aliases and factories.
      */
     public function getDependencies(): array
     {
@@ -53,7 +71,12 @@ final class ConfigProvider
     }
 
     /**
-     * @return array
+     * Retrieves service aliases.
+     *
+     * This method SHALL define class aliases to allow easier resolution
+     * of services in the dependency injection container.
+     *
+     * @return array An associative array of aliases.
      */
     public function getAliases(): array
     {
@@ -65,7 +88,12 @@ final class ConfigProvider
     }
 
     /**
-     * @return array
+     * Retrieves service factories.
+     *
+     * This method SHALL define factories responsible for instantiating
+     * and configuring services in the dependency injection container.
+     *
+     * @return array An associative array of service factories.
      */
     public function getFactories(): array
     {

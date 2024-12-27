@@ -11,7 +11,7 @@
 ## Install
 
 ```sh
-$ composer require coisa/error-handler:2.x-dev
+$ composer require coisa/error-handler
 ```
 
 ## Credits
