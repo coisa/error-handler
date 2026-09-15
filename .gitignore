@@ -5,3 +5,4 @@ tests/html/
 tests/clover.xml
 tests/testdox.html
 .*.cache
+tmp/

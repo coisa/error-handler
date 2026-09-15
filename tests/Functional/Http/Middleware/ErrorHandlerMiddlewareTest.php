@@ -14,7 +14,7 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
-namespace CoiSA\ErrorHandler\Test\Functional\Container;
+namespace CoiSA\ErrorHandler\Test\Functional\Http\Middleware;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;

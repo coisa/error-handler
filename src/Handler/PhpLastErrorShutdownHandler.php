@@ -72,7 +72,7 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
      *
      * This method SHALL check if the provided error level corresponds
      * to one of the fatal error types: E_ERROR, E_PARSE, E_CORE_ERROR,
-     * E_CORE_WARNING, E_COMPILE_ERROR, E_COMPILE_WARNING.
+     * E_COMPILE_ERROR. Warnings are not fatal shutdown events.
      *
      * @param int $level The PHP error level to check.
      *
@@ -83,9 +83,7 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
         $errors = E_ERROR
             | E_PARSE
             | E_CORE_ERROR
-            | E_CORE_WARNING
-            | E_COMPILE_ERROR
-            | E_COMPILE_WARNING;
+            | E_COMPILE_ERROR;
 
         return ($level & $errors) > 0;
     }

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="CoiSA Error Handler: composable PHP error handling, documented lifecycle contracts and reproducible isolated failure tests.">
+  <title>CoiSA Error Handler — Make failure observable</title>
+  <style>
+    :root{--ink:#162b35;--muted:#52666d;--paper:#f5f6f1;--line:#d8e1dc;--accent:#087b69;--night:#112c35;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:2rem}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 system-ui,-apple-system,sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}a:focus-visible{outline:3px solid #dfa64c;outline-offset:5px}header{border-bottom:1px solid var(--line);padding:22px 6%;display:flex;justify-content:space-between;gap:2rem;align-items:center}.brand{font-weight:750;letter-spacing:-.04em;font-size:22px;text-decoration:none;color:var(--ink)}.brand span{font-family:var(--mono);color:var(--accent);margin-right:12px}header a:last-child{font-size:14px;font-weight:650}.layout{display:grid;grid-template-columns:210px minmax(0,900px);gap:60px;max-width:1290px;margin:auto;padding:60px 32px 90px}nav{position:sticky;top:28px;align-self:start;font-size:14px}nav p{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)}nav a{display:block;padding:7px 0;color:var(--muted);text-decoration:none}nav a:hover{color:var(--accent)}main{min-width:0}.eyebrow{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);font-weight:700}h1{font-size:clamp(48px,6vw,76px);line-height:1.06;letter-spacing:-.065em;margin:24px 0}h1 em{font-style:normal;color:var(--accent)}.lead{font-size:21px;line-height:1.55;max-width:720px;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:28px 0}.chip{border:1px solid var(--line);padding:5px 11px;border-radius:4px;font:12px/1.5 var(--mono);background:#fff}.notice{border-left:3px solid #be8a32;padding:12px 18px;background:#f1e9d7;font-size:14px;margin:32px 0}.terminal{background:var(--night);color:#e1f1e8;border-radius:10px;overflow:hidden;margin:30px 0}.terminal .bar{padding:12px 22px;border-bottom:1px solid #2c4750;color:#9ab6bb;font:11px/1.6 var(--mono);letter-spacing:.06em}pre{overflow:auto;padding:24px;margin:0;font:13px/1.8 var(--mono)}code{font-family:var(--mono);font-size:.85em;overflow-wrap:anywhere}pre code{font:inherit;overflow-wrap:normal}section{margin-top:64px;padding-top:32px;border-top:1px solid var(--line)}h2{font-size:32px;line-height:1.2;letter-spacing:-.04em;margin:0 0 20px}h3{font-size:18px;letter-spacing:-.02em}p{margin:12px 0 20px}.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}.card{padding:24px 22px;background:#fff;border:1px solid var(--line);border-radius:8px}.number{font:12px var(--mono);color:var(--accent)}.card h3{margin:16px 0 10px}.card p{font-size:14px;color:var(--muted);margin:0}.proof{display:grid;grid-template-columns:130px 1fr;gap:26px;background:#e4efe8;border:1px solid #c0d9cb;padding:28px;border-radius:8px;margin:26px 0}.proof strong{font:600 60px/1 var(--mono);letter-spacing:-.07em;color:#096a5c}.proof small{display:block;font:11px var(--mono);margin-top:12px;color:var(--muted)}.proof p{margin:0;font-size:16px}table{width:100%;border-collapse:collapse;font-size:14px;margin:24px 0}th{text-align:left;font:11px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}td,th{padding:13px 10px 13px 0;border-bottom:1px solid var(--line);vertical-align:top}.links{display:flex;flex-wrap:wrap;gap:12px}.links a{display:inline-block;padding:10px 16px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:14px;text-decoration:none}.links a.primary{background:var(--accent);color:white;border-color:var(--accent)}ul{padding-left:22px}li{margin:9px 0}footer{margin-top:64px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:24px}@media(max-width:900px){.layout{grid-template-columns:1fr;padding:32px 24px;gap:32px}nav{position:static;display:flex;flex-wrap:wrap;gap:8px 20px;border-bottom:1px solid var(--line);padding-bottom:18px}nav p{display:none}.flow{grid-template-columns:1fr}h1{font-size:54px}.proof{grid-template-columns:1fr}.proof strong{font-size:46px}header{padding:18px 24px}.lead{font-size:19px}section{margin-top:44px}pre{padding:18px;font-size:12px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+<header><a class="brand" href="#overview"><span>{!}</span>CoiSA / Error Handler</a><a href="https://github.com/coisa/error-handler">View source ↗</a></header>
+<div class="layout">
+  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
+  <main>
+    <div id="overview">
+      <div class="eyebrow">A small PHP library. An explicit failure contract.</div>
+      <h1>Make failure<br><em>observable.</em></h1>
+      <p class="lead">Connect PHP warnings, uncaught exceptions and shutdown errors to the reporting tools your application already uses.</p>
+      <div class="chips"><span class="chip">PHP 8.3–8.5</span><span class="chip">PSR-11 · PSR-14 · PSR-15</span><span class="chip">MIT license</span></div>
+      <div class="links"><a class="primary" href="#install">Start with the code</a><a href="#evidence">Inspect the failure tests</a></div>
+      <div class="notice"><strong>Next major · unreleased.</strong> This guide describes the modernization branch. Published version 2.0.0 has different compatibility and behavior. Review the migration guide before adoption.</div>
+    </div>
+    <section id="install">
+      <div class="eyebrow">01 / Reproduce it</div><h2>Install the development checkout.</h2>
+      <p>Use PHP 8.5 and Composer 2 for the checked-in dependency lock. Check out the pull-request branch when reviewing unmerged changes.</p>
+      <div class="terminal"><div class="bar">TERMINAL · DEVELOPMENT CHECKOUT</div><pre><code>git clone https://github.com/coisa/error-handler.git
+cd error-handler
+composer install --no-plugins --no-scripts
+composer --no-plugins check
+php examples/cli.php</code></pre></div>
+      <p>The example reports a warning, then an uncaught exception, and deliberately exits with status <code>1</code>. On PHP 8.3 or 8.4, use <code>composer update --no-plugins --no-scripts</code> first to resolve compatible development tools.</p>
+      <p><code>composer require coisa/error-handler</code> installs the published Packagist release; it does not select this unreleased work.</p>
+    </section>
+    <section id="compose">
+      <div class="eyebrow">02 / Three useful boundaries</div><h2>Keep reporting composable.</h2>
+      <div class="flow"><div class="card"><span class="number">01 — CAPTURE</span><h3>PHP callbacks</h3><p>Register for errors, uncaught throwables and shutdown. Respect suppression and restore earlier handlers.</p></div><div class="card"><span class="number">02 — REPORT</span><h3>Your reporter</h3><p>Adapt a callable, compose a sequence of reporters, or dispatch a PSR-14 event to your own listeners.</p></div><div class="card"><span class="number">03 — RESPOND</span><h3>HTTP middleware</h3><p>Use PSR-15 and PSR-17 to turn a downstream throwable into a response with a controlled public body.</p></div></div>
+      <div class="terminal"><div class="bar">PHP · LOAD COMPOSER AUTOLOAD FIRST</div><pre><code>use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+
+$reporter = new CallableThrowableHandler(
+    static function (Throwable $error): void {
+        error_log($error-&gt;getMessage());
+    }
+);
+
+$errors = new ErrorHandler($reporter);
+$errors-&gt;register();</code></pre></div>
+      <p>Keep diagnostic output in an appropriate private sink. A reporter that emits nothing produces the generic HTTP body <code>Internal Server Error</code>.</p>
+    </section>
+    <section id="behavior">
+      <div class="eyebrow">03 / Observable behavior</div><h2>Know what each boundary does.</h2>
+      <table><thead><tr><th>Input or operation</th><th>Result</th></tr></thead><tbody><tr><td>Reportable warning</td><td>One error exception; execution continues.</td></tr><tr><td><code>@</code> or an excluded severity</td><td>The default reporter does not receive the warning.</td></tr><tr><td>Uncaught throwable</td><td>Report the original object; exit 1 when reporting returns.</td></tr><tr><td>Direct <code>handleThrowable()</code></td><td>Report and return; the caller controls execution.</td></tr><tr><td>Nested registrations</td><td>Unwind in reverse order; only the active handler reports shutdown.</td></tr><tr><td>Reporter failure or recursion</td><td>Stop retrying that reporter and propagate the failure.</td></tr><tr><td>HTTP error response</td><td>Preserve integer codes 400–599; otherwise use 500. No exception text in the reason phrase.</td></tr></tbody></table>
+      <p><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Read the complete API and composition guide ↗</a></p>
+    </section>
+    <section id="evidence">
+      <div class="eyebrow">04 / Exercise the failure path</div><h2>A test should survive the crash.</h2>
+      <div class="proof"><div><strong>20</strong><small>ISOLATED SCENARIOS</small></div><p>Real warnings, throwable failures, compile fatals, allocation failure, registration cycles and reporter recursion run in child processes. Each child has a five-second deadline, a 16 MiB memory limit and a 256 KiB output cap.</p></div>
+      <p>The runner checks delivery counts, ordering, throwable classes, stderr and exact exit status. Separate integration tests exercise PSR composition and real HTTP 500/503 responses through a loopback-only server.</p>
+      <div class="terminal"><div class="bar">RUN THE EVIDENCE YOURSELF</div><pre><code>php tests/Fire/run.php
+composer --no-plugins test
+php tests/Http/run.php</code></pre></div>
+      <div class="links"><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Platforms, baseline &amp; limits ↗</a><a href="https://github.com/coisa/error-handler/actions/workflows/ci.yml">Inspect the exact CI run ↗</a></div>
+    </section>
+    <section id="migration">
+      <div class="eyebrow">05 / Move deliberately</div><h2>Upgrade as a major release.</h2>
+      <ul><li>Raise the runtime to PHP 8.3 or newer.</li><li>Expect failure exit status 1 after a reported uncaught exception.</li><li>Unregister handlers in reverse order; use distinct instances for nested middleware.</li><li>Review the generic HTTP fallback and standard reason phrases.</li><li>Replace the old PHP 7.2 development container with the current Compose test service.</li></ul>
+      <p><a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">Read the 2.0 migration guide ↗</a></p>
+    </section>
+    <section id="limits">
+      <div class="eyebrow">06 / What this evidence means</div><h2>Reporting is not recovery.</h2>
+      <p>A shutdown callback cannot rescue startup errors, a killed process or every real-world out-of-memory condition. It does not restart the application or guarantee delivery to a remote logger.</p>
+      <p>Local evidence covers macOS and Linux arm64 CLI runtimes, plus PHP's built-in HTTP server. PHP-FPM, Apache, Windows, concurrent request runtimes and production load need application-specific validation. Use the recorded platform details and the current commit's CI results.</p>
+    </section>
+    <footer>CoiSA Error Handler · Felipe Sayão Lobato Abreu · MIT<br>Static documentation. PHP execution belongs in your application, not on GitHub Pages.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,11 +1,7 @@
 .composer/
-.git*
+.git/
+.github/
 .idea/
 vendor/
-.php_cs
+tmp/
 *.cache
-*.yml
-phpcs.xml
-phpstan.neon
-Dockerfile
-README.md

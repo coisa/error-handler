@@ -28,6 +28,7 @@ use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
  * to a parent container when configured.
  *
  * @package CoiSA\ErrorHandler\Container
+ * @phpstan-import-type Factories from ConfigProvider
  */
 final class ErrorHandlerContainer implements ContainerInterface
 {
@@ -37,7 +38,7 @@ final class ErrorHandlerContainer implements ContainerInterface
     private ?ContainerInterface $container;
 
     /**
-     * @var string[] List of factories mapped to their service IDs.
+     * @var Factories List of factories mapped to their service IDs.
      */
     private array $factories;
 
@@ -47,7 +48,7 @@ final class ErrorHandlerContainer implements ContainerInterface
     private array $aliases;
 
     /**
-     * @var object[] Cached instances of resolved services.
+     * @var array<string, mixed> Cached services, including values delegated through aliases.
      */
     private array $instances = [];
 
@@ -97,7 +98,7 @@ final class ErrorHandlerContainer implements ContainerInterface
      *
      * @return mixed The resolved service instance.
      */
-    public function get(string $id)
+    public function get(string $id): mixed
     {
         if ($this->container && $this->container->has($id)) {
             return $this->container->get($id);
@@ -139,6 +140,11 @@ final class ErrorHandlerContainer implements ContainerInterface
             return new Factory\AliasFactory($this->aliases[$id]);
         }
 
-        return new $this->factories[$id]();
+        $factory = new $this->factories[$id]();
+        if (!is_callable($factory)) {
+            throw new ContainerException(sprintf('Factory for class %s is not callable', $id));
+        }
+
+        return $factory;
     }
 }

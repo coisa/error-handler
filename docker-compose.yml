@@ -1,17 +1,11 @@
-version: '3.7'
 services:
-  composer:
+  tests:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_DIR: ${APP_DIR:-/app}
-        APP_VERSION: ${APP_VERSION:-latest}
-    image: coisa/error-handler:${APP_VERSION:-latest}
-    entrypoint: composer
-
-  phpunit:
-    depends_on:
-      - composer
-    image: coisa/error-handler:${APP_VERSION:-latest}
-    command: composer test
+        PHP_VERSION: ${PHP_VERSION:-8.3}
+    network_mode: none
+    mem_limit: 512m
+    cpus: 2
+    pids_limit: 64

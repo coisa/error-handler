@@ -57,8 +57,8 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
     /**
      * Creates a PSR-7 response from a throwable instance.
      *
-     * This method SHALL create a response using the provided throwable's code and message,
-     * set the HTTP status code appropriately, and include the throwable details in the body.
+     * This method SHALL map the throwable's code to an HTTP status, use the factory's
+     * standard reason phrase, and include the stream factory's public response body.
      *
      * @param \Throwable $throwable The throwable to convert into an HTTP response.
      *
@@ -67,11 +67,9 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
     public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
     {
         $code = $throwable->getCode();
-        $message = $throwable->getMessage();
-
         $statusCode = $this->getStatusCode($code);
 
-        $response = $this->responseFactory->createResponse($statusCode, $message);
+        $response = $this->responseFactory->createResponse($statusCode);
         $stream = $this->streamFactory->createStreamFromThrowable($throwable);
 
         return $response->withBody($stream);
@@ -80,15 +78,15 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
     /**
      * Determines the HTTP status code based on the throwable code.
      *
-     * This method SHALL return the throwable code if it falls within the 400–500 range.
+     * This method SHALL return an integer throwable code in the 400–599 range.
      * Otherwise, it SHALL return a default status code of 500.
      *
-     * @param int $code The throwable code.
+     * @param int|string $code The throwable code (PDO can use a SQLSTATE string).
      *
      * @return int The HTTP status code to use in the response.
      */
-    private function getStatusCode(int $code): int
+    private function getStatusCode(int|string $code): int
     {
-        return ($code >= 400 && $code <= 500) ? $code : 500;
+        return (is_int($code) && $code >= 400 && $code <= 599) ? $code : 500;
     }
 }

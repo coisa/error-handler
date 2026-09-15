@@ -56,6 +56,16 @@ final class ErrorHandler implements
      */
     private bool $isRegistered = false;
 
+    private bool $shutdownRegistered = false;
+
+    private bool $isHandlingThrowable = false;
+
+    private bool $handlerFailed = false;
+
+    private \Closure $errorCallback;
+
+    private \Closure $exceptionCallback;
+
     /**
      * Constructs the ErrorHandler.
      *
@@ -73,6 +83,8 @@ final class ErrorHandler implements
         $this->throwableHandler = $throwableHandler;
         $this->phpErrorHandler = $phpErrorHandler ?? new ThrowErrorExceptionPhpErrorHandler();
         $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandler($this);
+        $this->errorCallback = $this->onPhpError(...);
+        $this->exceptionCallback = $this->onUncaughtThrowable(...);
     }
 
     /**
@@ -87,10 +99,14 @@ final class ErrorHandler implements
             return;
         }
 
-        set_error_handler([$this, 'handlePhpError']);
-        set_exception_handler([$this, 'handleThrowable']);
-        register_shutdown_function([$this, 'handleShutdown']);
+        set_error_handler($this->errorCallback);
+        set_exception_handler($this->exceptionCallback);
+        if (!$this->shutdownRegistered) {
+            register_shutdown_function([$this, 'handleShutdown']);
+            $this->shutdownRegistered = true;
+        }
 
+        $this->handlerFailed = false;
         $this->isRegistered = true;
     }
 
@@ -103,6 +119,10 @@ final class ErrorHandler implements
     {
         if (!$this->isRegistered) {
             return;
+        }
+
+        if (!$this->hasActiveCallbacks()) {
+            throw new \LogicException('Error handlers must be unregistered in reverse registration order.');
         }
 
         restore_error_handler();
@@ -118,7 +138,22 @@ final class ErrorHandler implements
      */
     public function handleThrowable(\Throwable $throwable): void
     {
-        $this->throwableHandler->handleThrowable($throwable);
+        if ($this->isHandlingThrowable) {
+            throw new \LogicException('Recursive throwable handling is not supported.', 0, $throwable);
+        }
+        if ($this->handlerFailed) {
+            throw $throwable;
+        }
+
+        $this->isHandlingThrowable = true;
+        try {
+            $this->throwableHandler->handleThrowable($throwable);
+        } catch (\Throwable $failure) {
+            $this->handlerFailed = true;
+            throw $failure;
+        } finally {
+            $this->isHandlingThrowable = false;
+        }
     }
 
     /**
@@ -145,11 +180,11 @@ final class ErrorHandler implements
     /**
      * Handles shutdown events.
      *
-     * Ensures graceful shutdown and captures any remaining errors.
+     * Reports observable fatal errors or custom shutdown notifications while active.
      */
     public function handleShutdown(): void
     {
-        if (!$this->isRegistered) {
+        if (!$this->isRegistered || $this->handlerFailed || !$this->hasActiveCallbacks()) {
             return;
         }
 
@@ -158,5 +193,31 @@ final class ErrorHandler implements
         } catch (\Throwable $throwable) {
             $this->handleThrowable($throwable);
         }
+    }
+
+    private function onPhpError(int $code, string $message, string $filename, int $line): bool
+    {
+        $this->handlePhpError($code, $message, $filename, $line);
+
+        return true;
+    }
+
+    private function hasActiveCallbacks(): bool
+    {
+        // Probe without changing the existing stacks or their error-level masks.
+        $currentErrorHandler = set_error_handler(static fn (): bool => false);
+        restore_error_handler();
+        $currentExceptionHandler = set_exception_handler(static function (\Throwable $error): void {
+        });
+        restore_exception_handler();
+
+        return $currentErrorHandler === $this->errorCallback
+            && $currentExceptionHandler === $this->exceptionCallback;
+    }
+
+    private function onUncaughtThrowable(\Throwable $throwable): never
+    {
+        $this->handleThrowable($throwable);
+        exit(1);
     }
 }

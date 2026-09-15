@@ -37,6 +37,8 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -80,20 +82,25 @@ final class ErrorHandlerContainerTest extends TestCase
         $this->serviceManager->setService(StreamFactoryInterface::class, $factory);
     }
 
-    public function provideServiceProviderClassNames()
+    protected function tearDown(): void
+    {
+        $this->container->get(ErrorHandler::class)->unregister();
+    }
+
+    public static function provideServiceProviderClassNames(): array
     {
         $factories = (new ConfigProvider())->getFactories();
 
         return array_chunk(array_keys($factories), 1);
     }
 
-    /** @dataProvider provideServiceProviderClassNames */
+    #[DataProvider('provideServiceProviderClassNames')]
     public function testContainerHasConfigProviderFactories(string $service): void
     {
         static::assertTrue($this->container->has($service));
     }
 
-    /** @dataProvider provideServiceProviderClassNames */
+    #[DataProvider('provideServiceProviderClassNames')]
     public function testContainerProvideConfigProviderFactories(string $service): void
     {
         $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
@@ -197,6 +204,7 @@ final class ErrorHandlerContainerTest extends TestCase
         static::assertTrue(true);
     }
 
+    #[WithoutErrorHandler]
     public function testThrowErrorExceptionPhpErrorHandlerThrowErrorException(): void
     {
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
@@ -207,7 +215,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler = $this->container->get(ErrorHandler::class);
         $errorHandler->register();
 
-        trigger_error('Test user error', E_USER_ERROR);
+        trigger_error('Test user warning', E_USER_WARNING);
     }
 
     public function testErrorHandlerMiddlewareHandleRequestException(): void
@@ -255,11 +263,9 @@ final class ErrorHandlerContainerTest extends TestCase
 
     public function testUnregisteredErrorHandlerHandleShutdownWillDoNothing(): void
     {
+        $this->expectOutputString('');
         $errorHandler = $this->container->get(ErrorHandler::class);
         $errorHandler->handleShutdown();
-
-        $output = $this->getActualOutput();
-        static::assertEmpty($output);
     }
 
     public function testErrorHandlerHandleShutdownWithErrorWillHandledByThrowableHandler(): void

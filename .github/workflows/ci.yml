@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            dependencies: lowest
+          - php: '8.3'
+            dependencies: highest
+          - php: '8.4'
+            dependencies: highest
+          - php: '8.5'
+            dependencies: locked
+          - php: '8.5'
+            dependencies: highest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, mbstring, xml, xmlwriter, pdo
+          coverage: none
+          tools: composer:v2
+      - run: composer validate --strict --no-plugins
+      - if: matrix.dependencies == 'locked'
+        run: composer install --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+      - if: matrix.dependencies == 'highest'
+        run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+      - if: matrix.dependencies == 'lowest'
+        run: composer update --prefer-lowest --prefer-stable --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+      - run: composer --no-plugins check
+      - name: Verify the documented CLI example
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          result = subprocess.run(['php', 'examples/cli.php'], capture_output=True, text=True, timeout=5)
+          assert result.returncode == 1 and result.stdout == ''
+          assert 'Example warning' in result.stderr and 'Example uncaught exception' in result.stderr
+          PY
+      - name: Verify production-only autoload
+        run: |
+          composer install --no-dev --no-plugins --no-scripts --no-interaction --no-progress
+          php -r 'require "vendor/autoload.php"; new CoiSA\ErrorHandler\Container\ErrorHandlerContainer();'

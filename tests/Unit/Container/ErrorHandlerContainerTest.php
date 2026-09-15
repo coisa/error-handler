@@ -22,7 +22,7 @@ use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
-use Prophecy\Prophecy\ObjectProphecy;
+use PHPUnit\Framework\MockObject\Stub;
 use Psr\Container\ContainerInterface;
 
 /**
@@ -35,7 +35,7 @@ use Psr\Container\ContainerInterface;
  */
 final class ErrorHandlerContainerTest extends TestCase
 {
-    /** @var ContainerInterface|ObjectProphecy */
+    /** @var ContainerInterface&Stub */
     private $innerContainer;
 
     /** @var ErrorHandlerContainer */
@@ -43,25 +43,27 @@ final class ErrorHandlerContainerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->innerContainer = $this->prophesize(ContainerInterface::class);
-        $this->container      = new ErrorHandlerContainer($this->innerContainer->reveal());
+        $this->innerContainer = $this->createStub(ContainerInterface::class);
+        $this->container      = new ErrorHandlerContainer($this->innerContainer);
     }
 
     public function testGetWithInvalidServiceWillThrowNotFoundException(): void
     {
         $this->expectException(NotFoundException::class);
         $index = uniqid('test', true);
-        $this->innerContainer->has($index)->willReturn(false);
+        $this->innerContainer->method('has')->willReturn(false);
         $this->container->get($index);
     }
 
     public function testGetWithServiceThatThrowsExceptionWillThrowContainerException(): void
     {
-        $this->innerContainer->has(ErrorHandler::class)->willReturn(false);
-        $this->innerContainer->has(ThrowableHandlerInterface::class)->willReturn(true);
-        $this->innerContainer->get(ThrowableHandlerInterface::class)->willThrow(\UnexpectedValueException::class);
+        $this->innerContainer->method('has')->willReturnMap([
+            [ErrorHandler::class, false],
+            [ThrowableHandlerInterface::class, true],
+        ]);
+        $this->innerContainer->method('get')->willThrowException(new \UnexpectedValueException());
 
-        $container = new ErrorHandlerContainer($this->innerContainer->reveal());
+        $container = new ErrorHandlerContainer($this->innerContainer);
 
         $this->expectException(ContainerException::class);
         $container->get(ErrorHandler::class);

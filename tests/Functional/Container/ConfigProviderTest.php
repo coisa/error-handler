@@ -23,6 +23,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -68,33 +69,33 @@ final class ConfigProviderTest extends TestCase
         $serviceManager->setService(StreamFactoryInterface::class, $factory);
     }
 
-    public function provideContainerDependenciesClassNames(): array
+    public static function provideContainerDependenciesClassNames(): array
     {
         $dependencies = (new ConfigProvider())->getDependencies();
 
         return array_chunk(array_keys(array_merge(...array_values($dependencies))), 1);
     }
 
-    /** @dataProvider provideContainerDependenciesClassNames */
+    #[DataProvider('provideContainerDependenciesClassNames')]
     public function testServiceManagerHasConfigProviderDependencies(string $className): void
     {
         static::assertTrue($this->serviceManager->has($className));
     }
 
-    /** @dataProvider provideContainerDependenciesClassNames */
+    #[DataProvider('provideContainerDependenciesClassNames')]
     public function testContainerWithServiceManagerHasConfigProviderDependencies(string $className): void
     {
         static::assertTrue($this->container->has($className));
     }
 
-    /** @dataProvider provideContainerDependenciesClassNames */
+    #[DataProvider('provideContainerDependenciesClassNames')]
     public function testContainerWithoutServiceManagerHasConfigProviderDependencies(string $className): void
     {
         $container = new ErrorHandlerContainer();
         static::assertTrue($container->has($className));
     }
 
-    public function provideContainerDependenciesWithInstanceType(): array
+    public static function provideContainerDependenciesWithInstanceType(): array
     {
         $dependencies = (new ConfigProvider())->getDependencies();
         $classNames   = array_keys(array_merge(...array_values($dependencies)));
@@ -109,33 +110,27 @@ final class ConfigProviderTest extends TestCase
         }, $classNames);
     }
 
-    /**
-     * @dataProvider provideContainerDependenciesWithInstanceType
-     */
+    #[DataProvider('provideContainerDependenciesWithInstanceType')]
     public function testServiceManagerCanCreateDependecyThatImplements(string $className, string $instanceOf): void
     {
         $object = $this->serviceManager->get($className);
         static::assertInstanceOf($instanceOf, $object);
     }
 
-    /**
-     * @dataProvider provideContainerDependenciesWithInstanceType
-     */
+    #[DataProvider('provideContainerDependenciesWithInstanceType')]
     public function testContainerCanCreateDependecyThatImplements(string $className, string $instanceOf): void
     {
         $object = $this->container->get($className);
         static::assertInstanceOf($instanceOf, $object);
     }
 
-    /**
-     * @dataProvider provideContainerDependenciesWithInstanceType
-     */
+    #[DataProvider('provideContainerDependenciesWithInstanceType')]
     public function testWithCleanServiceManagerCanCreateDependecyThatImplements(
         string $className,
         string $instanceOf
     ): void {
         $serviceManager = new ServiceManager();
-        $container      = new ErrorHandlerContainer($this->serviceManager);
+        $container      = new ErrorHandlerContainer($serviceManager);
 
         $this->setUpServiceManager($serviceManager);
 

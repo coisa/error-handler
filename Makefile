@@ -1,25 +1,18 @@
-COMPOSER_BIN := composer
+COMPOSER_BIN ?= composer
 
-COMPOSER_FLAGS := --prefer-dist \
-				--no-scripts \
-				--no-progress \
-				--no-suggest \
-				--optimize-autoloader \
-				--no-ansi \
-				--no-interaction \
-				--no-plugins
+.PHONY: install check test fire-test http-test
 
-.PHONY: install uninstall reinstall clean vendor
+install:
+	$(COMPOSER_BIN) install --no-plugins --no-scripts --no-interaction --prefer-dist
 
-install: vendor
-uninstall: clean
-reinstall: clean vendor
+check:
+	$(COMPOSER_BIN) --no-plugins check
 
-clean:
-	rm -rf vendor
+test:
+	$(COMPOSER_BIN) --no-plugins test
 
-/usr/local/bin/composer:
-	curl -s https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
+fire-test:
+	php tests/Fire/run.php
 
-vendor: /usr/local/bin/composer
-	$(COMPOSER_BIN) install $(COMPOSER_FLAGS)
+http-test:
+	php tests/Http/run.php

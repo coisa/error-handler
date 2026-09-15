@@ -63,13 +63,24 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * @param \Throwable $throwable The throwable instance to process.
      *
-     * @return StreamInterface The resulting PSR-7 stream containing throwable details.
+     * @return StreamInterface The rendered response body or a generic fallback.
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
+        $initialLevel = ob_get_level();
         ob_start();
-        $this->throwableHandler->handleThrowable($throwable);
-        $buffer = ob_get_clean() ?: (string) $throwable;
+        try {
+            $this->throwableHandler->handleThrowable($throwable);
+            $buffer = ob_get_contents();
+        } finally {
+            while (ob_get_level() > $initialLevel) {
+                ob_end_clean();
+            }
+        }
+
+        if ($buffer === false || $buffer === '') {
+            $buffer = 'Internal Server Error';
+        }
 
         return $this->streamFactory->createStream($buffer);
     }

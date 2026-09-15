@@ -1,10 +1,18 @@
 <?xml version="1.0"?>
 <ruleset>
-    <rule ref="PSR12" />
+    <rule ref="PSR12">
+        <!-- Preserve the library's existing declare-before-license convention. -->
+        <exclude name="PSR12.Files.FileHeader.IncorrectOrder" />
+    </rule>
+    <rule ref="PSR1.Files.SideEffects.FoundWithSymbols">
+        <exclude-pattern>tests/Fire/bootstrap.php</exclude-pattern>
+    </rule>
 
     <file>src</file>
     <file>tests</file>
 
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>tests/html/*</exclude-pattern>
+    <!-- These fixtures intentionally cannot be compiled successfully. -->
+    <exclude-pattern>tests/Fire/*.inc</exclude-pattern>
 </ruleset>
