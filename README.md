@@ -60,6 +60,8 @@ The middleware restores handlers in `finally`, including when response rendering
 
 GitHub Pages is prepared as a **manual** workflow restricted to `master`. After review and merge, an owner can enable Pages with GitHub Actions as the source and run the Documentation workflow from `master`. Nothing in the pull-request CI publishes documentation or executes PHP on Pages.
 
+Dependabot is configured to propose Composer and GitHub Actions updates weekly after this configuration reaches the default branch. Updates remain reviewable pull requests.
+
 ## Confidence and boundaries
 
 The test suite includes isolated real PHP failures rather than only calls to mocked handlers. Child processes have memory, time and output bounds; tests check termination, delivery counts and restoration. This is evidence for the exercised cases, not a reliability guarantee for every fatal error, PHP SAPI or downstream reporter. See the [failure matrix](docs/testing.md).

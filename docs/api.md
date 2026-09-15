@@ -18,7 +18,7 @@ Use this scoped form for code whose caller handles propagated exceptions. For pr
 
 Registration pushes PHP callbacks onto the native stacks. Previous callbacks are restored, including their error-level masks, when unregistered in reverse order. They are **not automatically called** while this handler is active. A second registration of the same instance is a no-op, not a nested reference count. Shutdown registration happens once per instance because PHP provides no shutdown-unregister function; inactive instances do nothing at shutdown. Reuse an instance when practical: PHP retains registered shutdown callbacks until process exit.
 
-Only the instance owning both current PHP callbacks receives shutdown events. If another integration replaces a callback, restore it before unregistering this instance. Otherwise `unregister()` rejects the operation without altering either stack.
+Only the active instance receives shutdown events. This includes a custom shutdown callback after an uncaught throwable has been reported: PHP temporarily clears the exception callback during its invocation, and the library tracks that terminating path. Replacing either callback with another integration still transfers ownership away. Restore that callback before unregistering this instance; otherwise `unregister()` rejects the operation without altering either stack.
 
 | API | Behavior |
 | --- | --- |
@@ -51,7 +51,7 @@ Use the `Http\Message` and `Http\Middleware` namespaces for these classes. The P
 
 The middleware returns normal downstream responses unchanged and catches downstream `Throwable` objects to generate an error response. It always unregisters its handler after processing. Use a distinct handler instance for each nested middleware scope; do not share/pre-register one instance across simultaneous requests or fibers. PHP's global callback stacks are process state, not request-local storage.
 
-`ThrowableStreamFactory` captures reporter output. Empty output maps to `Internal Server Error`; `0` is a valid body. The factory cleans buffers it opens if rendering fails. Renderers must balance their own successful nested buffers and must not close the caller's buffers. `ThrowableResponseFactory` keeps integer codes 400–599, uses 500 otherwise, and lets the PSR-17 factory supply the standard reason phrase.
+`ThrowableStreamFactory` captures reporter output. Empty output maps to `Internal Server Error`; `0` is a valid body. On renderer failure, cleanup removes reachable removable buffers and preserves the renderer exception. It stops if the top buffer is non-removable or cleanup makes no progress. PHP cannot remove a non-removable buffer or reach the buffers beneath it; those remain active, so renderers must never create non-removable buffers. Renderers must balance their own successful nested buffers and must not close the caller's buffers. `ThrowableResponseFactory` keeps integer codes 400–599, uses 500 otherwise, and lets the PSR-17 factory supply the standard reason phrase.
 
 Neither the middleware nor the global handler emits PSR-7 responses to a server. The application/framework owns emission, headers, content type and transport. A PHP engine fatal error bypasses normal middleware recovery; shutdown reporting cannot reliably replace an already-started HTTP response.
 

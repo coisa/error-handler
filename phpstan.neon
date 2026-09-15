@@ -2,4 +2,6 @@ parameters:
   level: max
   paths:
     - src
+  stubFiles:
+    - tests/StaticAnalysis/output-buffer.stub
   tmpDir: tmp/phpstan

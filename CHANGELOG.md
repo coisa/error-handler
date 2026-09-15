@@ -14,12 +14,14 @@
 
 - Re-registering an instance no longer adds duplicate shutdown callbacks.
 - Failing or recursive reporters are not invoked repeatedly during exception/shutdown handling.
-- Throwable rendering cleans its output buffers even when the renderer throws, preserves the body `0`, and accepts SQLSTATE exception codes without raising a secondary type error.
+- Custom shutdown callbacks still run after a reported uncaught throwable; replacing the active callback continues to suppress the old registration.
+- Throwable rendering cleans reachable removable buffers when the renderer throws, stops at non-removable buffers, preserves the original failure if cleanup also throws, preserves the body `0`, and accepts SQLSTATE exception codes without raising a secondary type error.
 - Shutdown reporting excludes nonfatal core and compile warnings.
 
 ### Added
 
 - Bounded subprocess fire tests, HTTP loopback tests, lifecycle and response regression tests.
 - English usage, API, migration and testing documentation, plus a static documentation site with manual default-branch Pages deployment.
+- Weekly Composer and GitHub Actions update proposals through Dependabot.
 
 The historical 2.0.0 and 1.0.0 releases are available in [GitHub Releases](https://github.com/coisa/error-handler/releases).

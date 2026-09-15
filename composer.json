@@ -64,7 +64,7 @@
         ],
         "sniff": "phpcs",
         "test": "phpunit",
-        "fire-test": "@php tests/Fire/run.php",
+        "fire-test": "@php tests/Fire/run.php --with-psr",
         "http-test": "@php tests/Http/run.php"
     }
 }

@@ -68,16 +68,36 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
         $initialLevel = ob_get_level();
+        $failure = null;
+        $buffer = false;
         ob_start();
         try {
             $this->throwableHandler->handleThrowable($throwable);
             $buffer = ob_get_contents();
+        } catch (\Throwable $rendererFailure) {
+            $failure = $rendererFailure;
         } finally {
             while (ob_get_level() > $initialLevel) {
-                ob_end_clean();
+                $flags = ob_get_status()['flags'] ?? null;
+                if (!is_int($flags) || ($flags & PHP_OUTPUT_HANDLER_REMOVABLE) === 0) {
+                    // PHP cannot remove this buffer or reach the buffers below it.
+                    break;
+                }
+                $level = ob_get_level();
+                try {
+                    ob_end_clean();
+                } catch (\Throwable $cleanupFailure) {
+                    $failure ??= $cleanupFailure;
+                }
+                if (ob_get_level() >= $level) {
+                    break;
+                }
             }
         }
 
+        if ($failure !== null) {
+            throw $failure;
+        }
         if ($buffer === false || $buffer === '') {
             $buffer = 'Internal Server Error';
         }

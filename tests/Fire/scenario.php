@@ -42,6 +42,39 @@ switch ($scenario) {
     case 'exception':
         $handler->register();
         throw new RuntimeException('uncaught exception');
+    case 'exception-replaced-handler':
+        $handler = new ErrorHandler(
+            new CallableThrowableHandler(static function (Throwable $failure) use ($reporter): void {
+                $reporter->handleThrowable($failure);
+                set_exception_handler(static function (): void {
+                    event('unexpected-exception');
+                });
+            }),
+            null,
+            new CallableShutdownHandler(static function (): void {
+                event('unexpected-shutdown');
+            })
+        );
+        $handler->register();
+        throw new RuntimeException('uncaught exception');
+    case 'exception-shutdown':
+    case 'nested-exception-shutdown':
+    case 'exception-shutdown-throws':
+        if ($scenario === 'nested-exception-shutdown') {
+            (new ErrorHandler($reporter, null, new CallableShutdownHandler(static function (): void {
+                event('unexpected-outer-shutdown');
+            })))->register();
+        }
+        $handler = new ErrorHandler($reporter, null, new CallableShutdownHandler(
+            static function () use ($scenario): void {
+                if ($scenario === 'exception-shutdown-throws') {
+                    throw new RuntimeException('shutdown failed');
+                }
+                event('shutdown');
+            }
+        ));
+        $handler->register();
+        throw new RuntimeException('uncaught exception');
     case 'error':
         $handler->register();
         error_handler_nonexistent_function();
@@ -165,6 +198,38 @@ switch ($scenario) {
             })
         );
         (new ErrorHandler($aggregate))->handleThrowable(new RuntimeException('chain'));
+        break;
+    case 'render-removable':
+    case 'render-non-removable':
+    case 'render-cleanup-throws':
+        require dirname(__DIR__, 2) . '/vendor/autoload.php';
+        $flags = PHP_OUTPUT_HANDLER_CLEANABLE | PHP_OUTPUT_HANDLER_FLUSHABLE;
+        if ($scenario !== 'render-non-removable') {
+            $flags |= PHP_OUTPUT_HANDLER_REMOVABLE;
+        }
+        $renderer = new CallableThrowableHandler(static function () use ($flags, $scenario): void {
+            $callback = $scenario === 'render-cleanup-throws' ? static function (): never {
+                throw new LogicException('cleanup failed');
+            } : null;
+            ob_start($callback, 0, $flags);
+            throw new RuntimeException('renderer failed');
+        });
+        $factory = new CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory(
+            new Nyholm\Psr7\Factory\Psr17Factory(),
+            $renderer
+        );
+        $initialLevel = ob_get_level();
+        try {
+            $factory->createStreamFromThrowable(new RuntimeException('original'));
+        } catch (Throwable $failure) {
+            // Bypass the deliberately retained non-removable buffer.
+            fwrite(STDOUT, json_encode([
+                'event' => 'renderer-failure',
+                'class' => get_class($failure),
+                'message' => $failure->getMessage(),
+                'remainingBuffers' => ob_get_level() - $initialLevel,
+            ], JSON_THROW_ON_ERROR) . "\n");
+        }
         break;
     default:
         throw new InvalidArgumentException('Unknown scenario: ' . $scenario);

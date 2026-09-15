@@ -9,6 +9,11 @@ $cases = [
     'native-warning' => [0, ['error', 'continued'], 'CoiSA\\ErrorHandler\\Exception\\ErrorException', E_WARNING],
     'suppression' => [0, ['continued']],
     'exception' => [1, ['error'], RuntimeException::class],
+    'exception-shutdown' => [1, ['error', 'shutdown'], RuntimeException::class],
+    'nested-exception-shutdown' => [1, ['error', 'shutdown'], RuntimeException::class],
+    'exception-shutdown-throws' => [1, ['error', 'error'], RuntimeException::class, null,
+        [0 => ['message' => 'uncaught exception'], 1 => ['message' => 'shutdown failed']]],
+    'exception-replaced-handler' => [1, ['error'], RuntimeException::class],
     'error' => [1, ['error'], Error::class],
     'type-error' => [1, ['error'], TypeError::class],
     'parse-error' => [1, ['error'], ParseError::class],
@@ -26,6 +31,14 @@ $cases = [
     'shutdown-throws' => [0, ['error'], RuntimeException::class],
     'aggregate' => [0, ['first', 'second']],
 ];
+if (in_array('--with-psr', $argv, true)) {
+    $cases['render-removable'] = [0, ['renderer-failure'], RuntimeException::class, null,
+        [0 => ['message' => 'renderer failed', 'remainingBuffers' => 0]]];
+    $cases['render-non-removable'] = [0, ['renderer-failure'], RuntimeException::class, null,
+        [0 => ['message' => 'renderer failed', 'remainingBuffers' => 2]]];
+    $cases['render-cleanup-throws'] = [0, ['renderer-failure'], RuntimeException::class, null,
+        [0 => ['message' => 'renderer failed', 'remainingBuffers' => 0]]];
+}
 $failed = 0;
 printf("PHP %s | %s %s | %d isolated scenarios\n", PHP_VERSION, PHP_OS_FAMILY, php_uname('m'), count($cases));
 foreach ($cases as $name => $expected) {
@@ -79,6 +92,11 @@ foreach ($cases as $name => $expected) {
     }
     if (isset($expected[3])) {
         $ok = $ok && ($events[0]['severity'] ?? null) === $expected[3];
+    }
+    foreach ($expected[4] ?? [] as $index => $fields) {
+        foreach ($fields as $field => $value) {
+            $ok = $ok && ($events[$index][$field] ?? null) === $value;
+        }
     }
     $nativeDiagnostic = in_array($name, [
         'compile-fatal', 'nested-fatal', 'memory-limit', 'reporter-throws', 'shutdown-reporter-throws',

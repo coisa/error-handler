@@ -1,0 +1,9 @@
+<?php
+
+/**
+ * A user-defined output callback can throw during buffer removal.
+ * Proven by the isolated render-cleanup-throws regression.
+ *
+ * @throws \Throwable
+ */
+function ob_end_clean(): bool {}

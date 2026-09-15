@@ -60,6 +60,8 @@ final class ErrorHandler implements
 
     private bool $isHandlingThrowable = false;
 
+    private bool $isHandlingUncaughtThrowable = false;
+
     private bool $handlerFailed = false;
 
     private \Closure $errorCallback;
@@ -184,7 +186,7 @@ final class ErrorHandler implements
      */
     public function handleShutdown(): void
     {
-        if (!$this->isRegistered || $this->handlerFailed || !$this->hasActiveCallbacks()) {
+        if (!$this->isRegistered || $this->handlerFailed || !$this->hasActiveCallbacks(true)) {
             return;
         }
 
@@ -202,7 +204,7 @@ final class ErrorHandler implements
         return true;
     }
 
-    private function hasActiveCallbacks(): bool
+    private function hasActiveCallbacks(bool $duringShutdown = false): bool
     {
         // Probe without changing the existing stacks or their error-level masks.
         $currentErrorHandler = set_error_handler(static fn (): bool => false);
@@ -211,12 +213,17 @@ final class ErrorHandler implements
         });
         restore_exception_handler();
 
-        return $currentErrorHandler === $this->errorCallback
-            && $currentExceptionHandler === $this->exceptionCallback;
+        // PHP clears the exception callback while invoking it. exit() keeps that
+        // temporary state through shutdown, but does not transfer ownership.
+        $ownsExceptionCallback = $currentExceptionHandler === $this->exceptionCallback
+            || ($duringShutdown && $this->isHandlingUncaughtThrowable && $currentExceptionHandler === null);
+
+        return $currentErrorHandler === $this->errorCallback && $ownsExceptionCallback;
     }
 
     private function onUncaughtThrowable(\Throwable $throwable): never
     {
+        $this->isHandlingUncaughtThrowable = true;
         $this->handleThrowable($throwable);
         exit(1);
     }

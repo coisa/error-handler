@@ -57,7 +57,7 @@ $errors-&gt;register();</code></pre></div>
     </section>
     <section id="evidence">
       <div class="eyebrow">04 / Exercise the failure path</div><h2>A test should survive the crash.</h2>
-      <div class="proof"><div><strong>20</strong><small>ISOLATED SCENARIOS</small></div><p>Real warnings, throwable failures, compile fatals, allocation failure, registration cycles and reporter recursion run in child processes. Each child has a five-second deadline, a 16 MiB memory limit and a 256 KiB output cap.</p></div>
+      <div class="proof"><div><strong>27</strong><small>ISOLATED SCENARIOS</small></div><p>Real warnings, throwable failures, compile fatals, allocation failure, custom shutdown, reporter recursion and renderer failures run in child processes. Each child has a five-second deadline, a 16 MiB memory limit and a 256 KiB output cap.</p></div>
       <p>The runner checks delivery counts, ordering, throwable classes, stderr and exact exit status. Separate integration tests exercise PSR composition and real HTTP 500/503 responses through a loopback-only server.</p>
       <div class="terminal"><div class="bar">RUN THE EVIDENCE YOURSELF</div><pre><code>php tests/Fire/run.php
 composer --no-plugins test
