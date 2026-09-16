@@ -63,7 +63,7 @@ Independent review exposed two regressions in the first modernization draft: cus
 
 Native PHP 8.5.10 verification additionally runs PHPUnit 13.3.4, PHPStan 2.2.14 and three real HTTP requests through PHP's built-in server: 500, 503 and TypeError→500, all with a redacted body. The CI matrix checks lowest/highest compatible dependencies on PHP 8.3, highest on 8.4, and locked/highest on 8.5. A green result applies only to the exact checked commit; consult the [Actions run](https://github.com/coisa/error-handler/actions/workflows/ci.yml) rather than assuming that a configured matrix has passed.
 
-The full `composer --no-plugins check` command passed on native PHP 8.5.10/PHPUnit 13.3.4 and isolated PHP 8.3.33 with both highest dependencies (PHPUnit 12.5.35) and lowest allowed dependencies (PHPUnit 12.5.8, PHPStan 2.1.0, PSR Container 1.1.0): 100 tests and 144 assertions, maximum-level source analysis, formatting, all 27 isolated scenarios and all three HTTP responses. The runnable CLI example was checked for exit status 1, empty stdout and both expected diagnostic messages on stderr.
+Before the service-provider addition, the full `composer --no-plugins check` command passed on native PHP 8.5.10/PHPUnit 13.3.4 and isolated PHP 8.3.33 with both highest dependencies (PHPUnit 12.5.35) and lowest allowed dependencies (PHPUnit 12.5.8, PHPStan 2.1.0, PSR Container 1.1.0): 100 tests and 144 assertions, maximum-level source analysis, formatting, all 27 isolated scenarios and all three HTTP responses. The runnable CLI example was checked for exit status 1, empty stdout and both expected diagnostic messages on stderr.
 
 ```sh
 docker run --rm --network none --read-only --memory 128m --cpus 1 --pids-limit 32 \
@@ -81,6 +81,40 @@ Container builds resolve development packages for the requested PHP version. For
 - PHP 8.3.33: `sha256:afdf8b1fee58486ccc0dab5f30f634b86873d56dac985f71ba217945647c05ad`
 - PHP 8.4.25: `sha256:2f389f933c3cc58cc622bd243bb4ecff7e6553e2de4387a239bca640c988be19`
 - PHP 8.5.10: `sha256:aa66ee4275e0472bafcd18e35142499fcbda6ac90e641e751418e052e6a0d812`
+
+## Service-provider verification
+
+The provider follow-up passes the full check on macOS arm64/PHP 8.5.10 with
+FastForward Container 1.6.0: **118 tests and 196 assertions**, maximum PHPStan,
+formatting, the same 27 isolated scenarios and three HTTP responses. Eighteen new
+cases cover real-container resolution, reporter overrides, optional discovery,
+PSR-14 dispatch, custom PHP/shutdown callbacks, independent factories, nested
+middleware and restoration after renderer failure. Missing optional reporters
+are skipped only for PSR not-found; separate regressions require other
+construction exceptions to propagate.
+
+Independent review reproduced silent reporter fallback when application and
+library providers were passed separately to FastForward. Six real-container
+regressions now cover required-reporter PSR construction/not-found failures and
+ordinary application exceptions for both process handler and fully configured
+middleware. Four cases failed with the old composition; all six pass with one
+`AggregateServiceProvider`, library first and application last. The skill and
+example use this same composition. FastForward may normalize a PSR failure to
+not-found, so the contract promises failed construction rather than preservation
+of the original exception cause.
+
+`php examples/fast-forward.php` exits 0, emits exactly
+`Reported: FastForward provider warning` followed by a newline, and leaves stderr
+empty. CI verifies that output. A separate production-only Composer installation
+also loads the core and all 13 provider definitions without FastForward installed;
+the required integration dependency is the small Interop interface package.
+The five-job PHP/dependency CI matrix exercises the provider tests too; consult
+the current run for commit-specific Linux evidence.
+
+The consumer skill's frontmatter and source references were validated, and its
+integration procedure is checked against these same public APIs. Repository
+maintenance guidance is in [AGENTS.md](../AGENTS.md); the detailed wiring contract
+is in [FastForward integration](fast-forward.md).
 
 ## Boundaries and troubleshooting
 

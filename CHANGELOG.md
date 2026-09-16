@@ -12,6 +12,7 @@
 
 ### Fixed
 
+- Skip an optional callable reporter when an autowiring container advertises it but retrieval reports PSR-11 not-found; continue propagating other construction exceptions.
 - Re-registering an instance no longer adds duplicate shutdown callbacks.
 - Failing or recursive reporters are not invoked repeatedly during exception/shutdown handling.
 - Custom shutdown callbacks still run after a reported uncaught throwable; replacing the active callback continues to suppress the old registration.
@@ -20,6 +21,8 @@
 
 ### Added
 
+- An Interop service provider matching FastForward's callable definitions, explicit process-handler binding and factory services for independent middleware scopes. FastForward remains optional at runtime.
+- Integration tests using the released FastForward container, an executable provider example, English wiring/lifetime documentation, AGENTS.md and a portable consumer integration skill.
 - Bounded subprocess fire tests, HTTP loopback tests, lifecycle and response regression tests.
 - English usage, API, migration and testing documentation, plus a static documentation site with manual default-branch Pages deployment.
 - Weekly Composer and GitHub Actions update proposals through Dependabot.

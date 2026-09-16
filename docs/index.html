@@ -13,7 +13,7 @@
 <body>
 <header><a class="brand" href="#overview"><span>{!}</span>CoiSA / Error Handler</a><a href="https://github.com/coisa/error-handler">View source ↗</a></header>
 <div class="layout">
-  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
+  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#fast-forward">FastForward</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
   <main>
     <div id="overview">
       <div class="eyebrow">A small PHP library. An explicit failure contract.</div>
@@ -49,6 +49,13 @@ $reporter = new CallableThrowableHandler(
 $errors = new ErrorHandler($reporter);
 $errors-&gt;register();</code></pre></div>
       <p>Keep diagnostic output in an appropriate private sink. A reporter that emits nothing produces the generic HTTP body <code>Internal Server Error</code>.</p>
+    </section>
+    <section id="fast-forward">
+      <div class="eyebrow">Container integration</div><h2>Declare services. Choose when to register.</h2>
+      <p>The Interop service provider follows FastForward's callable factory definitions. Resolve the process handler through <code>ErrorHandlerInterface</code>, configure your reporter in an application provider, and explicitly register at bootstrap.</p>
+      <p>FastForward caches services. The middleware receives a separate handler; callable factory services create fresh instances for nested scopes. Core use and the provider remain independent of the full framework.</p>
+      <div class="terminal"><div class="bar">RUN THE COMPLETE PROVIDER EXAMPLE</div><pre><code>php examples/fast-forward.php</code></pre></div>
+      <div class="links"><a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">Wiring, overrides &amp; lifetime guide ↗</a><a href="https://github.com/coisa/error-handler/blob/master/AGENTS.md">Agent maintenance guide ↗</a><a href="https://github.com/coisa/error-handler/blob/master/.agents/skills/error-handler-integration/SKILL.md">Integration skill ↗</a></div>
     </section>
     <section id="behavior">
       <div class="eyebrow">03 / Observable behavior</div><h2>Know what each boundary does.</h2>

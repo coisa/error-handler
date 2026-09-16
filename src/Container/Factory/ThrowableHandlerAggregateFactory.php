@@ -21,6 +21,7 @@ use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use Psr\Container\ContainerInterface;
+use Psr\Container\NotFoundExceptionInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -50,9 +51,13 @@ final class ThrowableHandlerAggregateFactory
         $handler = new ThrowableHandlerAggregate();
 
         if ($container->has(CallableThrowableHandler::class)) {
-            /** @var CallableThrowableHandler $callableHandler */
-            $callableHandler = $container->get(CallableThrowableHandler::class);
-            $handler->attach($callableHandler);
+            try {
+                /** @var CallableThrowableHandler $callableHandler */
+                $callableHandler = $container->get(CallableThrowableHandler::class);
+                $handler->attach($callableHandler);
+            } catch (NotFoundExceptionInterface) {
+                // Autowiring may advertise a class whose required callable is not configured.
+            }
         }
 
         if ($container->has(EventDispatcherInterface::class)) {

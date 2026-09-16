@@ -21,6 +21,7 @@
     },
     "require": {
         "php": "^8.3",
+        "container-interop/service-provider": "^0.4.1",
         "psr/container": "^1.1 || ^2.0",
         "psr/http-server-middleware": "^1.0",
         "psr/http-factory": "^1.1",
@@ -39,6 +40,7 @@
         }
     },
     "require-dev": {
+        "fast-forward/container": "^1.6",
         "friendsofphp/php-cs-fixer": "^3.95",
         "laminas/laminas-servicemanager": "^4.3",
         "nyholm/psr7": "^1.8",
@@ -46,6 +48,9 @@
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^12.5 || ^13.0",
         "squizlabs/php_codesniffer": "^4.0"
+    },
+    "suggest": {
+        "fast-forward/container": "Use the service provider with FastForward (tested with ^1.6)."
     },
     "scripts": {
         "check": [

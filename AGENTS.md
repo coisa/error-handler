@@ -1,0 +1,71 @@
+# Error Handler maintenance
+
+## Purpose
+
+Maintain a small PHP error-handling library with explicit reporting, process
+lifecycle and PSR-15 response boundaries. The current Composer package is
+`coisa/error-handler`, under the `CoiSA\ErrorHandler` namespace.
+
+## Ownership
+
+The repository owns its core handlers, PSR adapters, interoperability provider,
+tests, documentation and consumer skill. Applications own reporters, PSR-14 and
+PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed.
+
+## Local Contracts
+
+- Write code, public documentation, examples and agent guidance in English.
+- Target PHP 8.3–8.5; the current branch describes an unreleased major after 2.0.
+  Do not present branch behavior as an already published Composer release.
+- Keep core handlers independent of FastForward. The service provider uses
+  `Interop\Container\ServiceProviderInterface`; FastForward is an optional
+  consumer and a development integration test dependency.
+- Constructing or discovering a service must not call `register()`. Native PHP
+  callbacks are process-wide. Unregister in reverse order and use distinct
+  handlers for nested scopes. Follow [the lifecycle contract](docs/api.md).
+- FastForward caches services. Keep the middleware handler separate from the
+  process handler and use the provider's factory services for fresh scopes.
+  Merge application overrides after library definitions in one
+  `AggregateServiceProvider`, avoiding silent reporter fallback on PSR errors.
+- Keep the Laminas ConfigProvider and PSR-11 integration working. A possible
+  move to php-fast-forward does not itself change package identity or namespace.
+- Reporters own diagnostic output; HTTP fallback bodies must not leak exception
+  details. A shutdown callback reports a fatal error and does not recover it.
+
+## Work Guidance
+
+Inspect the current branch and relevant interfaces before changes. Update
+source, meaningful regression tests, examples, affected guides and Unreleased
+changelog together. Keep the skill aligned with tested public APIs, without
+copying the full manual or adding host-specific dependencies.
+
+Run fatal-error and process-termination experiments only through bounded child
+fixtures. Reuse the existing fire/HTTP runners and their temporary data. Never
+use application credentials, production logs or a real web server as fixtures.
+
+Publishing Pages, merging, releasing or transferring the repository requires
+the owner's corresponding instruction. Preparing a PR does not perform them.
+
+## Verification
+
+Use Composer 2 with `--no-plugins --no-scripts` for dependency installation;
+then run `composer --no-plugins check`. This runs formatting, PHPUnit, maximum
+PHPStan, bounded fire tests and loopback HTTP checks. See [testing](docs/testing.md)
+for PHP-version resolution, optional dependencies and actual platform evidence.
+Run `php examples/fast-forward.php` after provider changes. Verify a production
+installation without development dependencies still loads the core and provider.
+Check documentation links and inspect the actual CI result for the tested SHA.
+
+## Child DOX Index
+
+- [README.md](README.md): installation and entrypoints for consumers.
+- [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
+- [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
+  cached services and fresh middleware scopes.
+- [docs/testing.md](docs/testing.md): failure runners, commands and evidence limits.
+- [docs/migration.md](docs/migration.md): breaking changes from published 2.0.
+- [.agents/skills/error-handler-integration/SKILL.md](.agents/skills/error-handler-integration/SKILL.md):
+  portable consumer integration procedure; no global installation required.
+
+No subtree needs a separate maintenance contract; the skill's procedure stays
+in its SKILL.md entrypoint.

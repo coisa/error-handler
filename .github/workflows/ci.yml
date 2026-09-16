@@ -55,8 +55,11 @@ jobs:
           result = subprocess.run(['php', 'examples/cli.php'], capture_output=True, text=True, timeout=5)
           assert result.returncode == 1 and result.stdout == ''
           assert 'Example warning' in result.stderr and 'Example uncaught exception' in result.stderr
+          provider = subprocess.run(['php', 'examples/fast-forward.php'], capture_output=True, text=True, timeout=5)
+          assert provider.returncode == 0 and provider.stderr == ''
+          assert provider.stdout == 'Reported: FastForward provider warning\n'
           PY
       - name: Verify production-only autoload
         run: |
           composer install --no-dev --no-plugins --no-scripts --no-interaction --no-progress
-          php -r 'require "vendor/autoload.php"; new CoiSA\ErrorHandler\Container\ErrorHandlerContainer();'
+          php -r 'require "vendor/autoload.php"; new CoiSA\ErrorHandler\Container\ErrorHandlerContainer(); (new CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider())->getFactories(); if (class_exists(FastForward\Container\AggregateContainer::class)) { throw new RuntimeException("FastForward must remain optional"); }'

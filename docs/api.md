@@ -57,6 +57,11 @@ Neither the middleware nor the global handler emits PSR-7 responses to a server.
 
 ## PSR-11 container integration
 
+`ServiceProvider\ErrorHandlerServiceProvider` implements the Interop contract
+used by FastForward, with callable factories and no automatic callback
+registration. See [FastForward integration](fast-forward.md) for process-service
+aliases, application overrides and fresh middleware scopes.
+
 `Container\ConfigProvider` exposes `__invoke()`, `getDependencies()`, `getAliases()` and `getFactories()` for compatible containers such as Laminas ServiceManager. `ErrorHandlerContainer` can wrap a parent PSR-11 container, delegates known services to it, and caches services built by the library factories.
 
 Provide `ThrowableHandlerInterface` for a custom reporter. Otherwise `ThrowableHandlerAggregateFactory` composes any available callable/event-dispatch reporters; an empty aggregate intentionally produces no diagnostics. HTTP factories also require PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` services. PSR-14 integration needs `EventDispatcherInterface`. These implementations belong to the application; the package ships interfaces and adapters, not a logger, event bus or HTTP framework.

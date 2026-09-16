@@ -54,6 +54,7 @@ The middleware restores handlers in `finally`, including when response rendering
 ## Documentation
 
 - [API and composition](docs/api.md): lifecycle, factories, handlers, containers and events.
+- [FastForward service provider](docs/fast-forward.md): callable definitions, application overrides and independent process/middleware handlers, with a [runnable example](examples/fast-forward.php).
 - [Testing and limitations](docs/testing.md): reproducible fire tests, exact observed platforms, isolation and failure boundaries.
 - [Migration from 2.0](docs/migration.md): breaking behavior and compatibility changes.
 - [Static documentation site](docs/index.html): install, composition and evidence at a glance. Open the file locally, or preview the `docs/` directory with a loopback static server.
@@ -61,6 +62,15 @@ The middleware restores handlers in `finally`, including when response rendering
 GitHub Pages is prepared as a **manual** workflow restricted to `master`. After review and merge, an owner can enable Pages with GitHub Actions as the source and run the Documentation workflow from `master`. Nothing in the pull-request CI publishes documentation or executes PHP on Pages.
 
 Dependabot is configured to propose Composer and GitHub Actions updates weekly after this configuration reaches the default branch. Updates remain reviewable pull requests.
+
+## Working with coding agents
+
+[AGENTS.md](AGENTS.md) is the repository maintenance entrypoint. The portable
+[error-handler-integration skill](.agents/skills/error-handler-integration/SKILL.md)
+helps an assistant choose a process or HTTP scope, wire the real provider API
+and validate reporting and callback restoration. It can be read directly or
+used as a skill folder by a compatible assistant; no global installation is
+required. Keep it with the matching package version when copying it elsewhere.
 
 ## Confidence and boundaries
 
