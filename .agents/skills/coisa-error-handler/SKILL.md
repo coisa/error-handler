@@ -1,10 +1,15 @@
 ---
-name: error-handler-integration
-description: Integrate coisa/error-handler into PHP applications using explicit process handlers, FastForward service providers or PSR-15 middleware, and verify reporting and callback restoration.
+name: coisa-error-handler
+description: Integrate CoiSA Error Handler (coisa/error-handler) into PHP applications using explicit process handlers, FastForward service providers or PSR-15 middleware, and verify reporting and callback restoration.
 license: MIT
 ---
 
-# Integrate Error Handler
+# CoiSA Error Handler integration
+
+Package: `coisa/error-handler`. Source and maintenance:
+[coisa/error-handler on GitHub](https://github.com/coisa/error-handler).
+This skill belongs to that library and retains its package identity when copied
+into a consuming project.
 
 Use the installed package or selected checkout as the API source. This skill
 describes the PHP 8.3+ development line after 2.0; verify the version before

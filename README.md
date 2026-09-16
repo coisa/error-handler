@@ -66,7 +66,7 @@ Dependabot is configured to propose Composer and GitHub Actions updates weekly a
 ## Working with coding agents
 
 [AGENTS.md](AGENTS.md) is the repository maintenance entrypoint. The portable
-[error-handler-integration skill](.agents/skills/error-handler-integration/SKILL.md)
+[coisa-error-handler skill](.agents/skills/coisa-error-handler/SKILL.md)
 helps an assistant choose a process or HTTP scope, wire the real provider API
 and validate reporting and callback restoration. It can be read directly or
 used as a skill folder by a compatible assistant; no global installation is

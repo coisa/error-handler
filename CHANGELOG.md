@@ -22,7 +22,7 @@
 ### Added
 
 - An Interop service provider matching FastForward's callable definitions, explicit process-handler binding and factory services for independent middleware scopes. FastForward remains optional at runtime.
-- Integration tests using the released FastForward container, an executable provider example, English wiring/lifetime documentation, AGENTS.md and a portable consumer integration skill.
+- Integration tests using the released FastForward container, an executable provider example, English wiring/lifetime documentation, AGENTS.md and the portable `coisa-error-handler` consumer skill with explicit package provenance.
 - Bounded subprocess fire tests, HTTP loopback tests, lifecycle and response regression tests.
 - English usage, API, migration and testing documentation, plus a static documentation site with manual default-branch Pages deployment.
 - Weekly Composer and GitHub Actions update proposals through Dependabot.

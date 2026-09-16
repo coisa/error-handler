@@ -15,6 +15,8 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 ## Local Contracts
 
 - Write code, public documentation, examples and agent guidance in English.
+- Identify the public consumer skill as `coisa-error-handler`, matching its
+  Composer package, and retain the source repository link for copied installs.
 - Target PHP 8.3–8.5; the current branch describes an unreleased major after 2.0.
   Do not present branch behavior as an already published Composer release.
 - Keep core handlers independent of FastForward. The service provider uses
@@ -64,7 +66,7 @@ Check documentation links and inspect the actual CI result for the tested SHA.
   cached services and fresh middleware scopes.
 - [docs/testing.md](docs/testing.md): failure runners, commands and evidence limits.
 - [docs/migration.md](docs/migration.md): breaking changes from published 2.0.
-- [.agents/skills/error-handler-integration/SKILL.md](.agents/skills/error-handler-integration/SKILL.md):
+- [.agents/skills/coisa-error-handler/SKILL.md](.agents/skills/coisa-error-handler/SKILL.md):
   portable consumer integration procedure; no global installation required.
 
 No subtree needs a separate maintenance contract; the skill's procedure stays
