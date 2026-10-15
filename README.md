@@ -18,19 +18,21 @@ See the [changelog](CHANGELOG.md) for published release history.
 
 ## Development
 
-The committed development lockfile requires PHP `>=8.4.1 <8.5`.
-
-The CoiSA formatter is a development dependency; installing the library as a
-Composer dependency retains its existing PHP `^7.4 || ^8.0` runtime requirement.
+Development tools are installed through Composer's development dependencies and
+are not required to use the library. Dependency resolution produces an ignored
+local lockfile, as described in the contributor guide below.
 
 Pull requests run the [PHP style workflow](.github/workflows/php-style.yml), which
-calls the CoiSA formatter's reusable workflow with PHP 8.4. It installs the locked
-development dependencies with Composer plugins and scripts disabled, then checks
+calls the CoiSA formatter's reusable workflow. It installs development
+dependencies with Composer plugins and scripts disabled, then checks
 only changed PHP files within the existing Finder scope. It does not apply fixes.
 For a full local preview, run `composer --no-plugins cs-check`; the new preset also
 reports existing formatting differences outside the files changed in a PR.
 
 ## Contributing release notes
+
+See [contributor dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for local Composer resolution
+and the policy for library and application lockfiles.
 
 Maintainers use [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md)
 to record changes and review version PRs. Merging a generated version PR starts
