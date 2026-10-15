@@ -14,6 +14,12 @@
 $ composer require coisa/error-handler
 ```
 
+## Development
+
+The committed development lockfile requires PHP 8.4. The CoiSA formatter is a
+development dependency; installing the library as a Composer dependency retains
+its existing PHP `^7.4 || ^8.0` runtime requirement.
+
 ## Credits
 
 - [Felipe Sayão Lobato Abreu][link-author]
