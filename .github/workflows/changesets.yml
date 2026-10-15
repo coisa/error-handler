@@ -13,7 +13,8 @@ env:
 
 concurrency:
   group: changesets-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'push' }}
+  queue: max
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -43,8 +44,6 @@ jobs:
           cache: npm
 
       - run: npm ci --ignore-scripts
-
-      - run: npm run check:release
 
       - run: npm run changeset -- status --since="origin/$DEFAULT_BRANCH"
 
@@ -178,16 +177,13 @@ jobs:
     needs: validate
     if: >-
       github.event_name == 'push' &&
-      github.ref_name == github.event.repository.default_branch
+      github.ref_name == github.event.repository.default_branch &&
+      needs.validate.outputs.mode == 'publish'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     permissions:
       contents: write
-      pull-requests: read
-
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - uses: actions/checkout@v7
@@ -200,48 +196,9 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
-      - name: Verify the merged version PR
-        id: release
-        run: node scripts/release.mjs prepare
-
-      - name: Install release tooling
-        if: steps.release.outputs.eligible == 'true'
-        run: npm ci --ignore-scripts
+      - run: npm ci --ignore-scripts
 
       - name: Publish the Composer tag and GitHub release
-        if: >-
-          steps.release.outputs.eligible == 'true' &&
-          steps.release.outputs.tag-exists != 'true'
         uses: changesets/action/publish@v2
         with:
           create-github-releases: true
-
-      - name: Verify the immutable release tag
-        if: steps.release.outputs.eligible == 'true'
-        run: node scripts/release.mjs verify-tag
-
-      - name: Finish a release interrupted after tag creation
-        if: >-
-          steps.release.outputs.eligible == 'true' &&
-          steps.release.outputs.tag-exists == 'true' &&
-          steps.release.outputs.release-exists != 'true'
-        env:
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-        run: >-
-          gh release create "$RELEASE_TAG" --verify-tag
-          --notes-file "$RUNNER_TEMP/release-notes.md"
-
-      - name: Record the reviewed PR and its merger
-        if: steps.release.outputs.eligible == 'true'
-        env:
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
-          REPOSITORY: ${{ github.repository }}
-        run: >-
-          gh release edit "$RELEASE_TAG"
-          --title "$REPOSITORY $RELEASE_VERSION"
-          --notes-file "$RUNNER_TEMP/release-notes.md"
-
-      - name: Verify the completed GitHub release
-        if: steps.release.outputs.eligible == 'true'
-        run: node scripts/release.mjs verify

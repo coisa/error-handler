@@ -2,7 +2,6 @@
 .changeset/                 export-ignore
 .github/workflows/          export-ignore
 node_modules/               export-ignore
-scripts/                    export-ignore
 package.json                export-ignore
 package-lock.json           export-ignore
 tests/                      export-ignore

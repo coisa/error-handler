@@ -6,8 +6,7 @@
   "scripts": {
     "changeset": "changeset",
     "changeset:status": "changeset status --since=origin/master",
-    "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts && git diff --check",
-    "check:release": "node --test scripts/release.test.mjs"
+    "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts && git diff --check"
   },
   "engines": {
     "node": "^22.11 || ^24 || >=26",

@@ -67,8 +67,9 @@ The validation job installs the locked tooling, validates pending notes
 and uses `changesets/action/select-mode` to rehearse only pending releases.
 The version job also dispatches validation on the generated branch, without relying
 on automatic `pull_request` events from `GITHUB_TOKEN` or on a separate PHP CI.
-The validation job has read-only repository access. Only the version job can
-write repository contents, manage its PR and dispatch validation.
+The validation job has read-only repository access. The version job can write
+version metadata, manage its PR and dispatch validation; the publication job
+can create tags and GitHub releases.
 All five jobs live in `.github/workflows/changesets.yml`. PR checks run on
 `pull_request`; the status jobs use `pull_request_target` without executing PR
 code. Only pushes to the default branch can prepare a version PR. Dispatched runs validate
@@ -89,19 +90,23 @@ the stale-run guard and the generated validation branch.
 
 ## Merge to release
 
-Merging the generated version PR is the release decision. After validation,
-the publish job checks that the default-branch tip is still the merge commit,
-the PR was created by `github-actions[bot]` from this repository's version
-branch, the version increased, the manifests agree, the changelog has that
-version, and only release metadata changed. Ordinary merges do not publish.
-The small read-only guard in `scripts/release.mjs` checks these repository
-conditions; Changesets owns tag and release creation.
+Merging the generated version PR is the release decision. When no pending notes
+remain and the private package has an unpublished tag, the official
+`select-mode` action selects `publish`. The publication job checks out the
+event's commit and calls the official `changesets/action/publish` action.
+There is no custom release script.
+
+Concurrency uses `queue: max` with cancellation disabled, retaining up to 100
+pending runs per group. Another push therefore does not replace a pending
+release run. Publication uses that run's validated commit even if the default
+branch has advanced; version-PR preparation still skips outdated commits.
+See GitHub's [concurrency queue documentation](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency#example-queueing-multiple-pending-runs).
 
 The official publisher creates `v2.0.1`-style tags and a GitHub release from the
 matching changelog entry. Existing `1.0.0` and `2.0.0` tags remain unchanged;
-Composer accepts the `v` prefix on new versions. The release notes also link
-the merged version PR and identify its actual `merged_by` user. This identity
-is read after the merge, rather than inferred from the workflow actor.
+Composer accepts the `v` prefix on new versions. Review version changes through
+the generated PR; GitHub records who merged it in the PR timeline and its
+`merged_by` API field.
 
 `create-github-releases: true` is explicit. `push-git-tags` is omitted because
 the action already defaults it to `true`. No package is sent to npm. Packagist
@@ -113,18 +118,14 @@ GitHub's key and attributes them to the token owner. `push-with-git-cli` changes
 that transport; it does not identify who merges the PR. See the official
 [version action inputs](https://github.com/changesets/action/tree/v2/version).
 
-A retry accepts an existing tag only when it resolves to the same merge commit.
-It leaves the tag in place, completes a missing GitHub release after a partial
-failure, and restores the matching notes and merger attribution. Conflicting
-tags, newer tagged versions and unexpected API failures stop the job. A rerun
-after another default-branch merge is stale and does not publish; review any
-interrupted release before accepting more merges. Only stable versions are
-supported by this initial workflow; prereleases need a separate policy.
+Existing tags are excluded from the official publication plan. If a run stops
+after creating a tag but before creating its GitHub release, inspect that tag
+and finish the missing release with the matching changelog entry; this minimal
+workflow does not add a separate recovery implementation.
 
-Run `npm run check:release` to test the guard, API failure handling, the old-note
-regression and the real CLI's tag-only behavior in disposable local repositories.
-These fixtures never push tags or call GitHub's write APIs. The first live
-version PR and release must still be observed after an owner-authorized merge.
+The first live version PR and release must still be observed after an
+owner-authorized merge. Review prerelease needs separately before adding a
+prerelease policy to this stable 2.x flow.
 
 ## Rehearse locally
 
