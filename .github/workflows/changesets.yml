@@ -30,15 +30,10 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Validate pending notes and read the release plan
-        id: plan
-        run: |
-          npm run changeset:status -- --output="$RUNNER_TEMP/changeset-status.json"
-          node <<'NODE'
-          const fs = require('node:fs');
-          const plan = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/changeset-status.json`, 'utf8'));
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `pending=${plan.releases.length > 0}\n`);
-          NODE
+      - run: npm run changeset:status
+      - name: Select Changesets mode
+        id: mode
+        uses: changesets/action/select-mode@v2.1.2
       - name: Rehearse versioning in the disposable checkout
-        if: steps.plan.outputs.pending == 'true'
+        if: steps.mode.outputs.mode == 'version'
         run: npm run version:packages

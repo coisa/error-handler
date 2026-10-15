@@ -47,7 +47,8 @@ permissions → Allow GitHub Actions to create and approve pull requests** enabl
 It uses the built-in `GITHUB_TOKEN`; no personal token or npm credential is needed.
 
 The **Changesets** workflow installs the locked tooling, validates pending notes
-and rehearses versioning when there are pending releases. The version workflow also
+and uses `changesets/action/select-mode` to rehearse only pending releases.
+The version workflow also
 dispatches this check on the generated branch, so validation runs without relying
 on automatic `pull_request` events from `GITHUB_TOKEN` or on a separate PHP CI.
 The validation job has read-only repository access. Only the version job can
