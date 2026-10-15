@@ -5,8 +5,9 @@
   "description": "Development-only release tooling for the coisa/error-handler Composer package",
   "scripts": {
     "changeset": "changeset",
-    "changeset:status": "changeset status",
-    "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts && git diff --check"
+    "changeset:status": "changeset status --since=origin/master",
+    "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts && git diff --check",
+    "check:release": "node --test scripts/release.test.mjs"
   },
   "engines": {
     "node": "^22.11 || ^24 || >=26",

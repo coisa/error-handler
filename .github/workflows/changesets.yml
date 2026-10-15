@@ -28,6 +28,9 @@ jobs:
     permissions:
       contents: read
 
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+
     steps:
       - uses: actions/checkout@v7
         with:
@@ -41,7 +44,9 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
-      - run: npm run changeset:status -- --since="origin/$DEFAULT_BRANCH"
+      - run: npm run check:release
+
+      - run: npm run changeset -- status --since="origin/$DEFAULT_BRANCH"
 
       - name: Select Changesets mode
         id: mode
@@ -97,7 +102,8 @@ jobs:
     needs: validate
     if: >-
       github.event_name == 'push' &&
-      github.ref_name == github.event.repository.default_branch
+      github.ref_name == github.event.repository.default_branch &&
+      needs.validate.outputs.mode == 'version'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -131,14 +137,12 @@ jobs:
       - name: Create or update the version PR
         id: version
         if: steps.tip.outputs.current == 'true'
-        uses: changesets/action@v2
+        uses: changesets/action/version@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          version-script: npm run version:packages
-          pr-title: 'chore: version ${{ github.repository }}'
-          commit-message: 'chore: version ${{ github.repository }}'
-          create-github-releases: false
-          push-git-tags: false
+          script: npm run version:packages
+          pr-title: 'chore(release): prepare next release of ${{ github.repository }}'
+          commit-message: 'chore(release): prepare next version of ${{ github.repository }}'
 
       - name: Describe the version PR
         if: steps.version.outputs.pr-number != ''
@@ -147,20 +151,97 @@ jobs:
           PR_NUMBER: ${{ steps.version.outputs.pr-number }}
           REPOSITORY: ${{ github.repository }}
         run: |
-          printf 'Prepare the next version of %s.\n\n' "$REPOSITORY" > "$RUNNER_TEMP/version-pr.md"
+          version=$(node -p "require('./package.json').version")
+
+          printf 'Prepare %s %s for release.\n\n' "$REPOSITORY" "$version" > "$RUNNER_TEMP/version-pr.md"
 
           cat >> "$RUNNER_TEMP/version-pr.md" <<'MARKDOWN'
           Review the generated `CHANGELOG.md`, the versions in `package.json` and
           `package-lock.json`, and the consumed `.changeset/*.md` notes.
 
-          Merging this PR updates release metadata only. Git tags and GitHub releases
-          remain a separate maintainer step. The private npm package is never published.
+          Merging this PR starts validated Git tag and GitHub release publication.
+          Review it as the release decision. The private npm package is never published.
           MARKDOWN
 
-          gh pr edit "$PR_NUMBER" --body-file "$RUNNER_TEMP/version-pr.md"
+          gh pr edit "$PR_NUMBER" \
+            --title "chore(release): release $REPOSITORY $version" \
+            --body-file "$RUNNER_TEMP/version-pr.md"
 
       - name: Validate the generated version branch
         if: steps.version.outputs.pr-number != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh workflow run changesets.yml --ref "changeset-release/$DEFAULT_BRANCH"
+
+  publish:
+    name: Publish reviewed release
+    needs: validate
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+      pull-requests: read
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Verify the merged version PR
+        id: release
+        run: node scripts/release.mjs prepare
+
+      - name: Install release tooling
+        if: steps.release.outputs.eligible == 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Publish the Composer tag and GitHub release
+        if: >-
+          steps.release.outputs.eligible == 'true' &&
+          steps.release.outputs.tag-exists != 'true'
+        uses: changesets/action/publish@v2
+        with:
+          create-github-releases: true
+
+      - name: Verify the immutable release tag
+        if: steps.release.outputs.eligible == 'true'
+        run: node scripts/release.mjs verify-tag
+
+      - name: Finish a release interrupted after tag creation
+        if: >-
+          steps.release.outputs.eligible == 'true' &&
+          steps.release.outputs.tag-exists == 'true' &&
+          steps.release.outputs.release-exists != 'true'
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: >-
+          gh release create "$RELEASE_TAG" --verify-tag
+          --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Record the reviewed PR and its merger
+        if: steps.release.outputs.eligible == 'true'
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: >-
+          gh release edit "$RELEASE_TAG"
+          --title "$REPOSITORY $RELEASE_VERSION"
+          --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Verify the completed GitHub release
+        if: steps.release.outputs.eligible == 'true'
+        run: node scripts/release.mjs verify

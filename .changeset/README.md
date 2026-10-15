@@ -51,6 +51,13 @@ creates or updates `changeset-release/<default-branch>`. Changesets consumes pen
 `package.json`, and generates `CHANGELOG.md`. The version script also updates
 `package-lock.json` so both manifests have the same version.
 
+The title includes the repository and recalculated version, for example
+`chore(release): release coisa/error-handler 2.0.1`. The action locates the open
+PR by its head and base branches, not its title. Further merged changes update
+that same PR and its title, even when they change the planned release version.
+The `chore(release)` commit records release preparation without classifying it
+as another runtime feature or bug fix.
+
 Review the version, changelog and consumed notes before merging that PR. The
 workflow needs the repository setting **Settings → Actions → General → Workflow
 permissions → Allow GitHub Actions to create and approve pull requests** enabled.
@@ -62,20 +69,16 @@ The version job also dispatches validation on the generated branch, without rely
 on automatic `pull_request` events from `GITHUB_TOKEN` or on a separate PHP CI.
 The validation job has read-only repository access. Only the version job can
 write repository contents, manage its PR and dispatch validation.
-All four jobs live in `.github/workflows/changesets.yml`. PR checks run on
+All five jobs live in `.github/workflows/changesets.yml`. PR checks run on
 `pull_request`; the status jobs use `pull_request_target` without executing PR
 code. Only pushes to the default branch can prepare a version PR. Dispatched runs validate
 the generated branch without starting another version job.
 
-This step prepares reviewed versions only. It does not create Git tags or GitHub
-releases, publish to npm, or change the existing Composer release process.
-There is no publishing command configured; with no pending release notes, the
-action leaves the repository unchanged.
-
-The workflow follows the official [Version Only recipe](https://changesets.dev/guide/automating#version-only):
-Node.js 24 and the Changesets action without a publishing command. Permissions
-start empty and are granted per job; the version job disables package-manager
-caching. This Composer library needs no npm build or publishing credentials.
+The workflow follows the official [Git tags only recipe](https://changesets.dev/guide/automating#publish-git-tags-only):
+Node.js 24, a private package, `privatePackages.tag: true`, and the official
+`select-mode`, `version` and `publish` actions. Permissions start empty and are
+granted per job; jobs that write to GitHub disable package-manager caching.
+This Composer library needs no npm build or publishing credentials.
 The explicit validation dispatch avoids requiring an additional GitHub App token.
 Actions use the publishers' major references (`@v7` and `@v2`) so compatible action
 updates do not require a dependency-update PR for every patch or minor release.
@@ -83,6 +86,45 @@ The version PR title, commit message and description use `github.repository`
 instead of a hardcoded repository name. The workflow uses
 `github.event.repository.default_branch` for event selection, status comparisons,
 the stale-run guard and the generated validation branch.
+
+## Merge to release
+
+Merging the generated version PR is the release decision. After validation,
+the publish job checks that the default-branch tip is still the merge commit,
+the PR was created by `github-actions[bot]` from this repository's version
+branch, the version increased, the manifests agree, the changelog has that
+version, and only release metadata changed. Ordinary merges do not publish.
+The small read-only guard in `scripts/release.mjs` checks these repository
+conditions; Changesets owns tag and release creation.
+
+The official publisher creates `v2.0.1`-style tags and a GitHub release from the
+matching changelog entry. Existing `1.0.0` and `2.0.0` tags remain unchanged;
+Composer accepts the `v` prefix on new versions. The release notes also link
+the merged version PR and identify its actual `merged_by` user. This identity
+is read after the merge, rather than inferred from the workflow actor.
+
+`create-github-releases: true` is explicit. `push-git-tags` is omitted because
+the action already defaults it to `true`. No package is sent to npm. Packagist
+discovers the Composer version from the Git tag through the repository's
+existing integration; this workflow does not configure or force a Packagist sync.
+
+Version commits use the default GitHub API transport, which signs them with
+GitHub's key and attributes them to the token owner. `push-with-git-cli` changes
+that transport; it does not identify who merges the PR. See the official
+[version action inputs](https://github.com/changesets/action/tree/v2/version).
+
+A retry accepts an existing tag only when it resolves to the same merge commit.
+It leaves the tag in place, completes a missing GitHub release after a partial
+failure, and restores the matching notes and merger attribution. Conflicting
+tags, newer tagged versions and unexpected API failures stop the job. A rerun
+after another default-branch merge is stale and does not publish; review any
+interrupted release before accepting more merges. Only stable versions are
+supported by this initial workflow; prereleases need a separate policy.
+
+Run `npm run check:release` to test the guard, API failure handling, the old-note
+regression and the real CLI's tag-only behavior in disposable local repositories.
+These fixtures never push tags or call GitHub's write APIs. The first live
+version PR and release must still be observed after an owner-authorized merge.
 
 ## Rehearse locally
 
