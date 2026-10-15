@@ -45,3 +45,4 @@ Modernize the PHP 8.3–8.5 development line after 2.0 while keeping the package
 - Remove the redundant Dockerfile, Compose service and Docker ignore rules; the PHP matrix runs directly in CI.
 - Stop tracking composer.lock in this library; validate lowest/highest dependency bounds and keep application locks application-owned.
 - Exclude development tools, npm manifests/lock, Changesets, tests, examples and documentation from Git archives, and verify a production-only installation from the exported package.
+- Add PHPUnit coverage reporting, baseline comparison and a single SHA-aware PR sticky note, with a read-only producer and trusted default-branch publisher.

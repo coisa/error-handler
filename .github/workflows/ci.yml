@@ -48,3 +48,65 @@ jobs:
         run: python3 tests/Examples/run.py
       - name: Verify runtime archive and production-only installation
         run: python3 tests/Distribution/run.py
+
+  coverage:
+    name: PHPUnit coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    env:
+      MINIMUM_COVERAGE: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || vars.MINIMUM_COVERAGE || '85' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, xmlwriter, pdo
+          coverage: xdebug
+          tools: composer:v2
+      - name: Validate coverage configuration
+        run: |
+          if [[ ! "$MINIMUM_COVERAGE" =~ ^([0-9]|[1-9][0-9]|100)$ ]]; then
+            echo "Minimum coverage must be an integer from 0 to 100." >&2
+            exit 1
+          fi
+      - run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+      - name: Run PHPUnit with coverage
+        run: composer --no-plugins test -- --coverage-cobertura tmp/coverage/cobertura.xml
+        env:
+          XDEBUG_MODE: coverage
+      - name: Upload the coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: coverage-report-php
+          path: tmp/coverage/cobertura.xml
+          if-no-files-found: error
+      - name: Compare coverage and prepare the PR report
+        id: coverage-diff
+        uses: clearlyip/code-coverage-report-action@110af9d4ec87b6706f182fd90e3102af9e5203bf # v7
+        with:
+          filename: tmp/coverage/cobertura.xml
+          artifact_download_workflow_names: CI
+          artifact_name: php-coverage-%name%
+          overall_coverage_fail_threshold: ${{ env.MINIMUM_COVERAGE }}
+          fail_on_negative_difference: 'true'
+          only_list_changed_files: 'true'
+          file_coverage_error_min: ${{ env.MINIMUM_COVERAGE }}
+          file_coverage_warning_max: '90'
+          without_base_coverage_template: .github/coverage-templates/without-base-coverage.hbs
+          with_base_coverage_template: .github/coverage-templates/with-base-coverage.hbs
+      - name: Export markdown for the default-branch sticky-note publisher
+        if: >-
+          !cancelled() && github.event_name == 'pull_request' &&
+          steps.coverage-diff.outputs.file != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: coverage-pr-comment
+          path: ${{ steps.coverage-diff.outputs.file }}
+          if-no-files-found: error
+

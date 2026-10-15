@@ -116,6 +116,29 @@ from this library. PHPDoc and licensing remain explicit review requirements.
 
 ## Release and distribution verification
 
+## Coverage and the sticky PR note
+
+The dedicated coverage job runs PHPUnit on PHP 8.5 with coverage enabled,
+exports Cobertura and uses the same report/sticky-comment flow as the CLI
+reference. It compares the latest available default-branch baseline, checks a
+minimum of 85% line coverage and rejects negative differences when a baseline
+exists. Owners can override the minimum through `MINIMUM_COVERAGE_THRESHOLD`
+or `MINIMUM_COVERAGE`; values must be integers from 0 to 100.
+
+The local PHPUnit snapshot before the HTTP redesign is **87.04% lines
+(168/193)**. This excludes the separately executed bounded fatal and loopback
+HTTP fixtures; low shutdown-method coverage does not imply those child scenarios
+were skipped. It is evidence for this exact PHP/dependency snapshot.
+
+Read-only CI exports Markdown data. A separate default-branch `workflow_run`
+publisher checks the current PR SHA and triggering artifact, reads a bounded
+regular Markdown file and updates one sticky note with the commit and test-run
+link. It does not check out or execute PR code. The publisher handles same-repo,
+fork and Dependabot PRs through the same path. Its first live publication requires
+the workflow to reach the default branch; this PR does not merge it automatically.
+
+## Release and distribution verification
+
 ```sh
 npm ci --ignore-scripts
 npm run test:release

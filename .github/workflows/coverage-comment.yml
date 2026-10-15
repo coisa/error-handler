@@ -1,0 +1,88 @@
+name: PR coverage comment
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # No checkout: privileged code comes from the default branch.
+      - name: Find the current PR and its report
+        id: report
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const candidates = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+              ...context.repo, commit_sha: run.head_sha, per_page: 100,
+            });
+            const repository = context.repo.owner + '/' + context.repo.repo;
+            const matches = candidates.filter(pr =>
+              pr.state === 'open' && pr.head.sha === run.head_sha &&
+              pr.base.repo.full_name === repository &&
+              pr.head.repo?.full_name === run.head_repository.full_name
+            );
+            if (matches.length !== 1) {
+              core.info('No unique open PR at this SHA; skipping stale or closed run.');
+              return;
+            }
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo, run_id: run.id,
+            });
+            const reports = artifacts.filter(item => item.name === 'coverage-pr-comment' && !item.expired);
+            if (reports.length !== 1) {
+              core.info('No unique coverage report; skipping.');
+              return;
+            }
+            core.setOutput('number', matches[0].number);
+            core.setOutput('artifact', reports[0].id);
+      - name: Download only the triggering run's report
+        if: steps.report.outputs.artifact != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ steps.report.outputs.artifact }}
+          merge-multiple: true
+          path: coverage-comment
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Validate the report and recheck the PR head
+        id: current
+        if: steps.report.outputs.artifact != ''
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBER: ${{ steps.report.outputs.number }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const number = Number(process.env.PR_NUMBER);
+            if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid PR number.');
+            const run = context.payload.workflow_run;
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+            if (pr.state !== 'open' || pr.head.sha !== run.head_sha ||
+                pr.head.repo?.full_name !== run.head_repository.full_name) return;
+            const path = 'coverage-comment/code-coverage-results.md';
+            const stat = fs.lstatSync(path);
+            if (!stat.isFile() || stat.size > 60000) throw new Error('Invalid coverage markdown artifact.');
+            const report = fs.readFileSync(path, 'utf8') +
+              '\n\nCommit: `' + run.head_sha + '`. [Test run](' + run.html_url + ') — ' + run.conclusion + '.\n';
+            fs.writeFileSync('coverage-comment.md', report);
+            core.setOutput('number', number);
+      - name: Update the sticky coverage note
+        if: steps.current.outputs.number != ''
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        with:
+          header: code-coverage-overview
+          number: ${{ steps.current.outputs.number }}
+          path: coverage-comment.md
