@@ -23,9 +23,9 @@ use Psr\Http\Message\StreamInterface;
 /**
  * Class ThrowableStreamFactory
  *
- * Creates PSR-7 streams from Throwable instances.
- * This class SHALL ensure that throwable instances are converted into a
- * readable stream for inclusion in PSR-7 responses or logging mechanisms.
+ * Captures deliberately public renderer output as an optional compatibility adapter.
+ * Middleware reports diagnostics separately before rendering. Consumers MUST NOT
+ * pass that diagnostic reporter here again. The provider uses a pure generic renderer by default.
  *
  * @package CoiSA\ErrorHandler\Http\Message
  */

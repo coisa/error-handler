@@ -41,7 +41,9 @@ PR as for any other public API change.
 2. Pending notes create or update the bot branch `changeset-release/master`.
    `npm run version:packages` updates `package.json`, `package-lock.json` and
    `CHANGELOG.md`, and consumes the notes. It leaves PHP dependency versions alone.
-3. Review that version PR, generated notes and exact-head CI. The workflow
+3. Review that version PR, generated notes, release-status notices and exact-head CI.
+   Align development/published-version guidance with the version being released.
+   The workflow
    explicitly dispatches PHP CI on the generated branch because PRs created with
    `GITHUB_TOKEN` do not automatically trigger `pull_request` workflows.
 4. Merging the reviewed **bot version PR** authorizes publication. The following

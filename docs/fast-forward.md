@@ -98,13 +98,13 @@ There is no provider boot hook. The application decides when to register.
 | `ErrorHandlerInterface` / `ErrorHandler` | The same cached process handler; initially unregistered |
 | `ThrowableHandlerInterface` | Default aggregate of available callable and PSR-14 reporters |
 | `DispatchThrowableHandler` / `DispatchErrorEventThrowableHandler` | Existing PSR-14 adapters; require an application dispatcher |
-| `ThrowableStreamFactoryInterface` / `ThrowableResponseFactoryInterface` | Existing rendering adapters; require PSR-17 stream/response factories |
+| `ThrowableStreamFactoryInterface` / `ThrowableResponseFactoryInterface` | Pure generic stream and response adapters; require PSR-17 factories |
 | `ErrorHandlerMiddleware` | Cached middleware with a handler separate from the process handler |
 | `ServiceProvider\Factory\ErrorHandlerFactory` | Reusable callable that creates a fresh handler on each invocation |
 | `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` | Reusable callable that creates fresh middleware and a fresh handler |
 
 The provider has nine explicit definitions. Dispatch handlers and concrete
-stream/response adapters are resolved through FastForward's constructor
+generic stream/response adapters are resolved through FastForward's constructor
 autowiring. Their interface aliases remain explicit, and application definitions
 can override either an interface or its concrete implementation. The three
 library factories that remain encode optional-handler defaults, reporter
@@ -226,3 +226,20 @@ If the built-in handler's reporter fails during a request warning, middleware
 propagates that failure and restores callbacks without rendering it through the
 reporter again. Ordinary downstream failures still use the configured response
 factory. See [failure boundaries](examples.md#failure-and-lifetime-boundaries).
+
+## Reporting and rendering in this major
+
+Middleware requires one scoped instance implementing both `ErrorHandlerInterface`
+and `ThrowableHandlerInterface`. It reports downstream failures before invoking
+the response factory. The default `ThrowableStreamFactoryInterface` alias now
+selects `Http\Message\GenericThrowableStreamFactory`, which uses PSR-17 directly
+and produces a controlled body without invoking reporters or output buffering.
+A lifecycle-only custom implementation must add reporting to use the middleware.
+
+Reporters keep their void contract and must write HTTP diagnostics privately.
+Implement a stream/response factory for JSON; see the complete
+[renderer example](examples.md#http-rendering). The retained `ThrowableStreamFactory`
+captures a separate public renderer only when explicitly selected. Binding the
+old concrete capture class no longer changes the default alias. Bind the
+interface for required custom rendering, and do not inject the diagnostic reporter
+into a capture adapter after middleware has already reported it.

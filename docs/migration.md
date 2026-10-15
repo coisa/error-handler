@@ -60,3 +60,21 @@ registered lifecycle. Independent direct calls remain usable after a reporter
 failure. Middleware propagates a failed reporter instead of retrying it during
 response rendering. Custom lifecycle implementations retain their own policy.
 See the [complete usage recipes](examples.md) and [release workflow](releases.md).
+
+## Separate HTTP reporting from rendering
+
+The middleware constructor now requires `ErrorHandlerInterface&ThrowableHandlerInterface`.
+The built-in ErrorHandler already satisfies this. Custom lifecycle-only implementations
+must also implement diagnostic delivery. Middleware reports a downstream Throwable
+once, then invokes the response factory; reporter failures propagate without rendering.
+
+The provider's stream alias now selects GenericThrowableStreamFactory. Reporter
+output is not implicitly captured as the response body. HTTP reporters must use
+private sinks. Implement ThrowableStreamFactoryInterface to return JSON or another
+public stream directly; the cookbook includes a complete JSON example without echo.
+ThrowableHandlerInterface remains void, preserving CLI, event and aggregate roles.
+
+ThrowableStreamFactory retains explicit output capture for public templates.
+Configure a separate public renderer there, rather than a reporter middleware
+already invoked. Its old concrete service ID no longer controls the default
+stream alias. A ready opt-in JSON response adapter remains a separate additive feature.

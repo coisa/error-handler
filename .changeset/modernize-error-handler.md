@@ -46,3 +46,5 @@ Modernize the PHP 8.3–8.5 development line after 2.0 while keeping the package
 - Stop tracking composer.lock in this library; validate lowest/highest dependency bounds and keep application locks application-owned.
 - Exclude development tools, npm manifests/lock, Changesets, tests, examples and documentation from Git archives, and verify a production-only installation from the exported package.
 - Add PHPUnit coverage reporting, baseline comparison and a single SHA-aware PR sticky note, with a read-only producer and trusted default-branch publisher.
+
+- Separate HTTP reporting and rendering: middleware requires the combined lifecycle/reporting contracts, reports once, then invokes a pure renderer. Keep reporters void, default to GenericThrowableStreamFactory without buffering, demonstrate JSON streams directly, and retain explicit public output capture as a compatibility adapter.

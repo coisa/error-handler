@@ -22,7 +22,7 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
@@ -56,7 +56,7 @@ final class ErrorHandlerServiceProvider implements ServiceProviderInterface
             ThrowableHandlerInterface::class => AliasFactory::get(ThrowableHandlerAggregate::class),
             ThrowableHandlerAggregate::class => new ThrowableHandlerAggregateFactory(),
             ThrowableResponseFactoryInterface::class => AliasFactory::get(ThrowableResponseFactory::class),
-            ThrowableStreamFactoryInterface::class => AliasFactory::get(ThrowableStreamFactory::class),
+            ThrowableStreamFactoryInterface::class => AliasFactory::get(GenericThrowableStreamFactory::class),
             ErrorHandlerMiddleware::class => new ErrorHandlerMiddlewareFactory(),
             ErrorHandlerMiddlewareFactory::class => new InvokableFactory(ErrorHandlerMiddlewareFactory::class),
         ];

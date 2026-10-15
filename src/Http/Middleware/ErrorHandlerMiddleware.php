@@ -16,8 +16,8 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Middleware;
 
-use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -33,15 +33,17 @@ use Psr\Http\Server\RequestHandlerInterface;
  * This middleware SHALL use an ErrorHandlerInterface to register
  * and unregister error handlers and SHALL utilize a ThrowableResponseFactoryInterface
  * to generate appropriate HTTP responses for captured throwables.
+ * The scoped handler MUST also report throwables. Reporting runs before the
+ * response factory; renderers MUST NOT invoke the diagnostic reporter again.
  *
  * @package CoiSA\ErrorHandler\Http\Middleware
  */
 final class ErrorHandlerMiddleware implements MiddlewareInterface
 {
     /**
-     * @var ErrorHandlerInterface The error handler responsible for managing errors.
+     * @var ErrorHandlerInterface&ThrowableHandlerInterface The lifecycle and reporter sharing one failure guard.
      */
-    private ErrorHandlerInterface $errorHandler;
+    private ErrorHandlerInterface&ThrowableHandlerInterface $errorHandler;
 
     /**
      * @var ThrowableResponseFactoryInterface Factory for creating HTTP responses from throwables.
@@ -51,11 +53,11 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     /**
      * Constructs the ErrorHandlerMiddleware.
      *
-     * @param ErrorHandlerInterface $errorHandler The error handler instance.
+     * @param ErrorHandlerInterface&ThrowableHandlerInterface $errorHandler The scoped lifecycle and reporter.
      * @param ThrowableResponseFactoryInterface $throwableResponseFactory Factory for creating throwable responses.
      */
     public function __construct(
-        ErrorHandlerInterface $errorHandler,
+        ErrorHandlerInterface&ThrowableHandlerInterface $errorHandler,
         ThrowableResponseFactoryInterface $throwableResponseFactory
     ) {
         $this->errorHandler = $errorHandler;
@@ -73,6 +75,8 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
      * @param RequestHandlerInterface $handler The next request handler in the chain.
      *
      * @return ResponseInterface The generated HTTP response.
+     *
+     * @throws \Throwable If reporting or rendering fails; callbacks are restored before propagation.
      */
     public function process(
         ServerRequestInterface $request,
@@ -83,9 +87,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         try {
             $response = $handler->handle($request);
         } catch (\Throwable $throwable) {
-            if ($this->errorHandler instanceof ErrorHandler && $this->errorHandler->hasReporterFailed()) {
-                throw $throwable;
-            }
+            $this->errorHandler->handleThrowable($throwable);
             $response = $this->throwableResponseFactory->createResponseFromThrowable($throwable);
         } finally {
             $this->errorHandler->unregister();

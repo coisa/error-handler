@@ -1,12 +1,14 @@
 # Usage cookbook
 
-This guide describes the **unreleased next major** of `coisa/error-handler` for PHP 8.3–8.5. Every recipe below is a complete executable file in `examples/`. Run it from the repository after `composer install --no-plugins --no-scripts`. Load the matching checkout; the published 2.0 API is different. If copying a recipe into an application, adjust the Composer autoload path.
+This guide describes the **unreleased next major** of `coisa/error-handler` for PHP 8.3–8.5. Every recipe below is a complete executable file. Run it after `composer install --no-plugins --no-scripts`. Applications resolve their own Composer locks. If copying a recipe, adjust its autoload path. Published 2.0 has different behavior.
 
-The checkout's development dependencies supply Nyholm PSR-7 and Phly EventDispatcher for these examples. Applications choose their own PSR implementations; these packages are not runtime dependencies of this library. To use the same implementations in an application, install `nyholm/psr7` for HTTP and `phly/phly-event-dispatcher` for events. The full FastForward framework is unnecessary.
+The checkout supplies Nyholm PSR-7 and Phly EventDispatcher as development dependencies. Applications choose their own PSR implementations; use `composer require nyholm/psr7 phly/phly-event-dispatcher` for the same HTTP/event examples. No full framework is required.
+
+**Reporting and rendering are separate.** Reporters return void and own private diagnostics. Middleware reports once, then calls a pure response factory. JSON can be returned as a stream without echo or buffering. The optional compatibility capture adapter is demonstrated separately; it converts deliberately public output to a body.
 
 ## Built-in adapters
 
-Names are relative to `CoiSA\ErrorHandler`; use the imports in each recipe.
+Names below are relative to `CoiSA\ErrorHandler`; use each example's imports.
 
 | Adapter or contract | Responsibility | Recipe |
 | --- | --- | --- |
@@ -22,7 +24,8 @@ Names are relative to `CoiSA\ErrorHandler`; use the imports in each recipe.
 | `ThrowableListenerProvider / ErrorEventListenerProvider` | Select the supported event category | [Example](#events) |
 | `LogErrorEventListener` | Send an ErrorEvent to an application PSR-3 logger | [Example](#events) |
 | `ErrorHandlerServiceProvider / ThrowableHandlerAggregateFactory` | Lazy Interop definitions and optional reporter discovery | [Example](#fast-forward) |
-| `ThrowableStreamFactory / ThrowableStreamFactoryInterface` | Capture deliberate output; generic fallback when empty | [Example](#http-rendering) |
+| `GenericThrowableStreamFactory` | Default public stream; no reporting or output buffer | [Example](#http-middleware) |
+| `ThrowableStreamFactory / ThrowableStreamFactoryInterface` | Optional capture adapter for deliberately public templates | [Example](#output-capture) |
 | `ThrowableResponseFactory / ThrowableResponseFactoryInterface` | Map integer error codes 400–599; otherwise 500 | [Example](#http-rendering) |
 | `ErrorHandlerMiddleware` | Scoped PSR-15 processing; return a PSR-7 response | [Example](#http-middleware) |
 | `ErrorHandlerFactory / ErrorHandlerMiddlewareFactory` | Fresh handler and middleware lifetimes | [Example](#scopes) |
@@ -241,7 +244,7 @@ printf("Private log records: %d\n", count($logger->records));
 
 ## PSR-15 HTTP middleware with the provider
 
-Bind the application's PSR-17 response and stream factories and a private reporter. ErrorHandlerMiddleware returns successful downstream responses unchanged and maps a downstream Throwable to an error response. The example returns HTTP 503 with Internal Server Error, reports the failure privately, then reports a warning through the restored process handler. It prints Reported: 2. Your application owns response emission, headers and content type.
+Bind application PSR-17 factories and a private diagnostic reporter. The middleware reports a downstream Throwable once, then asks a separate factory for a response. GenericThrowableStreamFactory is the provider default: it returns Internal Server Error without invoking a reporter or capturing output. Reporter output is not the response body; HTTP reporters must keep diagnostics in private sinks. The example returns 503 and then reports a warning through the restored process handler, for two private reports. Applications own emission and headers.
 
 Run `php examples/http-middleware.php`. [Executable source](../examples/http-middleware.php).
 
@@ -309,9 +312,9 @@ printf("Reported: %d\n", count($reported));
 
 <a id="http-rendering"></a>
 
-## Controlled JSON rendering without a container
+## Explicit JSON streams without echo or buffering
 
-Compose ThrowableStreamFactory and ThrowableResponseFactory directly. Separate private diagnostic side effects from deliberately public renderer output. This example emits only a fixed JSON error and adds application/json to the resulting response. Never echo exception messages, traces or credentials in a production renderer. To inject these factories into provider middleware, bind ThrowableResponseFactoryInterface explicitly in the application provider.
+Keep the reporter's void contract for private diagnostics. Implement ThrowableStreamFactoryInterface to return a JSON StreamInterface directly, and compose it with ThrowableResponseFactory. Middleware reports once before rendering. This complete example adds application/json and exposes only a fixed public message; private throwable details stay in the reporter. A ready JSON response adapter is tracked separately in issue #7.
 
 Run `php examples/http-rendering.php`. [Executable source](../examples/http-rendering.php).
 
@@ -320,27 +323,67 @@ Run `php examples/http-rendering.php`. [Executable source](../examples/http-rend
 
 declare(strict_types=1);
 
+use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
+use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $privateDiagnostics = [];
 $reporter = new CallableThrowableHandler(
     static function (Throwable $error) use (&$privateDiagnostics): void {
-        $privateDiagnostics[] = $error; // Replace with a private logger.
+        $privateDiagnostics[] = $error; // Replace with a private logger; emit no response body.
     }
 );
-$publicRenderer = new CallableThrowableHandler(static function (): void {
-    echo json_encode(['error' => 'Service unavailable'], JSON_THROW_ON_ERROR);
-});
 $psr17 = new Psr17Factory();
-$streams = new ThrowableStreamFactory($psr17, new ThrowableHandlerAggregate($reporter, $publicRenderer));
+$streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
+    /**
+     * Stores the application's PSR-17 factory.
+     *
+     * @param StreamFactoryInterface $streams Creates public response body streams.
+     */
+    public function __construct(private StreamFactoryInterface $streams)
+    {
+    }
+
+    /**
+     * Returns controlled JSON directly, independently of diagnostic reporting.
+     *
+     * @param Throwable $throwable The private failure whose details stay undisclosed.
+     *
+     * @return StreamInterface A public JSON body without echo or output buffering.
+     */
+    public function createStreamFromThrowable(Throwable $throwable): StreamInterface
+    {
+        return $this->streams->createStream(
+            json_encode(['error' => 'Service unavailable'], JSON_THROW_ON_ERROR)
+        );
+    }
+};
 $responses = new ThrowableResponseFactory($streams, $psr17);
-$response = $responses->createResponseFromThrowable(new RuntimeException('Private credentials', 503))
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
+$downstream = new class () implements RequestHandlerInterface {
+    /**
+     * Simulates a private application failure with an HTTP error code.
+     *
+     * @param ServerRequestInterface $request The incoming request.
+     *
+     * @return ResponseInterface The error response produced by middleware.
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        throw new RuntimeException('Private credentials', 503);
+    }
+};
+$response = $middleware->process($psr17->createServerRequest('GET', '/'), $downstream)
     ->withHeader('Content-Type', 'application/json');
 
 printf("HTTP %d | %s\n", $response->getStatusCode(), $response->getHeaderLine('Content-Type'));
@@ -520,12 +563,42 @@ printf(
 printf("HTTP %d | Reports: %d\n", $response->getStatusCode(), $reported);
 ```
 
+<a id="output-capture"></a>
+
+## Optional output-capture compatibility adapter
+
+ThrowableStreamFactory remains available for deliberately public echo-based templates. In this adapter alone, output from its injected callable becomes the response stream; a JSON template would have to echo JSON. New JSON renderers can return a stream directly as above. The provider does not select this adapter by default. Middleware already reports diagnostics: pass a separate public renderer here, never the same diagnostic reporter again. Empty captured output becomes Internal Server Error; 0 remains a valid body.
+
+Run `php examples/output-capture.php`. [Executable source](../examples/output-capture.php).
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+// Optional compatibility adapter: only deliberately public output belongs here.
+// Middleware now reports privately before rendering; do not inject its reporter again.
+$publicRenderer = new CallableThrowableHandler(static function (): void {
+    echo 'Public failure page';
+});
+$streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);
+$body = $streams->createStreamFromThrowable(new RuntimeException('Private diagnostics'));
+
+printf("Captured body: %s\n", (string) $body);
+```
+
 ## Failure and lifetime boundaries
 
-Unregister in reverse registration order and use distinct handlers for nested scopes. A second register on the same active instance is a no-op. PHP retains one shutdown callback per instance until process exit; inactive callbacks do nothing. A fatal inside another shutdown callback can abort the remaining shutdown queue, even for a fresh handler; it is outside the reporting guarantee.
+Unregister in reverse order and use distinct handlers for nested scopes. Registering an active instance again is a no-op. PHP retains one shutdown callback per instance; inactive callbacks do nothing. A fatal inside another shutdown callback can abort the remaining queue, even with a fresh handler.
 
-A reporter failure during a registration suppresses further delivery for that lifecycle. `ErrorHandler::hasReporterFailed()` exposes this state for integrations. Built-in middleware propagates that failure and restores callbacks instead of passing it to the renderer and retrying the reporter. A custom implementation of `ErrorHandlerInterface` owns its own failure policy. Independent unregistered direct calls do not retain the failed flag.
+Middleware accepts a handler implementing both ErrorHandlerInterface and ThrowableHandlerInterface. The same instance reports PHP errors and downstream throwables, preserving its recursion/failure guard. A reporter failure propagates after callback cleanup and is not re-rendered through that reporter. A renderer failure also propagates after cleanup. Custom implementations own their failure policy. Independent unregistered direct deliveries do not retain a failed flag.
 
-Reporter output captured by `ThrowableStreamFactory` becomes the public response body. Empty output becomes `Internal Server Error`; `0` remains a valid body. Renderers must balance removable buffers and never close caller buffers. A renderer or response-factory failure propagates after middleware cleanup; no HTTP response is emitted automatically.
+The default GenericThrowableStreamFactory returns a controlled body and does not inspect reporter output. Reporters used in HTTP must not echo diagnostics: unsolicited output is outside the response contract. The optional ThrowableStreamFactory still captures its injected public renderer's output. Keep it separate from the diagnostic reporter already called by middleware. Its renderers must balance removable buffers and never close caller buffers; renderer failures retain precedence during cleanup.
 
-Use explicit required reporter/renderer interface bindings and application-last merged definitions. FastForward can retry construction or fall back to autowiring concrete classes; do not infer successful delivery from `has()` or assume exception identity survives container resolution. See [provider details](fast-forward.md), [API contracts](api.md), [migration](migration.md) and [validation](testing.md).
+Use explicit required reporter/renderer interface bindings and application-last merged definitions. FastForward can retry construction and fall back to autowiring concrete classes. See [provider details](fast-forward.md), [API](api.md), [migration](migration.md) and [validation](testing.md). The ready JSON factory proposal is [issue #7](https://github.com/coisa/error-handler/issues/7).

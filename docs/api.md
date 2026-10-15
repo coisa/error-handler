@@ -1,81 +1,132 @@
 # API and composition
 
-All classes are under `CoiSA\ErrorHandler`. Handler interfaces remain small so reporting, application termination, HTTP rendering and event dispatch can be composed explicitly.
+All classes are under `CoiSA\ErrorHandler`. This describes the unreleased next
+major after 2.0. Complete runnable integrations are in the [cookbook](examples.md).
 
-Complete, executable recipes for all adapters are in the [usage cookbook](examples.md)
-and inline on the [documentation site](index.html#examples).
-
-## Lifecycle
+## Lifecycle and diagnostic reporting
 
 ```php
-$handler = new ErrorHandler($reporter, $optionalPhpErrorHandler, $optionalShutdownHandler);
-$handler->register();
+$errors = new ErrorHandler($reporter, $optionalPhpErrorHandler, $optionalShutdownHandler);
+$errors->register();
 try {
-    // Work that must return or propagate to a caller.
+    // Work whose caller owns propagated failures.
 } finally {
-    $handler->unregister();
+    $errors->unregister();
 }
 ```
 
-Use this scoped form for code whose caller handles propagated exceptions. For process-wide uncaught exceptions, register at application bootstrap and keep the handler active through termination, as in [`examples/cli.php`](../examples/cli.php). PHP executes `finally` before dispatching an uncaught exception, so unregistering there intentionally returns responsibility to the previous exception handler.
+For process-wide uncaught handling, keep the handler registered through termination,
+as in [the CLI example](../examples/cli.php). PHP executes finally before dispatching
+an uncaught exception, so unregistering there returns responsibility to the previous
+handler. Direct `handleThrowable()` delivers the original object and returns; the
+registered uncaught callback exits 1 when reporting returns normally.
 
-Registration pushes PHP callbacks onto the native stacks. Previous callbacks are restored, including their error-level masks, when unregistered in reverse order. They are **not automatically called** while this handler is active. A second registration of the same instance is a no-op, not a nested reference count. Shutdown registration happens once per instance because PHP provides no shutdown-unregister function; inactive instances do nothing at shutdown. Reuse an instance when practical: PHP retains registered shutdown callbacks until process exit.
+Registration installs process-wide PHP callbacks. Unregister in reverse order,
+restoring earlier callback identities and severity masks. Previous callbacks are
+not automatically called while this handler is active. Re-registering an active
+instance is a no-op. PHP retains one shutdown callback per instance; inactive
+instances do nothing. Reuse handlers for sequential work and use distinct instances
+for nested scopes. These stacks do not provide concurrent-request/fiber isolation.
 
-Only the active instance receives shutdown events. This includes a custom shutdown callback after an uncaught throwable has been reported: PHP temporarily clears the exception callback during its invocation, and the library tracks that terminating path. Replacing either callback with another integration still transfers ownership away. Restore that callback before unregistering this instance; otherwise `unregister()` rejects the operation without altering either stack.
-
-| API | Behavior |
+| Contract | Responsibility |
 | --- | --- |
-| `ErrorHandlerInterface::register(): void` | Installs error, exception and shutdown handling |
-| `ErrorHandlerInterface::unregister(): void` | Restores previous error/exception callbacks; deactivates shutdown |
-| `ThrowableHandlerInterface::handleThrowable(Throwable): void` | Reports the original object; a direct call does not exit |
-| `PhpErrorHandlerInterface::handlePhpError(int, string, string, int): void` | Processes a PHP error with severity, message, file and line |
-| `ShutdownHandlerInterface::handleShutdown(): void` | Handles a shutdown notification |
+| `ErrorHandlerInterface` | Register and unregister lifecycle callbacks |
+| `ThrowableHandlerInterface::handleThrowable(Throwable): void` | Deliver a diagnostic without producing an HTTP representation |
+| `PhpErrorHandlerInterface` | Apply policy to PHP severity/message/file/line |
+| `ShutdownHandlerInterface` | Handle a shutdown notification |
 
-`ErrorHandler` defaults to `ThrowErrorExceptionPhpErrorHandler` and `PhpLastErrorShutdownHandler`. The former respects the current `error_reporting()` bitmask (including `@`) and converts reportable errors to the package's `ErrorException`. The outer `ErrorHandler` delivers that exception and then resumes normal execution for recoverable warnings. The shutdown handler inspects `error_get_last()` for `E_ERROR`, `E_PARSE`, `E_CORE_ERROR` or `E_COMPILE_ERROR`; it does not turn fatal termination into recovery. An engine fatal inside another shutdown callback aborts the remaining shutdown queue, including callbacks registered after it. Re-registering with a new callback cannot recover that path.
+The default `ThrowErrorExceptionPhpErrorHandler` honors `error_reporting()` and
+suppression, converts reportable errors and lets the outer handler report them.
+Recoverable warnings continue. The default `PhpLastErrorShutdownHandler` inspects
+`E_ERROR`, `E_PARSE`, `E_CORE_ERROR` and `E_COMPILE_ERROR`, without recovery.
+A fatal inside another shutdown callback aborts the remaining queue even for a
+fresh handler; adding generations cannot rescue that engine path.
 
-A reporter that throws is marked failed and is not retried during the same registration. Recursive calls through the same `ErrorHandler` raise `LogicException`. Independent unregistered direct calls propagate reporter failures without retaining the failed flag. `ErrorHandler::hasReporterFailed()` exposes failure suppression only during an active registration. The built-in middleware checks this state and propagates a reporter failure without rendering through that reporter again. Custom `ErrorHandlerInterface` implementations own their failure policy. Direct calls propagate reporter failures; uncaught reporter failures fall back to PHP's native failure path. `unregister()` followed by `register()` begins a fresh lifecycle. The library does not choose an alternative logger or retry remote delivery.
+Only the active lifecycle handles shutdown, including custom shutdown after an
+uncaught throwable. Replacing a callback transfers ownership away. Restore it
+before unregistering; otherwise unregister rejects the operation without altering
+the native stacks.
 
-## Reporter composition and PSR-14
+A reporter failure suppresses retries for the current registration. Recursion
+through the same handler raises LogicException. Independent unregistered direct
+calls retain no failed flag. Unregister/register starts a fresh lifecycle.
+No alternative logger or remote retry is installed implicitly.
 
-`CallableThrowableHandler` adapts `callable(Throwable): void`. `ThrowableHandlerAggregate` accepts variadic reporters and supports `attach()`; it calls them in attachment order with the same throwable object. It stops if a reporter throws. Use a custom composite when independent best-effort reporting is required.
+## Callable reporters, aggregates and PSR-14
 
-`DispatchThrowableHandler` dispatches the throwable itself through a PSR-14 dispatcher. `DispatchErrorEventThrowableHandler` dispatches an `ErrorEvent` containing it. `ThrowableListenerProvider` and `ErrorEventListenerProvider` select compatible events; the callable listeners adapt application callbacks. `LogErrorEventListener` forwards an error event to a PSR-3 logger. Event stringification contains exception details and is intended for private diagnostic sinks, not untrusted HTTP output.
+`CallableThrowableHandler` adapts `callable(Throwable): void`.
+`ThrowableHandlerAggregate` accepts variadic reporters and `attach()`, delivering
+the same object in order and stopping on the first failure.
 
-## PSR-15/PSR-17 HTTP
+`DispatchThrowableHandler` dispatches the original throwable through PSR-14.
+`DispatchErrorEventThrowableHandler` dispatches an `ErrorEvent` wrapper.
+The two listener providers select Throwable objects or the built-in ErrorEvent;
+callable listeners adapt application callbacks. `LogErrorEventListener` forwards
+the diagnostic event to an application PSR-3 logger. Stringifying ErrorEvent
+includes private diagnostics and must not produce a public HTTP body.
+See [the complete event/logger example](examples.md#events).
+
+## HTTP: report once, then render explicitly
+
+`ErrorHandlerMiddleware` accepts an
+`ErrorHandlerInterface&ThrowableHandlerInterface` instance and a
+`ThrowableResponseFactoryInterface`. The built-in ErrorHandler already implements
+both contracts. A custom lifecycle implementation must support reporting too.
+
+On a downstream Throwable, middleware first calls the scoped handler, then asks
+the response factory for a public representation. A reporter failure propagates
+after cleanup; its failed-registration guard prevents a second reporter attempt
+when a PHP warning caused that failure. Rendering failure also propagates after
+cleanup. Successful downstream responses pass through unchanged.
+
+Diagnostic reporters keep their `void` contract, work in CLI/events/shutdown,
+and do not need PSR-7. In HTTP, send diagnostics to private sinks. Reporter echo
+is unsolicited output; the default middleware does not treat it as the response
+body. Pure renderers return StreamInterface or ResponseInterface directly.
 
 ```php
-$streams = new ThrowableStreamFactory($psr17Factory, $reporter);
+$streams = new GenericThrowableStreamFactory($psr17Factory);
 $responses = new ThrowableResponseFactory($streams, $psr17Factory);
-$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
-$response = $middleware->process($serverRequest, $requestHandler);
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($privateReporter), $responses);
+$response = $middleware->process($request, $application);
 ```
 
-Use the `Http\Message` and `Http\Middleware` namespaces for these classes. The PSR-17 factory must implement both stream and response factories. A complete runnable composition is in [`tests/Http/router.php`](../tests/Http/router.php).
+Imports are under `Http\Message` and `Http\Middleware`. The PSR-17 implementation
+must provide response and stream factories. The default generic renderer always
+returns `Internal Server Error`, without reporter invocation or buffering.
+`ThrowableResponseFactory` keeps integer codes 400–599, otherwise uses 500, and
+lets PSR-17 supply the standard reason phrase.
 
-The middleware returns normal downstream responses unchanged and catches downstream `Throwable` objects to generate an error response. It always unregisters its handler after processing. Use a distinct handler instance for each nested middleware scope; do not share/pre-register one instance across simultaneous requests or fibers. PHP's global callback stacks are process state, not request-local storage.
+Implement `ThrowableStreamFactoryInterface` for a pure custom body, such as JSON,
+or `ThrowableResponseFactoryInterface` when also choosing Content-Type/headers.
+See [JSON without echo](examples.md#http-rendering). The application owns emission,
+headers, transport and public payload policy; diagnostic details are never a safe
+default. A ready opt-in JSON adapter is [tracked separately](https://github.com/coisa/error-handler/issues/7).
 
-`ThrowableStreamFactory` captures reporter output. Empty output maps to `Internal Server Error`; `0` is a valid body. On renderer failure, cleanup removes reachable removable buffers and preserves the renderer exception. It stops if the top buffer is non-removable or cleanup makes no progress. PHP cannot remove a non-removable buffer or reach the buffers beneath it; those remain active, so renderers must never create non-removable buffers. Renderers must balance their own successful nested buffers and must not close the caller's buffers. `ThrowableResponseFactory` keeps integer codes 400–599, uses 500 otherwise, and lets the PSR-17 factory supply the standard reason phrase.
+## Optional output-capture adapter
 
-Neither the middleware nor the global handler emits PSR-7 responses to a server. The application/framework owns emission, headers, content type and transport. A PHP engine fatal error bypasses normal middleware recovery; shutdown reporting cannot reliably replace an already-started HTTP response.
+`ThrowableStreamFactory` remains available explicitly for public echo-based
+templates. In that adapter only, output from its injected callable becomes the
+stream; a JSON callback would need to echo JSON. It is not the provider default.
 
-## Interop service-provider integration
+Pass a separate public renderer, not the diagnostic reporter middleware already
+called. Empty captured output becomes `Internal Server Error`; `0` remains valid.
+The adapter cleans reachable removable buffers after failure and preserves a
+renderer failure over cleanup failure. Cleanup stops at a non-removable buffer
+or lack of progress. Renderers must balance their own removable buffers and never
+close caller-owned buffers. See [the capture recipe](examples.md#output-capture).
 
-`ServiceProvider\ErrorHandlerServiceProvider` implements the Interop contract
-used by FastForward, with callable factories and no automatic callback
-registration. See [FastForward integration](fast-forward.md) for process-service
-aliases, application overrides and fresh middleware scopes.
+## Interop provider
 
-FastForward Container is required at runtime and owns service resolution,
-caching and autowiring. Concrete dispatch and HTTP adapters use constructor
-autowiring. Explicit factories remain for optional PHP/shutdown handlers, reporter
-composition and independent middleware scopes. `ErrorHandlerContainer` and its
-private alias/exception machinery have been removed.
+`ServiceProvider\ErrorHandlerServiceProvider` uses FastForward Container's
+required runtime resolution, caching and constructor autowiring. It never
+registers PHP callbacks during discovery/construction. The explicit lifecycle
+factories live under `ServiceProvider\Factory`; no parallel standalone container
+or native Laminas ConfigProvider remains.
 
-The Interop provider is the single supported container integration entrypoint.
-`Container\ConfigProvider` and its Laminas discovery metadata have been removed.
-The three lifecycle factories live under `ServiceProvider\Factory`. Consumers
-combine the provider with constructor autowiring, as FastForward's `container()`
-does; PSR-11 alone does not define provider registration or autowiring.
-See [migration](migration.md) for removed and moved class names.
-
-Provide `ThrowableHandlerInterface` for a custom reporter. Otherwise `ThrowableHandlerAggregateFactory` composes any available callable/event-dispatch reporters; an empty aggregate intentionally produces no diagnostics. HTTP factories also require PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` services. PSR-14 integration needs `EventDispatcherInterface`. These implementations belong to the application; the package ships interfaces and adapters, not a logger, event bus or HTTP framework.
+Merge library definitions first and the application last in one AggregateServiceProvider.
+Bind required reporters/renderers explicitly through their interfaces. The default
+reporter aggregate discovers optional callable/PSR-14 reporters and is silent when
+none are configured. The default HTTP stream alias resolves GenericThrowableStreamFactory.
+Applications supply PSR-14, PSR-17 and logger implementations. See [provider wiring](fast-forward.md)
+and [migration](migration.md).

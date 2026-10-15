@@ -7,6 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED = {
+    "output-capture.php": "Captured body: Public failure page\n",
     "fast-forward.php": "Reported: FastForward provider warning\n",
     "reporters.php": "first: Synthetic failure\nsecond: Synthetic failure\n",
     "event-dispatcher.php": "throwable: Synthetic warning\nevent: Synthetic warning\nPrivate log records: 1\n",
@@ -68,4 +69,4 @@ for path in paths:
     assert "```php\n" + source + "\n```" in cookbook, "Stale cookbook example: " + key
     print("PASS " + key)
 assert len(page.code) == len(paths)
-print("Eight executable examples, cookbook snippets and HTML anchors verified.")
+print("Nine executable examples, cookbook snippets and HTML anchors verified.")

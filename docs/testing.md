@@ -14,7 +14,7 @@ python3 tests/Examples/run.py
 
 The check runs formatting, PHP_CodeSniffer, PHPUnit, maximum-level source PHPStan,
 bounded child-process fire tests and loopback HTTP tests. Examples are also
-formatted and checked. The separate Python command verifies all eight executable
+formatted and checked. The separate Python command verifies all nine executable
 recipes, their exact outputs/exit codes, cookbook/site source parity and HTML anchors.
 
 CI resolves lowest and highest allowed dependencies on PHP 8.3, and highest on
@@ -73,8 +73,8 @@ construction more than once; exception identity and a single attempt are not pro
 
 Independent unregistered `handleThrowable()` calls remain usable after a reporter
 failure. During registration, failed reporters are suppressed. Built-in middleware
-propagates that failure and restores callbacks without invoking its response
-renderer through the failed reporter again. A response-factory failure also
+propagates that failure and restores callbacks without invoking the response
+renderer again. A response-factory failure also
 propagates after callback restoration.
 
 The former Laminas behavior cases now exercise the Interop provider. Removed
@@ -89,11 +89,13 @@ delivered duplicate shutdown notifications, and failed/recursive reporters were
 retried. The current suite adds regressions for the demonstrated defects.
 
 The current local PHP 8.5.11/macOS arm64 installation with FastForward 1.6.0 passes
-**73 tests / 177 assertions**, maximum source PHPStan, formatting, **31 bounded
-scenarios**, three HTTP responses and eight executable examples. Dependency
+**75 tests / 180 assertions**, maximum source PHPStan, formatting, **31 bounded
+scenarios**, three HTTP responses and nine executable examples. Dependency
 snapshots used for these local runs are observations, not a committed lock or
 a promise about future resolution. The earlier isolated highest-dependency run
-with FastForward 1.8.0 also passed; new changes require current-head verification.
+with FastForward 1.8.0 also passed; the current HTTP follow-up requires current-head verification. Tests additionally
+verify report-before-render ordering, no stdout from a private reporter/pure JSON
+renderer, successful response identity and concrete response overrides.
 
 Earlier Linux aarch64 checks exercised PHP 8.3.33, 8.4.25 and 8.5.10 using official
 images. The repository Docker/Compose setup is now removed: the version matrix
@@ -104,17 +106,16 @@ image experiments are historical evidence, not a supported image interface.
 
 The original `coisa/php-cs-fixer:2.1.0` preset installs with PHP CS Fixer 3.95.25,
 but loading it fails because it extends the removed
-`PhpCsFixer\\RuleSet\\AbstractRuleSetDescription`. An isolated installation
+`PhpCsFixer\RuleSet\AbstractRuleSetDescription`. An isolated installation
 reproduced that failure. Its Composer PHP constraint itself allows PHP 8.3+.
 The original modernization commit did not record a specific rationale.
 
 The repository currently selects an explicit PSR-12 baseline for source, tests
 and examples. This is functional but is not equivalent to the additional CoiSA
 rules, risky transformations and header/PHPDoc policy of the old preset.
-Modernizing that package is a separate PR; do not depend on its unreleased branch
+The [preset modernization PR](https://github.com/coisa/php-cs-fixer/pull/3) now passes
+its PHP 8.3–8.5 matrix and reusable changed-files workflow; do not depend on its unreleased branch
 from this library. PHPDoc and licensing remain explicit review requirements.
-
-## Release and distribution verification
 
 ## Coverage and the sticky PR note
 

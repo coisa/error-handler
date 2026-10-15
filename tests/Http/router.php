@@ -17,7 +17,7 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
@@ -31,7 +31,7 @@ $reporter = new CallableThrowableHandler(static function (): void {
     // A production application can log privately without rendering the exception.
 });
 $middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), new ThrowableResponseFactory(
-    new ThrowableStreamFactory($factory, $reporter),
+    new GenericThrowableStreamFactory($factory),
     $factory
 ));
 $next = new class () implements RequestHandlerInterface {

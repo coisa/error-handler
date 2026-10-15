@@ -36,6 +36,10 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   factories for reporter composition, optional handlers and fresh middleware
   scopes; use autowiring for plain constructor injection. A possible
   move to php-fast-forward does not itself change package identity or namespace.
+- HTTP middleware requires lifecycle and throwable-reporting contracts on the same
+  scoped handler. Report once, then invoke a pure response renderer. Keep the generic
+  stream as the provider default and output capture as an explicit public-renderer
+  adapter; never invoke the diagnostic reporter again during rendering.
 - Reporters own diagnostic output; HTTP fallback bodies must not leak exception
   details. A shutdown callback reports a fatal error and does not recover it.
 
@@ -43,8 +47,9 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 
 Inspect the current branch and relevant interfaces before changes. Update
 source, meaningful regression tests, examples, affected guides and a pending
-Changeset together. Keep runtime code independent of Node release tooling. Keep the skill aligned with tested public APIs, without
-copying the full manual or adding host-specific dependencies.
+Changeset together. Keep runtime code independent of Node release tooling. Keep
+the skill aligned with tested public APIs, without copying the full manual or
+adding host-specific dependencies.
 
 Run fatal-error and process-termination experiments only through bounded child
 fixtures. Reuse the existing fire/HTTP runners and their temporary data. Never

@@ -32,6 +32,10 @@ if (!$handler instanceof CoiSA\ErrorHandler\ErrorHandler || count($provider->get
 if (class_exists(CoiSA\ErrorHandler\Container\ConfigProvider::class)) {
     throw new RuntimeException('Legacy ConfigProvider remains available.');
 }
+if (!class_exists(CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory::class)
+    || !class_exists(CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware::class)) {
+    throw new RuntimeException('Production HTTP adapters cannot load without development dependencies.');
+}
 '''
         subprocess.run(["php", "-r", code], cwd=directory, check=True, timeout=5)
 print("PASS runtime archive exclusions and production-only Composer/provider autoload")

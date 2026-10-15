@@ -14,7 +14,7 @@
 <body>
 <header><a class="brand" href="#overview"><span>{!}</span>CoiSA / Error Handler</a><a href="https://github.com/coisa/error-handler">View source ↗</a></header>
 <div class="layout">
-  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#examples">Usage cookbook</a><a href="#fast-forward">Service provider</a><a href="#events">Events &amp; logging</a><a href="#http-middleware">HTTP middleware</a><a href="#scopes">Fresh scopes</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
+  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#examples">Usage cookbook</a><a href="#fast-forward">Service provider</a><a href="#events">Events &amp; logging</a><a href="#http-middleware">HTTP middleware</a><a href="#http-rendering">JSON rendering</a><a href="#scopes">Fresh scopes</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
   <main>
     <div id="overview">
       <div class="eyebrow">A small PHP library. An explicit failure contract.</div>
@@ -49,9 +49,9 @@ $reporter = new CallableThrowableHandler(
 
 $errors = new ErrorHandler($reporter);
 $errors-&gt;register();</code></pre></div>
-      <p>Keep diagnostic output in an appropriate private sink. A reporter that emits nothing produces the generic HTTP body <code>Internal Server Error</code>.</p>
+      <p>Keep diagnostic output in an appropriate private sink. HTTP middleware reports once, then uses a separate renderer. The default body is <code>Internal Server Error</code>; JSON renderers return a stream directly.</p>
     </section>
-    <section id="examples"><div class="eyebrow">Usage cookbook</div><h2>Choose an integration. Run the complete example.</h2><p>These examples target the unreleased next major. The checkout includes Nyholm PSR-7 and Phly EventDispatcher as development dependencies. Applications own their PSR-17, PSR-14 and PSR-3 implementations. Adjust the autoload path when copying a file into an application.</p><div class="links"><a href="#cli">Process bootstrap</a><a href="#fast-forward">Interop service provider</a><a href="#reporters">Callable reporters and ordered composition</a><a href="#events">PSR-14 dispatch, listeners and PSR-3 logging</a><a href="#http-middleware">PSR-15 HTTP middleware with the provider</a><a href="#http-rendering">Controlled JSON rendering without a container</a><a href="#custom-handlers">Application PHP-error and shutdown handlers</a><a href="#scopes">Fresh handlers and nested middleware</a></div><p>Install the example implementations in an application with <code>composer require nyholm/psr7 phly/phly-event-dispatcher</code> when using both HTTP and event recipes.</p><div class="table-scroll"><table><thead><tr><th>Built-in adapter</th><th>Responsibility</th><th>Usage</th></tr></thead><tbody><tr><td><code>ErrorHandler / ErrorHandlerInterface</code></td><td>Process registration, callback restoration and direct delivery</td><td><a href="#cli">Example</a></td></tr><tr><td><code>CallableThrowableHandler / ThrowableHandlerInterface</code></td><td>Application-owned reporting adapter</td><td><a href="#reporters">Example</a></td></tr><tr><td><code>ThrowableHandlerAggregate</code></td><td>Ordered reporters; stop when a reporter throws</td><td><a href="#reporters">Example</a></td></tr><tr><td><code>ThrowErrorExceptionPhpErrorHandler / PhpErrorHandlerInterface</code></td><td>Default severity-aware conversion and custom PHP policy</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>PhpLastErrorShutdownHandler / ShutdownHandlerInterface</code></td><td>Default fatal inspection and application shutdown policy</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>CallableShutdownHandler</code></td><td>Adapt a shutdown callback</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>DispatchThrowableHandler / DispatchErrorEventThrowableHandler</code></td><td>Dispatch the original object or an ErrorEvent wrapper</td><td><a href="#events">Example</a></td></tr><tr><td><code>ErrorEvent / ErrorEventInterface</code></td><td>Access getThrowable(); diagnostic __toString() for private sinks</td><td><a href="#events">Example</a></td></tr><tr><td><code>ThrowableCallableListener / ErrorEventCallableListener</code></td><td>Adapt application event callbacks</td><td><a href="#events">Example</a></td></tr><tr><td><code>ThrowableListenerProvider / ErrorEventListenerProvider</code></td><td>Select the supported event category</td><td><a href="#events">Example</a></td></tr><tr><td><code>LogErrorEventListener</code></td><td>Send an ErrorEvent to an application PSR-3 logger</td><td><a href="#events">Example</a></td></tr><tr><td><code>ErrorHandlerServiceProvider / ThrowableHandlerAggregateFactory</code></td><td>Lazy Interop definitions and optional reporter discovery</td><td><a href="#fast-forward">Example</a></td></tr><tr><td><code>ThrowableStreamFactory / ThrowableStreamFactoryInterface</code></td><td>Capture deliberate output; generic fallback when empty</td><td><a href="#http-rendering">Example</a></td></tr><tr><td><code>ThrowableResponseFactory / ThrowableResponseFactoryInterface</code></td><td>Map integer error codes 400–599; otherwise 500</td><td><a href="#http-rendering">Example</a></td></tr><tr><td><code>ErrorHandlerMiddleware</code></td><td>Scoped PSR-15 processing; return a PSR-7 response</td><td><a href="#http-middleware">Example</a></td></tr><tr><td><code>ErrorHandlerFactory / ErrorHandlerMiddlewareFactory</code></td><td>Fresh handler and middleware lifetimes</td><td><a href="#scopes">Example</a></td></tr></tbody></table></div></section>
+    <section id="examples"><div class="eyebrow">Usage cookbook</div><h2>Choose an integration. Run the complete example.</h2><p>Nine complete recipes cover every built-in adapter. This is the unreleased next major. The checkout includes Nyholm PSR-7 and Phly EventDispatcher as development dependencies; applications own PSR implementations. Adjust the Composer autoload path when copying a file.</p><div class="links"><a href="#cli">Process bootstrap</a><a href="#fast-forward">Interop service provider</a><a href="#reporters">Callable reporters and ordered composition</a><a href="#events">PSR-14 dispatch, listeners and PSR-3 logging</a><a href="#http-middleware">PSR-15 HTTP middleware with the provider</a><a href="#http-rendering">Explicit JSON streams without echo or buffering</a><a href="#custom-handlers">Application PHP-error and shutdown handlers</a><a href="#scopes">Fresh handlers and nested middleware</a><a href="#output-capture">Optional output-capture compatibility adapter</a></div><p>For these HTTP/event examples, applications can install <code>nyholm/psr7</code> and <code>phly/phly-event-dispatcher</code>. Diagnostic reporters return void; HTTP renderers return streams/responses.</p><div class="table-scroll"><table><thead><tr><th>Built-in adapter</th><th>Responsibility</th><th>Usage</th></tr></thead><tbody><tr><td><code>ErrorHandler / ErrorHandlerInterface</code></td><td>Process registration, callback restoration and direct delivery</td><td><a href="#cli">Example</a></td></tr><tr><td><code>CallableThrowableHandler / ThrowableHandlerInterface</code></td><td>Application-owned reporting adapter</td><td><a href="#reporters">Example</a></td></tr><tr><td><code>ThrowableHandlerAggregate</code></td><td>Ordered reporters; stop when a reporter throws</td><td><a href="#reporters">Example</a></td></tr><tr><td><code>ThrowErrorExceptionPhpErrorHandler / PhpErrorHandlerInterface</code></td><td>Default severity-aware conversion and custom PHP policy</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>PhpLastErrorShutdownHandler / ShutdownHandlerInterface</code></td><td>Default fatal inspection and application shutdown policy</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>CallableShutdownHandler</code></td><td>Adapt a shutdown callback</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>DispatchThrowableHandler / DispatchErrorEventThrowableHandler</code></td><td>Dispatch the original object or an ErrorEvent wrapper</td><td><a href="#events">Example</a></td></tr><tr><td><code>ErrorEvent / ErrorEventInterface</code></td><td>Access getThrowable(); diagnostic __toString() for private sinks</td><td><a href="#events">Example</a></td></tr><tr><td><code>ThrowableCallableListener / ErrorEventCallableListener</code></td><td>Adapt application event callbacks</td><td><a href="#events">Example</a></td></tr><tr><td><code>ThrowableListenerProvider / ErrorEventListenerProvider</code></td><td>Select the supported event category</td><td><a href="#events">Example</a></td></tr><tr><td><code>LogErrorEventListener</code></td><td>Send an ErrorEvent to an application PSR-3 logger</td><td><a href="#events">Example</a></td></tr><tr><td><code>ErrorHandlerServiceProvider / ThrowableHandlerAggregateFactory</code></td><td>Lazy Interop definitions and optional reporter discovery</td><td><a href="#fast-forward">Example</a></td></tr><tr><td><code>GenericThrowableStreamFactory</code></td><td>Default public stream; no reporting or output buffer</td><td><a href="#http-middleware">Example</a></td></tr><tr><td><code>ThrowableStreamFactory / ThrowableStreamFactoryInterface</code></td><td>Optional capture adapter for deliberately public templates</td><td><a href="#output-capture">Example</a></td></tr><tr><td><code>ThrowableResponseFactory / ThrowableResponseFactoryInterface</code></td><td>Map integer error codes 400–599; otherwise 500</td><td><a href="#http-rendering">Example</a></td></tr><tr><td><code>ErrorHandlerMiddleware</code></td><td>Scoped PSR-15 processing; return a PSR-7 response</td><td><a href="#http-middleware">Example</a></td></tr><tr><td><code>ErrorHandlerFactory / ErrorHandlerMiddlewareFactory</code></td><td>Fresh handler and middleware lifetimes</td><td><a href="#scopes">Example</a></td></tr></tbody></table></div></section>
     <section id="cli">
       <div class="eyebrow">Executable recipe · examples/cli.php</div><h2>Process bootstrap</h2>
       <p>Keep one handler registered through process termination. Recoverable warnings report and continue; a successfully reported uncaught exception exits 1. This example deliberately exits 1 and writes two diagnostic lines to stderr. Do not wrap process bootstrap in a finally that unregisters before the uncaught callback runs.</p>
@@ -240,7 +240,7 @@ printf(&quot;Private log records: %d\n&quot;, count($logger-&gt;records));</code
     </section>
     <section id="http-middleware">
       <div class="eyebrow">Executable recipe · examples/http-middleware.php</div><h2>PSR-15 HTTP middleware with the provider</h2>
-      <p>Bind the application's PSR-17 response and stream factories and a private reporter. ErrorHandlerMiddleware returns successful downstream responses unchanged and maps a downstream Throwable to an error response. The example returns HTTP 503 with Internal Server Error, reports the failure privately, then reports a warning through the restored process handler. It prints Reported: 2. Your application owns response emission, headers and content type.</p>
+      <p>Bind application PSR-17 factories and a private diagnostic reporter. The middleware reports a downstream Throwable once, then asks a separate factory for a response. GenericThrowableStreamFactory is the provider default: it returns Internal Server Error without invoking a reporter or capturing output. Reporter output is not the response body; HTTP reporters must keep diagnostics in private sinks. The example returns 503 and then reports a warning through the restored process handler, for two private reports. Applications own emission and headers.</p>
       <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/http-middleware.php</code></pre></div>
       <details open><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/http-middleware.php</div><pre><code data-example="examples/http-middleware.php">&lt;?php
 
@@ -303,34 +303,74 @@ printf(&quot;Reported: %d\n&quot;, count($reported));
 // Your HTTP framework/emitter sends the response; this example only inspects it.</code></pre></div></details>
     </section>
     <section id="http-rendering">
-      <div class="eyebrow">Executable recipe · examples/http-rendering.php</div><h2>Controlled JSON rendering without a container</h2>
-      <p>Compose ThrowableStreamFactory and ThrowableResponseFactory directly. Separate private diagnostic side effects from deliberately public renderer output. This example emits only a fixed JSON error and adds application/json to the resulting response. Never echo exception messages, traces or credentials in a production renderer. To inject these factories into provider middleware, bind ThrowableResponseFactoryInterface explicitly in the application provider.</p>
+      <div class="eyebrow">Executable recipe · examples/http-rendering.php</div><h2>Explicit JSON streams without echo or buffering</h2>
+      <p>Keep the reporter's void contract for private diagnostics. Implement ThrowableStreamFactoryInterface to return a JSON StreamInterface directly, and compose it with ThrowableResponseFactory. Middleware reports once before rendering. This complete example adds application/json and exposes only a fixed public message; private throwable details stay in the reporter. A ready JSON response adapter is tracked separately in issue #7.</p>
       <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/http-rendering.php</code></pre></div>
       <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/http-rendering.php</div><pre><code data-example="examples/http-rendering.php">&lt;?php
 
 declare(strict_types=1);
 
+use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
+use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $privateDiagnostics = [];
 $reporter = new CallableThrowableHandler(
     static function (Throwable $error) use (&amp;$privateDiagnostics): void {
-        $privateDiagnostics[] = $error; // Replace with a private logger.
+        $privateDiagnostics[] = $error; // Replace with a private logger; emit no response body.
     }
 );
-$publicRenderer = new CallableThrowableHandler(static function (): void {
-    echo json_encode(['error' =&gt; 'Service unavailable'], JSON_THROW_ON_ERROR);
-});
 $psr17 = new Psr17Factory();
-$streams = new ThrowableStreamFactory($psr17, new ThrowableHandlerAggregate($reporter, $publicRenderer));
+$streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
+    /**
+     * Stores the application's PSR-17 factory.
+     *
+     * @param StreamFactoryInterface $streams Creates public response body streams.
+     */
+    public function __construct(private StreamFactoryInterface $streams)
+    {
+    }
+
+    /**
+     * Returns controlled JSON directly, independently of diagnostic reporting.
+     *
+     * @param Throwable $throwable The private failure whose details stay undisclosed.
+     *
+     * @return StreamInterface A public JSON body without echo or output buffering.
+     */
+    public function createStreamFromThrowable(Throwable $throwable): StreamInterface
+    {
+        return $this-&gt;streams-&gt;createStream(
+            json_encode(['error' =&gt; 'Service unavailable'], JSON_THROW_ON_ERROR)
+        );
+    }
+};
 $responses = new ThrowableResponseFactory($streams, $psr17);
-$response = $responses-&gt;createResponseFromThrowable(new RuntimeException('Private credentials', 503))
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
+$downstream = new class () implements RequestHandlerInterface {
+    /**
+     * Simulates a private application failure with an HTTP error code.
+     *
+     * @param ServerRequestInterface $request The incoming request.
+     *
+     * @return ResponseInterface The error response produced by middleware.
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        throw new RuntimeException('Private credentials', 503);
+    }
+};
+$response = $middleware-&gt;process($psr17-&gt;createServerRequest('GET', '/'), $downstream)
     -&gt;withHeader('Content-Type', 'application/json');
 
 printf(&quot;HTTP %d | %s\n&quot;, $response-&gt;getStatusCode(), $response-&gt;getHeaderLine('Content-Type'));
@@ -496,6 +536,30 @@ printf(
     $outer !== $inner ? 'yes' : 'no'
 );
 printf(&quot;HTTP %d | Reports: %d\n&quot;, $response-&gt;getStatusCode(), $reported);</code></pre></div></details>
+    </section>
+    <section id="output-capture">
+      <div class="eyebrow">Executable recipe · examples/output-capture.php</div><h2>Optional output-capture compatibility adapter</h2>
+      <p>ThrowableStreamFactory remains available for deliberately public echo-based templates. In this adapter alone, output from its injected callable becomes the response stream; a JSON template would have to echo JSON. New JSON renderers can return a stream directly as above. The provider does not select this adapter by default. Middleware already reports diagnostics: pass a separate public renderer here, never the same diagnostic reporter again. Empty captured output becomes Internal Server Error; 0 remains a valid body.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/output-capture.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/output-capture.php</div><pre><code data-example="examples/output-capture.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+// Optional compatibility adapter: only deliberately public output belongs here.
+// Middleware now reports privately before rendering; do not inject its reporter again.
+$publicRenderer = new CallableThrowableHandler(static function (): void {
+    echo 'Public failure page';
+});
+$streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);
+$body = $streams-&gt;createStreamFromThrowable(new RuntimeException('Private diagnostics'));
+
+printf(&quot;Captured body: %s\n&quot;, (string) $body);</code></pre></div></details>
     </section>
     <section id="behavior">
       <div class="eyebrow">03 / Observable behavior</div><h2>Know what each boundary does.</h2>

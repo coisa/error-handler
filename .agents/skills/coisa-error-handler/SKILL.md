@@ -94,10 +94,17 @@ after processing and after renderer failure. Create separate middleware for
 nested scopes. This library does not make callbacks local to concurrent fibers
 or requests, and it does not emit HTTP responses.
 
-Reporters and renderers have different output responsibilities. Empty captured
-reporter output becomes `Internal Server Error`; emitted text becomes the public
-body. Keep private diagnostics out of renderer output. Renderers must use
-removable, balanced buffers and must not close caller-owned buffers.
+Middleware requires one scoped object implementing ErrorHandlerInterface and
+ThrowableHandlerInterface. It reports downstream failures once, then invokes the
+response factory. Reporters remain void and send diagnostics privately. The
+provider's GenericThrowableStreamFactory returns a safe body directly, without
+reading reporter output. Implement the stream/response interfaces for JSON;
+`docs/examples.md#http-rendering` shows a complete pure renderer.
+
+The retained ThrowableStreamFactory is an explicit adapter for public echo-based
+templates. Pass a separate public renderer there, never a diagnostic reporter
+middleware already called. Only this adapter converts output into the body.
+Its renderers must balance removable buffers and never close caller-owned buffers.
 
 ## Verify the integration
 

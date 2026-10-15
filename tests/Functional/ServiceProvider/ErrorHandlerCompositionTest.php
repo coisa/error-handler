@@ -291,12 +291,12 @@ final class ErrorHandlerCompositionTest extends TestCase
     {
         $exception = new \InvalidArgumentException(uniqid('test', true), random_int(400, 500));
 
-        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable): void {
-            echo json_encode([
-                'code'    => $throwable->getCode(),
-                'message' => $throwable->getMessage(),
-            ]);
-        });
+        $received = [];
+        $callableThrowableHandler = new CallableThrowableHandler(
+            static function (\Throwable $throwable) use (&$received): void {
+                $received[] = $throwable;
+            }
+        );
         $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
         $errorHandler = $this->container()->get(ErrorHandler::class);
@@ -338,11 +338,8 @@ final class ErrorHandlerCompositionTest extends TestCase
         static::assertInstanceOf(ResponseInterface::class, $response);
         static::assertSame($exception->getCode(), $response->getStatusCode());
 
-        $body = json_decode((string) $response->getBody(), true);
-
-        static::assertIsArray($body);
-        static::assertSame($exception->getCode(), $body['code']);
-        static::assertSame($exception->getMessage(), $body['message']);
+        static::assertSame('Internal Server Error', (string) $response->getBody());
+        static::assertSame([$exception], $received);
     }
 
     /**

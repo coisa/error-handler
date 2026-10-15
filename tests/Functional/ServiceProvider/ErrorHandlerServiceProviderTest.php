@@ -30,6 +30,7 @@ use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
@@ -70,9 +71,12 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     {
         $received = [];
         $container = self::httpServices($received);
-        self::assertInstanceOf(ThrowableStreamFactory::class, $container->get(ThrowableStreamFactory::class));
+        self::assertInstanceOf(
+            GenericThrowableStreamFactory::class,
+            $container->get(GenericThrowableStreamFactory::class)
+        );
         self::assertSame(
-            $container->get(ThrowableStreamFactory::class),
+            $container->get(GenericThrowableStreamFactory::class),
             $container->get(ThrowableStreamFactoryInterface::class)
         );
         self::assertInstanceOf(ThrowableResponseFactory::class, $container->get(ThrowableResponseFactory::class));
@@ -83,21 +87,42 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     }
 
     /**
-     * Verifies explicit concrete adapter overrides remain effective under autowiring.
+     * Verifies an explicit interface binding can select the optional output-capture renderer.
      */
-    public function testApplicationCanOverrideAnAutowiredConcreteAdapter(): void
+    public function testApplicationCanSelectAnExplicitOutputCaptureRenderer(): void
     {
         $renderer = new ThrowableStreamFactory(new Psr17Factory(), new CallableThrowableHandler(
             static function (): void {
                 echo 'Application response';
             }
         ));
-        $container = self::services([ThrowableStreamFactory::class => $renderer]);
+        $container = self::services([ThrowableStreamFactoryInterface::class => $renderer]);
 
         self::assertSame($renderer, $container->get(ThrowableStreamFactoryInterface::class));
         self::assertSame(
             'Application response',
             (string) $renderer->createStreamFromThrowable(new \RuntimeException())
+        );
+    }
+
+    /**
+     * Verifies successful concrete response definitions remain effective under autowiring.
+     */
+    public function testApplicationCanOverrideAnAutowiredConcreteResponseAdapter(): void
+    {
+        $psr17 = new Psr17Factory();
+        $renderer = new ThrowableResponseFactory(new ThrowableStreamFactory(
+            $psr17,
+            new CallableThrowableHandler(static function (): void {
+                echo 'Application response';
+            })
+        ), $psr17);
+        $container = self::services([ThrowableResponseFactory::class => $renderer]);
+
+        self::assertSame($renderer, $container->get(ThrowableResponseFactoryInterface::class));
+        self::assertSame(
+            'Application response',
+            (string) $renderer->createResponseFromThrowable(new \RuntimeException())->getBody()
         );
     }
 
