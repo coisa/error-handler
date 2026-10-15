@@ -62,45 +62,32 @@ track a fixed transitive dependency graph or promise transitive security-update
 PRs. Consumer applications resolve and audit their own installations. See
 [Dependabot versioning strategies](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#versioning-strategy).
 
-After the initial **Changesets** PR workflow completes, **Dependabot Changeset**
-adds `.changeset/dependabot-<PR-number>.md` through the GitHub API. The default is
-one maintenance `patch` note. Its summary identifies the dependency ecosystem
-without embedding versions that could become stale after further updates.
-Reviewers must still assess PHP support, public behavior and dependency changes;
-edit the note's summary or bump when the proposed change needs another release
-classification. A dependency's own SemVer bump does not classify this library.
+After the initial PR run completes, the same **Changesets** workflow's Dependabot
+job creates a `patch` note using the real PR title:
 
-The same path is reused after subsequent updates. Existing notes, including
-manually supplied classifications, are preserved. If Dependabot rebases away
-the generated note, the next run recreates it at that path. The generated commit
-contains `[dependabot skip]` so it does not prevent later Dependabot rebases;
-see [rebasing over extra commits](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
+```sh
+npm run changeset -- add --patch "$PACKAGE_NAME" --message "$PR_TITLE"
+```
 
-The writer only handles open PRs authored by the real Dependabot account, from
-this repository's `dependabot/` branches into its default branch. It checks the
-current SHA before a non-forced fast-forward, and rejects unexpected update
-files. A trusted `workflow_run` runs default-branch code; PR Markdown is API data.
-It never checks out or executes PR code, installs PR dependencies, or dispatches
-a workflow defined by the PR. The parser job installs only the default branch's
-locked tooling with scripts disabled and read-only access. A separate job can
-publish checks but cannot change repository contents.
+Changesets 3 supports these noninteractive flags. The job runs only default-branch
+code/tooling, passes the title as an argument and writes the resulting note to
+`.changeset/dependabot-<PR-number>.md` through the GitHub API. It checks the real
+bot identity, same repository, default base and current head. Existing notes are
+preserved, including manual summaries and release classifications. If a rebase
+removes the note, the next run recreates it using the then-current title. Review
+the proposed dependencies and adjust the default patch classification when needed.
 
-Commits made with `GITHUB_TOKEN` do not trigger ordinary PR workflows. Therefore
-the automation parses the existing or generated note with the real Changesets
-parser and publishes **Validate Dependabot Changeset** on the exact current SHA.
-This check validates release-note syntax, package identity, bump type and a
-nonempty summary. It does not replace version rehearsal, PHP checks or testing
-the proposed dependencies. The earlier PR run belongs to the earlier SHA; do
-not treat it as proof for the generated commit. The existing informational
-Changesets sticky comment can remain stale until the next normal PR event.
-See [GitHub token event behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow).
+The generated commit has a bot DCO sign-off and `[dependabot skip]`, allowing
+[later rebases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
+The `workflow_run` branch filter and original `pull_request` event guard avoid
+repeating the writer for its own runs. No PR code is executed by the writer.
 
-The writer activates only after its workflow is merged into the default branch.
-Observe the first real update PR, generated note, later rebase and exact-SHA
-check after activation; local fixtures do not prove hosted token permissions or
-the Dependabot service's update decisions. Re-run failed jobs for transient API
-errors. If the branch changed during a write, its next normal update/run retries
-against the new SHA. No personal token, additional GitHub App or secret is needed.
+This activates after merge. Observe the first real bot PR and rebase then; local
+checks do not establish hosted write permissions. `GITHUB_TOKEN` commits
+[do not trigger ordinary PR workflows](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow),
+so the generated commit does not automatically get another validation run or
+refresh the sticky comment. The initial run belongs to its original SHA. General
+dependency/PHP CI remains separate from this minimal release-note job.
 
 ## Review the version PR
 
