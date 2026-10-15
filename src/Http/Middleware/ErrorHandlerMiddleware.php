@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Middleware;
 
+use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -82,6 +83,9 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
         try {
             $response = $handler->handle($request);
         } catch (\Throwable $throwable) {
+            if ($this->errorHandler instanceof ErrorHandler && $this->errorHandler->hasReporterFailed()) {
+                throw $throwable;
+            }
             $response = $this->throwableResponseFactory->createResponseFromThrowable($throwable);
         } finally {
             $this->errorHandler->unregister();

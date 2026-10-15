@@ -28,15 +28,59 @@ It reports one warning and restores the prior PHP callbacks. Merge the library
 and application definitions into one provider, with the application last:
 
 ```php
+<?php
+
+declare(strict_types=1);
+
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use Interop\Container\ServiceProviderInterface;
+
 use function FastForward\Container\container;
 
-// $application is the ServiceProviderInterface implementation in the example.
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$application = new class () implements ServiceProviderInterface {
+    /**
+     * Supplies application service definitions for the integration fixture.
+     *
+     * @return array<class-string, callable> Application service factories.
+     */
+    public function getFactories(): array
+    {
+        return [
+            ThrowableHandlerInterface::class => static fn (): CallableThrowableHandler =>
+                new CallableThrowableHandler(static function (Throwable $error): void {
+                    printf("Reported: %s\n", $error->getMessage());
+                }),
+        ];
+    }
+
+    /**
+     * Declares no application service extensions.
+     *
+     * @return array<string, callable> An empty extension map.
+     */
+    public function getExtensions(): array
+    {
+        return [];
+    }
+};
+
 $services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+/**
+ * @var ErrorHandlerInterface $errors
+ */
 $errors = $services->get(ErrorHandlerInterface::class);
 $errors->register();
+try {
+    trigger_error('FastForward provider warning', E_USER_WARNING);
+} finally {
+    $errors->unregister();
+}
 ```
 
 For a process-wide handler, keep it registered through termination. For a scoped
@@ -119,12 +163,27 @@ constructor-only factories have been removed. Provider factories all live under
 `ServiceProvider\Factory`; see [migration](migration.md). Provider consumers must
 support constructor autowiring, as FastForward's `container()` does.
 
+## Runnable integration recipes
+
+The [usage cookbook](examples.md) exposes complete examples for every built-in adapter:
+PSR-14 dispatch and PSR-3 logging, private HTTP reporting, controlled JSON rendering,
+custom PHP/shutdown handlers, direct reporter composition and nested scopes.
+Each recipe is also available inline in the [documentation site](index.html#examples)
+and verified against its executable source in CI.
+
 ## HTTP scopes and fresh instances
 
 Supply `Psr\Http\Message\ResponseFactoryInterface` and
 `Psr\Http\Message\StreamFactoryInterface`, for example using an application's
 Nyholm PSR-7 factory. The normal middleware service can process sequential
 requests and restores an already registered process handler after each one.
+
+The middleware factory deliberately does not resolve the cached `ErrorHandler`
+process service. Its `finally` must unregister only its own handler; sharing the
+process instance would deactivate the application's bootstrap registration.
+`ErrorHandlerFactory` also applies optional PHP/shutdown bindings consistently.
+Autowiring selects constructor dependencies, but does not establish a fresh
+lifecycle or make a cached instance independent.
 
 FastForward caches `get()` results. For nested scopes, resolve a factory object
 and invoke it for each middleware instance:
@@ -162,3 +221,8 @@ have already been made.
 Sources: [FastForward Container 1.6.0](https://github.com/php-fast-forward/container/tree/v1.6.0),
 [provider contract](https://github.com/container-interop/service-provider/tree/v0.4.1),
 [factory lifetime pattern](https://github.com/php-fast-forward/container/blob/v1.6.0/docs/advanced/special-patterns.rst).
+
+If the built-in handler's reporter fails during a request warning, middleware
+propagates that failure and restores callbacks without rendering it through the
+reporter again. Ordinary downstream failures still use the configured response
+factory. See [failure boundaries](examples.md#failure-and-lifetime-boundaries).

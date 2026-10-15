@@ -42,8 +42,8 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 ## Work Guidance
 
 Inspect the current branch and relevant interfaces before changes. Update
-source, meaningful regression tests, examples, affected guides and Unreleased
-changelog together. Keep the skill aligned with tested public APIs, without
+source, meaningful regression tests, examples, affected guides and a pending
+Changeset together. Keep runtime code independent of Node release tooling. Keep the skill aligned with tested public APIs, without
 copying the full manual or adding host-specific dependencies.
 
 Run fatal-error and process-termination experiments only through bounded child
@@ -69,6 +69,10 @@ Check documentation links and inspect the actual CI result for the tested SHA.
 - [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
 - [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
   cached services and fresh middleware scopes.
+- [docs/examples.md](docs/examples.md): executable cookbook covering all built-in
+  adapters; keep website snippets identical to their example sources.
+- [docs/releases.md](docs/releases.md): pending Changesets, reviewed version PRs,
+  immutable release tags and Composer delivery boundaries.
 - [docs/testing.md](docs/testing.md): failure runners, commands and evidence limits.
 - [docs/migration.md](docs/migration.md): breaking changes from published 2.0.
 - [.agents/skills/coisa-error-handler/SKILL.md](.agents/skills/coisa-error-handler/SKILL.md):

@@ -1,0 +1,55 @@
+name: Release tooling
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@66d7d1ddafddf1ef45f98ee51a7496f9cdadb2f4 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:release
+      - name: Require a release note on feature PRs
+        if: >-
+          github.event_name == 'pull_request' &&
+          !(github.event.pull_request.head.ref == 'changeset-release/master' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            github.event.pull_request.user.login == 'github-actions[bot]')
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          removed=$(git diff --name-only --diff-filter=DR "$BASE_SHA...HEAD" -- '.changeset/*.md' ':!.changeset/README.md')
+          if [ -n "$removed" ]; then
+            echo "::error::Preserve pending release notes; only the version PR consumes them."
+            exit 1
+          fi
+          files=$(git diff --name-only --diff-filter=AM "$BASE_SHA...HEAD" -- '.changeset/*.md' ':!.changeset/README.md')
+          if [ -z "$files" ]; then
+            echo "::error::Add an English release note with npm run changeset."
+            exit 1
+          fi
+          npm run changeset:status -- --since="$BASE_SHA" --output=changeset-status.json
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const plan = JSON.parse(fs.readFileSync("changeset-status.json", "utf8"));
+            if (!plan.changesets.length || !plan.changesets.every(note => note.summary?.trim()) ||
+                !plan.releases.some(release => release.name === "@coisa/error-handler" &&
+                  ["patch", "minor", "major"].includes(release.type))) {
+              throw new Error("A nonempty changeset for @coisa/error-handler is required.");
+            }'

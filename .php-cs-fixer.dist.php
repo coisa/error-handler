@@ -14,6 +14,12 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
+// coisa/php-cs-fixer 2.1.0 depends on AbstractRuleSetDescription, removed from
+// current PHP CS Fixer. This explicit PSR-12 baseline is not its full CoiSA preset.
 return (new PhpCsFixer\Config())
     ->setRules(['@PSR12' => true])
-    ->setFinder(PhpCsFixer\Finder::create()->in([__DIR__ . '/src', __DIR__ . '/tests'])->name('*.php'));
+    ->setFinder(PhpCsFixer\Finder::create()->in([
+        __DIR__ . '/src',
+        __DIR__ . '/tests',
+        __DIR__ . '/examples',
+    ])->name('*.php'));

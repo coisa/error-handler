@@ -166,7 +166,7 @@ final class ErrorHandler implements
         if ($this->isHandlingThrowable) {
             throw new \LogicException('Recursive throwable handling is not supported.', 0, $throwable);
         }
-        if ($this->handlerFailed) {
+        if ($this->hasReporterFailed()) {
             throw $throwable;
         }
 
@@ -174,11 +174,24 @@ final class ErrorHandler implements
         try {
             $this->throwableHandler->handleThrowable($throwable);
         } catch (\Throwable $failure) {
-            $this->handlerFailed = true;
+            $this->handlerFailed = $this->isRegistered;
             throw $failure;
         } finally {
             $this->isHandlingThrowable = false;
         }
+    }
+
+    /**
+     * Indicates whether reporting has failed within the active registration.
+     *
+     * Integrations MUST propagate the current failure instead of rendering through
+     * the same reporter again. Independent unregistered deliveries have no retained failure state.
+     *
+     * @return bool True when the active registration must not retry its reporter.
+     */
+    public function hasReporterFailed(): bool
+    {
+        return $this->isRegistered && $this->handlerFailed;
     }
 
     /**

@@ -1,6 +1,9 @@
 .composer/
 .idea/
 vendor/
+composer.lock
+node_modules/
+changeset-status.json
 tests/html/
 tests/clover.xml
 tests/testdox.html

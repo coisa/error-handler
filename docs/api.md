@@ -2,6 +2,9 @@
 
 All classes are under `CoiSA\ErrorHandler`. Handler interfaces remain small so reporting, application termination, HTTP rendering and event dispatch can be composed explicitly.
 
+Complete, executable recipes for all adapters are in the [usage cookbook](examples.md)
+and inline on the [documentation site](index.html#examples).
+
 ## Lifecycle
 
 ```php
@@ -28,9 +31,9 @@ Only the active instance receives shutdown events. This includes a custom shutdo
 | `PhpErrorHandlerInterface::handlePhpError(int, string, string, int): void` | Processes a PHP error with severity, message, file and line |
 | `ShutdownHandlerInterface::handleShutdown(): void` | Handles a shutdown notification |
 
-`ErrorHandler` defaults to `ThrowErrorExceptionPhpErrorHandler` and `PhpLastErrorShutdownHandler`. The former respects the current `error_reporting()` bitmask (including `@`) and converts reportable errors to the package's `ErrorException`. The outer `ErrorHandler` delivers that exception and then resumes normal execution for recoverable warnings. The shutdown handler inspects `error_get_last()` for `E_ERROR`, `E_PARSE`, `E_CORE_ERROR` or `E_COMPILE_ERROR`; it does not turn fatal termination into recovery.
+`ErrorHandler` defaults to `ThrowErrorExceptionPhpErrorHandler` and `PhpLastErrorShutdownHandler`. The former respects the current `error_reporting()` bitmask (including `@`) and converts reportable errors to the package's `ErrorException`. The outer `ErrorHandler` delivers that exception and then resumes normal execution for recoverable warnings. The shutdown handler inspects `error_get_last()` for `E_ERROR`, `E_PARSE`, `E_CORE_ERROR` or `E_COMPILE_ERROR`; it does not turn fatal termination into recovery. An engine fatal inside another shutdown callback aborts the remaining shutdown queue, including callbacks registered after it. Re-registering with a new callback cannot recover that path.
 
-A reporter that throws is marked failed and is not retried during the same registration. Recursive calls through the same `ErrorHandler` raise `LogicException`. Direct calls propagate reporter failures; uncaught reporter failures fall back to PHP's native failure path. `unregister()` followed by `register()` begins a fresh lifecycle. The library does not choose an alternative logger or retry remote delivery.
+A reporter that throws is marked failed and is not retried during the same registration. Recursive calls through the same `ErrorHandler` raise `LogicException`. Independent unregistered direct calls propagate reporter failures without retaining the failed flag. `ErrorHandler::hasReporterFailed()` exposes failure suppression only during an active registration. The built-in middleware checks this state and propagates a reporter failure without rendering through that reporter again. Custom `ErrorHandlerInterface` implementations own their failure policy. Direct calls propagate reporter failures; uncaught reporter failures fall back to PHP's native failure path. `unregister()` followed by `register()` begins a fresh lifecycle. The library does not choose an alternative logger or retry remote delivery.
 
 ## Reporter composition and PSR-14
 

@@ -1,7 +1,0 @@
-.composer/
-.git/
-.github/
-.idea/
-vendor/
-tmp/
-*.cache

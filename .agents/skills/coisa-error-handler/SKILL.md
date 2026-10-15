@@ -112,7 +112,15 @@ In the library checkout, use `composer --no-plugins check` and
 against its configured reporters and middleware; the library's passing suite
 does not prove remote logger delivery or application-specific transport behavior.
 
-For full examples, consult the matching checkout's `docs/fast-forward.md`,
+After a reporter fails during registration, built-in middleware propagates the
+failure and restores callbacks without re-rendering through that reporter.
+Independent unregistered direct calls remain usable. A fatal inside another PHP
+shutdown callback can abort the remaining shutdown queue; do not promise recovery
+by re-registering handlers.
+
+For complete runnable recipes covering every built-in adapter, consult
+`docs/examples.md` and `docs/index.html#examples` in the matching checkout.
+For full contract details, consult the matching checkout's `docs/fast-forward.md`,
 `docs/api.md` and `docs/testing.md`, or the
 [source repository](https://github.com/coisa/error-handler). Keep the observed
 version, integration changes, executed checks and remaining limits explicit.

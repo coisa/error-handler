@@ -112,6 +112,17 @@ switch ($scenario) {
         // Allocation fails only inside this child, capped at 16 MiB by the runner.
         str_repeat('x', 32 * 1024 * 1024);
         break;
+    case 'reregister-shutdown-fatal':
+    case 'fresh-shutdown-fatal':
+        if ($scenario === 'reregister-shutdown-fatal') {
+            $handler->register();
+            $handler->unregister();
+        }
+        register_shutdown_function(static function (): void {
+            require __DIR__ . '/compile-fatal.inc';
+        });
+        $handler->register();
+        break;
     case 'shutdown-once':
         $handler = new ErrorHandler($reporter, null, new CallableShutdownHandler(static function (): void {
             event('shutdown');

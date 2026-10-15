@@ -6,6 +6,7 @@
   <meta name="description" content="CoiSA Error Handler: composable PHP error handling, documented lifecycle contracts and reproducible isolated failure tests.">
   <title>CoiSA Error Handler — Make failure observable</title>
   <style>
+    details{border:1px solid var(--line);border-radius:8px;padding:16px 20px;margin:20px 0}summary{cursor:pointer;font-weight:650;color:var(--accent)}details .terminal{margin-bottom:4px}.table-scroll{overflow-x:auto}nav{max-height:calc(100vh - 56px);overflow-y:auto}summary:focus-visible{outline:3px solid #dfa64c;outline-offset:4px}
     :root{--ink:#162b35;--muted:#52666d;--paper:#f5f6f1;--line:#d8e1dc;--accent:#087b69;--night:#112c35;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
     *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:2rem}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 system-ui,-apple-system,sans-serif}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}a:focus-visible{outline:3px solid #dfa64c;outline-offset:5px}header{border-bottom:1px solid var(--line);padding:22px 6%;display:flex;justify-content:space-between;gap:2rem;align-items:center}.brand{font-weight:750;letter-spacing:-.04em;font-size:22px;text-decoration:none;color:var(--ink)}.brand span{font-family:var(--mono);color:var(--accent);margin-right:12px}header a:last-child{font-size:14px;font-weight:650}.layout{display:grid;grid-template-columns:210px minmax(0,900px);gap:60px;max-width:1290px;margin:auto;padding:60px 32px 90px}nav{position:sticky;top:28px;align-self:start;font-size:14px}nav p{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--muted)}nav a{display:block;padding:7px 0;color:var(--muted);text-decoration:none}nav a:hover{color:var(--accent)}main{min-width:0}.eyebrow{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.15em;color:var(--accent);font-weight:700}h1{font-size:clamp(48px,6vw,76px);line-height:1.06;letter-spacing:-.065em;margin:24px 0}h1 em{font-style:normal;color:var(--accent)}.lead{font-size:21px;line-height:1.55;max-width:720px;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:28px 0}.chip{border:1px solid var(--line);padding:5px 11px;border-radius:4px;font:12px/1.5 var(--mono);background:#fff}.notice{border-left:3px solid #be8a32;padding:12px 18px;background:#f1e9d7;font-size:14px;margin:32px 0}.terminal{background:var(--night);color:#e1f1e8;border-radius:10px;overflow:hidden;margin:30px 0}.terminal .bar{padding:12px 22px;border-bottom:1px solid #2c4750;color:#9ab6bb;font:11px/1.6 var(--mono);letter-spacing:.06em}pre{overflow:auto;padding:24px;margin:0;font:13px/1.8 var(--mono)}code{font-family:var(--mono);font-size:.85em;overflow-wrap:anywhere}pre code{font:inherit;overflow-wrap:normal}section{margin-top:64px;padding-top:32px;border-top:1px solid var(--line)}h2{font-size:32px;line-height:1.2;letter-spacing:-.04em;margin:0 0 20px}h3{font-size:18px;letter-spacing:-.02em}p{margin:12px 0 20px}.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px 0}.card{padding:24px 22px;background:#fff;border:1px solid var(--line);border-radius:8px}.number{font:12px var(--mono);color:var(--accent)}.card h3{margin:16px 0 10px}.card p{font-size:14px;color:var(--muted);margin:0}.proof{display:grid;grid-template-columns:130px 1fr;gap:26px;background:#e4efe8;border:1px solid #c0d9cb;padding:28px;border-radius:8px;margin:26px 0}.proof strong{font:600 60px/1 var(--mono);letter-spacing:-.07em;color:#096a5c}.proof small{display:block;font:11px var(--mono);margin-top:12px;color:var(--muted)}.proof p{margin:0;font-size:16px}table{width:100%;border-collapse:collapse;font-size:14px;margin:24px 0}th{text-align:left;font:11px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}td,th{padding:13px 10px 13px 0;border-bottom:1px solid var(--line);vertical-align:top}.links{display:flex;flex-wrap:wrap;gap:12px}.links a{display:inline-block;padding:10px 16px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:14px;text-decoration:none}.links a.primary{background:var(--accent);color:white;border-color:var(--accent)}ul{padding-left:22px}li{margin:9px 0}footer{margin-top:64px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:24px}@media(max-width:900px){.layout{grid-template-columns:1fr;padding:32px 24px;gap:32px}nav{position:static;display:flex;flex-wrap:wrap;gap:8px 20px;border-bottom:1px solid var(--line);padding-bottom:18px}nav p{display:none}.flow{grid-template-columns:1fr}h1{font-size:54px}.proof{grid-template-columns:1fr}.proof strong{font-size:46px}header{padding:18px 24px}.lead{font-size:19px}section{margin-top:44px}pre{padding:18px;font-size:12px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   </style>
@@ -13,7 +14,7 @@
 <body>
 <header><a class="brand" href="#overview"><span>{!}</span>CoiSA / Error Handler</a><a href="https://github.com/coisa/error-handler">View source ↗</a></header>
 <div class="layout">
-  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#fast-forward">FastForward</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
+  <nav aria-label="Documentation"><p>In this guide</p><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#compose">Composition</a><a href="#examples">Usage cookbook</a><a href="#fast-forward">Service provider</a><a href="#events">Events &amp; logging</a><a href="#http-middleware">HTTP middleware</a><a href="#scopes">Fresh scopes</a><a href="#behavior">Behavior &amp; API</a><a href="#evidence">Failure tests</a><a href="#migration">Migration</a><a href="#limits">Boundaries</a></nav>
   <main>
     <div id="overview">
       <div class="eyebrow">A small PHP library. An explicit failure contract.</div>
@@ -25,13 +26,13 @@
     </div>
     <section id="install">
       <div class="eyebrow">01 / Reproduce it</div><h2>Install the development checkout.</h2>
-      <p>Use PHP 8.5 and Composer 2 for the checked-in dependency lock. Check out the pull-request branch when reviewing unmerged changes.</p>
+      <p>Use PHP 8.3–8.5 and Composer 2. This library resolves development dependencies for your runtime; applications keep their own Composer locks. Check out the pull-request branch when reviewing unmerged changes.</p>
       <div class="terminal"><div class="bar">TERMINAL · DEVELOPMENT CHECKOUT</div><pre><code>git clone https://github.com/coisa/error-handler.git
 cd error-handler
 composer install --no-plugins --no-scripts
 composer --no-plugins check
 php examples/cli.php</code></pre></div>
-      <p>The example reports a warning, then an uncaught exception, and deliberately exits with status <code>1</code>. On PHP 8.3 or 8.4, use <code>composer update --no-plugins --no-scripts</code> first to resolve compatible development tools.</p>
+      <p>The example reports a warning, then an uncaught exception, and deliberately exits with status <code>1</code>. Run <code>composer update --no-plugins --no-scripts</code> to refresh local development dependencies.</p>
       <p><code>composer require coisa/error-handler</code> installs the published Packagist release; it does not select this unreleased work.</p>
     </section>
     <section id="compose">
@@ -50,22 +51,461 @@ $errors = new ErrorHandler($reporter);
 $errors-&gt;register();</code></pre></div>
       <p>Keep diagnostic output in an appropriate private sink. A reporter that emits nothing produces the generic HTTP body <code>Internal Server Error</code>.</p>
     </section>
+    <section id="examples"><div class="eyebrow">Usage cookbook</div><h2>Choose an integration. Run the complete example.</h2><p>These examples target the unreleased next major. The checkout includes Nyholm PSR-7 and Phly EventDispatcher as development dependencies. Applications own their PSR-17, PSR-14 and PSR-3 implementations. Adjust the autoload path when copying a file into an application.</p><div class="links"><a href="#cli">Process bootstrap</a><a href="#fast-forward">Interop service provider</a><a href="#reporters">Callable reporters and ordered composition</a><a href="#events">PSR-14 dispatch, listeners and PSR-3 logging</a><a href="#http-middleware">PSR-15 HTTP middleware with the provider</a><a href="#http-rendering">Controlled JSON rendering without a container</a><a href="#custom-handlers">Application PHP-error and shutdown handlers</a><a href="#scopes">Fresh handlers and nested middleware</a></div><p>Install the example implementations in an application with <code>composer require nyholm/psr7 phly/phly-event-dispatcher</code> when using both HTTP and event recipes.</p><div class="table-scroll"><table><thead><tr><th>Built-in adapter</th><th>Responsibility</th><th>Usage</th></tr></thead><tbody><tr><td><code>ErrorHandler / ErrorHandlerInterface</code></td><td>Process registration, callback restoration and direct delivery</td><td><a href="#cli">Example</a></td></tr><tr><td><code>CallableThrowableHandler / ThrowableHandlerInterface</code></td><td>Application-owned reporting adapter</td><td><a href="#reporters">Example</a></td></tr><tr><td><code>ThrowableHandlerAggregate</code></td><td>Ordered reporters; stop when a reporter throws</td><td><a href="#reporters">Example</a></td></tr><tr><td><code>ThrowErrorExceptionPhpErrorHandler / PhpErrorHandlerInterface</code></td><td>Default severity-aware conversion and custom PHP policy</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>PhpLastErrorShutdownHandler / ShutdownHandlerInterface</code></td><td>Default fatal inspection and application shutdown policy</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>CallableShutdownHandler</code></td><td>Adapt a shutdown callback</td><td><a href="#custom-handlers">Example</a></td></tr><tr><td><code>DispatchThrowableHandler / DispatchErrorEventThrowableHandler</code></td><td>Dispatch the original object or an ErrorEvent wrapper</td><td><a href="#events">Example</a></td></tr><tr><td><code>ErrorEvent / ErrorEventInterface</code></td><td>Access getThrowable(); diagnostic __toString() for private sinks</td><td><a href="#events">Example</a></td></tr><tr><td><code>ThrowableCallableListener / ErrorEventCallableListener</code></td><td>Adapt application event callbacks</td><td><a href="#events">Example</a></td></tr><tr><td><code>ThrowableListenerProvider / ErrorEventListenerProvider</code></td><td>Select the supported event category</td><td><a href="#events">Example</a></td></tr><tr><td><code>LogErrorEventListener</code></td><td>Send an ErrorEvent to an application PSR-3 logger</td><td><a href="#events">Example</a></td></tr><tr><td><code>ErrorHandlerServiceProvider / ThrowableHandlerAggregateFactory</code></td><td>Lazy Interop definitions and optional reporter discovery</td><td><a href="#fast-forward">Example</a></td></tr><tr><td><code>ThrowableStreamFactory / ThrowableStreamFactoryInterface</code></td><td>Capture deliberate output; generic fallback when empty</td><td><a href="#http-rendering">Example</a></td></tr><tr><td><code>ThrowableResponseFactory / ThrowableResponseFactoryInterface</code></td><td>Map integer error codes 400–599; otherwise 500</td><td><a href="#http-rendering">Example</a></td></tr><tr><td><code>ErrorHandlerMiddleware</code></td><td>Scoped PSR-15 processing; return a PSR-7 response</td><td><a href="#http-middleware">Example</a></td></tr><tr><td><code>ErrorHandlerFactory / ErrorHandlerMiddlewareFactory</code></td><td>Fresh handler and middleware lifetimes</td><td><a href="#scopes">Example</a></td></tr></tbody></table></div></section>
+    <section id="cli">
+      <div class="eyebrow">Executable recipe · examples/cli.php</div><h2>Process bootstrap</h2>
+      <p>Keep one handler registered through process termination. Recoverable warnings report and continue; a successfully reported uncaught exception exits 1. This example deliberately exits 1 and writes two diagnostic lines to stderr. Do not wrap process bootstrap in a finally that unregisters before the uncaught callback runs.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/cli.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/cli.php</div><pre><code data-example="examples/cli.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$reporter = new CallableThrowableHandler(static function (Throwable $error): void {
+    fwrite(STDERR, get_class($error) . ': ' . $error-&gt;getMessage() . PHP_EOL);
+});
+$handler = new ErrorHandler($reporter);
+$handler-&gt;register();
+
+trigger_error('Example warning; execution continues.', E_USER_WARNING);
+throw new RuntimeException('Example uncaught exception; exit status is 1.');</code></pre></div></details>
+    </section>
     <section id="fast-forward">
-      <div class="eyebrow">Container integration</div><h2>Declare services. Choose when to register.</h2>
-      <p>The Interop service provider follows FastForward's callable factory definitions. Resolve the process handler through <code>ErrorHandlerInterface</code>, configure your reporter in an application provider, and explicitly register at bootstrap.</p>
-      <p>FastForward Container is required at runtime and replaces the standalone container. Constructor autowiring resolves plain adapters; three lifecycle factories preserve reporter composition and fresh scopes. The full framework is not required. Bind required custom renderers through their interfaces to prevent construction failures from falling back to autowiring.</p>
-      <div class="terminal"><div class="bar">RUN THE COMPLETE PROVIDER EXAMPLE</div><pre><code>php examples/fast-forward.php</code></pre></div>
-      <div class="links"><a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">Wiring, overrides &amp; lifetime guide ↗</a><a href="https://github.com/coisa/error-handler/blob/master/AGENTS.md">Agent maintenance guide ↗</a><a href="https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md">coisa-error-handler skill ↗</a></div>
+      <div class="eyebrow">Executable recipe · examples/fast-forward.php</div><h2>Interop service provider</h2>
+      <p>Implement ServiceProviderInterface with lazy getFactories() and getExtensions() maps. Merge the library first and the application last in one AggregateServiceProvider. FastForward resolves and caches services; registration remains an explicit application decision. This example prints Reported: FastForward provider warning and restores the earlier callbacks.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/fast-forward.php</code></pre></div>
+      <details open><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/fast-forward.php</div><pre><code data-example="examples/fast-forward.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use Interop\Container\ServiceProviderInterface;
+
+use function FastForward\Container\container;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$application = new class () implements ServiceProviderInterface {
+    /**
+     * Supplies application service definitions for the integration fixture.
+     *
+     * @return array&lt;class-string, callable&gt; Application service factories.
+     */
+    public function getFactories(): array
+    {
+        return [
+            ThrowableHandlerInterface::class =&gt; static fn (): CallableThrowableHandler =&gt;
+                new CallableThrowableHandler(static function (Throwable $error): void {
+                    printf(&quot;Reported: %s\n&quot;, $error-&gt;getMessage());
+                }),
+        ];
+    }
+
+    /**
+     * Declares no application service extensions.
+     *
+     * @return array&lt;string, callable&gt; An empty extension map.
+     */
+    public function getExtensions(): array
+    {
+        return [];
+    }
+};
+
+$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+/**
+ * @var ErrorHandlerInterface $errors
+ */
+$errors = $services-&gt;get(ErrorHandlerInterface::class);
+$errors-&gt;register();
+try {
+    trigger_error('FastForward provider warning', E_USER_WARNING);
+} finally {
+    $errors-&gt;unregister();
+}</code></pre></div></details>
+    </section>
+    <section id="reporters">
+      <div class="eyebrow">Executable recipe · examples/reporters.php</div><h2>Callable reporters and ordered composition</h2>
+      <p>CallableThrowableHandler adapts an application callback. ThrowableHandlerAggregate accepts constructor arguments and attach(), delivering the same Throwable in order. It stops on the first reporter failure. Direct handleThrowable() returns to the caller and needs no registration. Independent direct calls can resume after a reporter fails.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/reporters.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/reporters.php</div><pre><code data-example="examples/reporters.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$deliveries = [];
+$reporters = new ThrowableHandlerAggregate(
+    new CallableThrowableHandler(static function (Throwable $error) use (&amp;$deliveries): void {
+        $deliveries[] = 'first: ' . $error-&gt;getMessage();
+    })
+);
+$reporters-&gt;attach(new CallableThrowableHandler(
+    static function (Throwable $error) use (&amp;$deliveries): void {
+        $deliveries[] = 'second: ' . $error-&gt;getMessage();
+    }
+));
+
+$errors = new ErrorHandler($reporters);
+// Direct delivery needs no registration and does not terminate the process.
+$errors-&gt;handleThrowable(new RuntimeException('Synthetic failure'));
+echo implode(PHP_EOL, $deliveries) . PHP_EOL;</code></pre></div></details>
+    </section>
+    <section id="events">
+      <div class="eyebrow">Executable recipe · examples/event-dispatcher.php</div><h2>PSR-14 dispatch, listeners and PSR-3 logging</h2>
+      <p>The default provider aggregate discovers EventDispatcherInterface and attaches DispatchThrowableHandler plus DispatchErrorEventThrowableHandler. The first dispatches the original Throwable; the second wraps it in ErrorEvent. Subscribe intentionally to one or both paths: a listener on each means two application notifications. ThrowableListenerProvider selects Throwable objects; ErrorEventListenerProvider selects the built-in ErrorEvent. Callable listeners receive the selected object; LogErrorEventListener records its diagnostic string at the configured PSR-3 level. The example records two notifications and one private log entry.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/event-dispatcher.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/event-dispatcher.php</div><pre><code data-example="examples/event-dispatcher.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
+use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
+use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
+use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Phly\EventDispatcher\EventDispatcher;
+use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
+
+use function FastForward\Container\container;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$deliveries = [];
+$logger = new class () extends AbstractLogger {
+    /**
+     * @var list&lt;string&gt; Synthetic private log records; replace with an application logger.
+     */
+    public array $records = [];
+
+    /**
+     * Records diagnostics without emitting them into an HTTP response.
+     *
+     * Untyped parameters also support applications using psr/log 1.x.
+     *
+     * @param mixed $level The PSR-3 log level.
+     * @param mixed $message The diagnostic message.
+     * @param array&lt;string, mixed&gt; $context The application log context.
+     */
+    public function log($level, $message, array $context = []): void
+    {
+        $this-&gt;records[] = $level . ': ' . (string) $message;
+    }
+};
+$throwables = new ThrowableListenerProvider(
+    new ThrowableCallableListener(static function (Throwable $error) use (&amp;$deliveries): void {
+        $deliveries[] = 'throwable: ' . $error-&gt;getMessage();
+    })
+);
+$events = new ErrorEventListenerProvider(
+    new ErrorEventCallableListener(static function (ErrorEventInterface $event) use (&amp;$deliveries): void {
+        $deliveries[] = 'event: ' . $event-&gt;getThrowable()-&gt;getMessage();
+    })
+);
+$events-&gt;attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
+$dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
+$application = new ArrayServiceProvider([
+    EventDispatcherInterface::class =&gt; static fn (): EventDispatcherInterface =&gt; $dispatcher,
+]);
+$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$errors = $services-&gt;get(ErrorHandlerInterface::class);
+$errors-&gt;register();
+try {
+    trigger_error('Synthetic warning', E_USER_WARNING);
+} finally {
+    $errors-&gt;unregister();
+}
+echo implode(PHP_EOL, $deliveries) . PHP_EOL;
+printf(&quot;Private log records: %d\n&quot;, count($logger-&gt;records));</code></pre></div></details>
+    </section>
+    <section id="http-middleware">
+      <div class="eyebrow">Executable recipe · examples/http-middleware.php</div><h2>PSR-15 HTTP middleware with the provider</h2>
+      <p>Bind the application's PSR-17 response and stream factories and a private reporter. ErrorHandlerMiddleware returns successful downstream responses unchanged and maps a downstream Throwable to an error response. The example returns HTTP 503 with Internal Server Error, reports the failure privately, then reports a warning through the restored process handler. It prints Reported: 2. Your application owns response emission, headers and content type.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/http-middleware.php</code></pre></div>
+      <details open><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/http-middleware.php</div><pre><code data-example="examples/http-middleware.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+use function FastForward\Container\container;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$reported = [];
+$psr17 = new Psr17Factory();
+$reporter = new CallableThrowableHandler(static function (Throwable $error) use (&amp;$reported): void {
+    $reported[] = $error; // Replace with a private logger; do not echo diagnostics.
+});
+$application = new ArrayServiceProvider([
+    ThrowableHandlerInterface::class =&gt; static fn (): ThrowableHandlerInterface =&gt; $reporter,
+    ResponseFactoryInterface::class =&gt; static fn (): ResponseFactoryInterface =&gt; $psr17,
+    StreamFactoryInterface::class =&gt; static fn (): StreamFactoryInterface =&gt; $psr17,
+]);
+$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$process = $services-&gt;get(ErrorHandlerInterface::class);
+$middleware = $services-&gt;get(ErrorHandlerMiddleware::class);
+$downstream = new class () implements RequestHandlerInterface {
+    /**
+     * Simulates an application failure with an HTTP error status.
+     *
+     * @param ServerRequestInterface $request The incoming request.
+     * @return ResponseInterface A response supplied by the error middleware.
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        throw new RuntimeException('Private database diagnostic', 503);
+    }
+};
+
+$process-&gt;register();
+try {
+    $response = $middleware-&gt;process($psr17-&gt;createServerRequest('GET', 'https://example.test'), $downstream);
+    // The process handler is active again after the middleware scope ends.
+    trigger_error('Synthetic post-request warning', E_USER_WARNING);
+} finally {
+    $process-&gt;unregister();
+}
+printf(&quot;HTTP %d | %s\n&quot;, $response-&gt;getStatusCode(), (string) $response-&gt;getBody());
+printf(&quot;Reported: %d\n&quot;, count($reported));
+// Your HTTP framework/emitter sends the response; this example only inspects it.</code></pre></div></details>
+    </section>
+    <section id="http-rendering">
+      <div class="eyebrow">Executable recipe · examples/http-rendering.php</div><h2>Controlled JSON rendering without a container</h2>
+      <p>Compose ThrowableStreamFactory and ThrowableResponseFactory directly. Separate private diagnostic side effects from deliberately public renderer output. This example emits only a fixed JSON error and adds application/json to the resulting response. Never echo exception messages, traces or credentials in a production renderer. To inject these factories into provider middleware, bind ThrowableResponseFactoryInterface explicitly in the application provider.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/http-rendering.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/http-rendering.php</div><pre><code data-example="examples/http-rendering.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$privateDiagnostics = [];
+$reporter = new CallableThrowableHandler(
+    static function (Throwable $error) use (&amp;$privateDiagnostics): void {
+        $privateDiagnostics[] = $error; // Replace with a private logger.
+    }
+);
+$publicRenderer = new CallableThrowableHandler(static function (): void {
+    echo json_encode(['error' =&gt; 'Service unavailable'], JSON_THROW_ON_ERROR);
+});
+$psr17 = new Psr17Factory();
+$streams = new ThrowableStreamFactory($psr17, new ThrowableHandlerAggregate($reporter, $publicRenderer));
+$responses = new ThrowableResponseFactory($streams, $psr17);
+$response = $responses-&gt;createResponseFromThrowable(new RuntimeException('Private credentials', 503))
+    -&gt;withHeader('Content-Type', 'application/json');
+
+printf(&quot;HTTP %d | %s\n&quot;, $response-&gt;getStatusCode(), $response-&gt;getHeaderLine('Content-Type'));
+echo (string) $response-&gt;getBody() . PHP_EOL;
+printf(&quot;Private reports: %d\n&quot;, count($privateDiagnostics));</code></pre></div></details>
+    </section>
+    <section id="custom-handlers">
+      <div class="eyebrow">Executable recipe · examples/custom-handlers.php</div><h2>Application PHP-error and shutdown handlers</h2>
+      <p>ErrorHandler defaults to ThrowErrorExceptionPhpErrorHandler and PhpLastErrorShutdownHandler. The first honors error_reporting() and suppression, converts PHP errors and lets the outer handler report them; recoverable warnings continue. The second reports observable E_ERROR, E_PARSE, E_CORE_ERROR and E_COMPILE_ERROR at shutdown, without recovery. Override PhpErrorHandlerInterface to change conversion, or ShutdownHandlerInterface with CallableShutdownHandler for application notifications. This example simulates shutdown directly and unregisters before real termination: one PHP error and one shutdown notification.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/custom-handlers.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/custom-handlers.php</div><pre><code data-example="examples/custom-handlers.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+
+use function FastForward\Container\container;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$phpErrors = new class () implements PhpErrorHandlerInterface {
+    /**
+     * @var list&lt;string&gt; Reportable PHP messages received by this application handler.
+     */
+    public array $messages = [];
+
+    /**
+     * Records reportable PHP errors without converting them to exceptions.
+     *
+     * @param int $code The PHP severity.
+     * @param string $message The PHP message.
+     * @param string $filename The source filename.
+     * @param int $line The source line.
+     */
+    public function handlePhpError(int $code, string $message, string $filename, int $line): void
+    {
+        if (($code &amp; error_reporting()) !== 0) {
+            $this-&gt;messages[] = $message;
+        }
+    }
+};
+$shutdowns = 0;
+$shutdown = new CallableShutdownHandler(static function () use (&amp;$shutdowns): void {
+    ++$shutdowns;
+});
+$application = new ArrayServiceProvider([
+    ThrowableHandlerInterface::class =&gt; static fn (): ThrowableHandlerInterface =&gt;
+        new CallableThrowableHandler(static function (Throwable $error): void {
+            error_log($error-&gt;getMessage());
+        }),
+    PhpErrorHandlerInterface::class =&gt; static fn (): PhpErrorHandlerInterface =&gt; $phpErrors,
+    ShutdownHandlerInterface::class =&gt; static fn (): ShutdownHandlerInterface =&gt; $shutdown,
+]);
+$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$errors = $services-&gt;get(ErrorHandlerInterface::class);
+$errors-&gt;register();
+try {
+    trigger_error('Application-owned warning', E_USER_WARNING);
+    $errors-&gt;handleShutdown(); // Simulate a notification without terminating the process.
+} finally {
+    $errors-&gt;unregister();
+}
+printf(&quot;PHP errors: %d | Shutdown notifications: %d\n&quot;, count($phpErrors-&gt;messages), $shutdowns);</code></pre></div></details>
+    </section>
+    <section id="scopes">
+      <div class="eyebrow">Executable recipe · examples/scopes.php</div><h2>Fresh handlers and nested middleware</h2>
+      <p>FastForward caches get(ErrorHandlerInterface) and get(ErrorHandlerMiddleware). ErrorHandlerMiddlewareFactory invokes ErrorHandlerFactory to obtain a dedicated handler instead of sharing the cached process handler. Otherwise its finally could unregister the process handler. Resolve the callable factories and invoke each time you need a distinct nested scope. Plain autowiring does not provide that lifetime. This example nests two fresh middleware instances beneath a registered process handler and reports twice. PHP callbacks remain process-wide; this supports sequential nesting, not concurrent request or fiber isolation.</p>
+      <div class="terminal"><div class="bar">RUN FROM THE CHECKOUT</div><pre><code>php examples/scopes.php</code></pre></div>
+      <details><summary>Complete PHP example</summary><div class="terminal"><div class="bar">examples/scopes.php</div><pre><code data-example="examples/scopes.php">&lt;?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Http\Server\MiddlewareInterface;
+
+use function FastForward\Container\container;
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$reported = 0;
+$psr17 = new Psr17Factory();
+$reporter = new CallableThrowableHandler(static function () use (&amp;$reported): void {
+    ++$reported;
+});
+$application = new ArrayServiceProvider([
+    ThrowableHandlerInterface::class =&gt; static fn (): ThrowableHandlerInterface =&gt; $reporter,
+    ResponseFactoryInterface::class =&gt; static fn (): ResponseFactoryInterface =&gt; $psr17,
+    StreamFactoryInterface::class =&gt; static fn (): StreamFactoryInterface =&gt; $psr17,
+]);
+$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$makeHandler = $services-&gt;get(ErrorHandlerFactory::class);
+$first = $makeHandler($services);
+$second = $makeHandler($services);
+$makeMiddleware = $services-&gt;get(ErrorHandlerMiddlewareFactory::class);
+$outer = $makeMiddleware($services);
+$inner = $makeMiddleware($services);
+$downstream = new class () implements RequestHandlerInterface {
+    /**
+     * Throws a synthetic downstream failure for the inner scope.
+     *
+     * @param ServerRequestInterface $request The synthetic request.
+     * @return ResponseInterface The response produced by the inner middleware.
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        throw new RuntimeException('Nested failure');
+    }
+};
+$next = new class ($inner, $downstream) implements RequestHandlerInterface {
+    /**
+     * Stores the independently constructed inner middleware and application handler.
+     *
+     * @param MiddlewareInterface $inner The inner error middleware.
+     * @param RequestHandlerInterface $downstream The application request handler.
+     */
+    public function __construct(private MiddlewareInterface $inner, private RequestHandlerInterface $downstream)
+    {
+    }
+
+    /**
+     * Enters the inner scope while the outer scope remains registered.
+     *
+     * @param ServerRequestInterface $request The incoming request.
+     * @return ResponseInterface The inner response.
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        return $this-&gt;inner-&gt;process($request, $this-&gt;downstream);
+    }
+};
+$process = $services-&gt;get(ErrorHandlerInterface::class);
+$process-&gt;register();
+try {
+    $response = $outer-&gt;process($psr17-&gt;createServerRequest('GET', 'https://example.test'), $next);
+    trigger_error('Process handler restored', E_USER_WARNING);
+} finally {
+    $process-&gt;unregister();
+}
+printf(
+    &quot;Fresh handlers: %s | Fresh middleware: %s\n&quot;,
+    $first !== $second ? 'yes' : 'no',
+    $outer !== $inner ? 'yes' : 'no'
+);
+printf(&quot;HTTP %d | Reports: %d\n&quot;, $response-&gt;getStatusCode(), $reported);</code></pre></div></details>
     </section>
     <section id="behavior">
       <div class="eyebrow">03 / Observable behavior</div><h2>Know what each boundary does.</h2>
-      <table><thead><tr><th>Input or operation</th><th>Result</th></tr></thead><tbody><tr><td>Reportable warning</td><td>One error exception; execution continues.</td></tr><tr><td><code>@</code> or an excluded severity</td><td>The default reporter does not receive the warning.</td></tr><tr><td>Uncaught throwable</td><td>Report the original object; exit 1 when reporting returns.</td></tr><tr><td>Direct <code>handleThrowable()</code></td><td>Report and return; the caller controls execution.</td></tr><tr><td>Nested registrations</td><td>Unwind in reverse order; only the active handler reports shutdown.</td></tr><tr><td>Reporter failure or recursion</td><td>Stop retrying that reporter and propagate the failure.</td></tr><tr><td>HTTP error response</td><td>Preserve integer codes 400–599; otherwise use 500. No exception text in the reason phrase.</td></tr></tbody></table>
+      <table><thead><tr><th>Input or operation</th><th>Result</th></tr></thead><tbody><tr><td>Reportable warning</td><td>One error exception; execution continues.</td></tr><tr><td><code>@</code> or an excluded severity</td><td>The default reporter does not receive the warning.</td></tr><tr><td>Uncaught throwable</td><td>Report the original object; exit 1 when reporting returns.</td></tr><tr><td>Direct <code>handleThrowable()</code></td><td>Report and return; the caller controls execution.</td></tr><tr><td>Nested registrations</td><td>Unwind in reverse order; only the active handler reports shutdown.</td></tr><tr><td>Reporter failure or recursion</td><td>During registration, stop retrying and propagate. Independent direct deliveries remain usable; middleware does not re-render a failed reporter.</td></tr><tr><td>HTTP error response</td><td>Preserve integer codes 400–599; otherwise use 500. No exception text in the reason phrase.</td></tr></tbody></table>
       <p><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Read the complete API and composition guide ↗</a></p>
     </section>
     <section id="evidence">
       <div class="eyebrow">04 / Exercise the failure path</div><h2>A test should survive the crash.</h2>
-      <div class="proof"><div><strong>29</strong><small>ISOLATED SCENARIOS</small></div><p>Real warnings, throwable failures, compile fatals, allocation failure, custom shutdown, reporter recursion, reporter reset and renderer/cleanup failures run in child processes. Each child has a five-second deadline, a 16 MiB memory limit and a 256 KiB output cap.</p></div>
-      <p>The runner checks delivery counts, ordering, throwable classes, stderr and exact exit status. Separate integration tests exercise PSR composition and real HTTP 500/503 responses through a loopback-only server.</p>
+      <div class="proof"><div><strong>31</strong><small>ISOLATED SCENARIOS</small></div><p>Real warnings, throwable failures, compile fatals, allocation failure, custom shutdown, reporter recursion, reporter reset and renderer/cleanup failures run in child processes. Each child has a five-second deadline, a 16 MiB memory limit and a 256 KiB output cap.</p></div>
+      <p>The runner checks delivery counts, ordering, throwable classes, stderr and exact exit status. Two additional scenarios demonstrate that a fatal inside another shutdown callback aborts both fresh and reused handler queues. Separate integration tests exercise PSR composition and real HTTP 500/503 responses through a loopback-only server.</p>
       <div class="terminal"><div class="bar">RUN THE EVIDENCE YOURSELF</div><pre><code>php tests/Fire/run.php
 composer --no-plugins test
 php tests/Http/run.php</code></pre></div>
@@ -73,7 +513,7 @@ php tests/Http/run.php</code></pre></div>
     </section>
     <section id="migration">
       <div class="eyebrow">05 / Move deliberately</div><h2>Upgrade as a major release.</h2>
-      <ul><li>Raise the runtime to PHP 8.3 or newer.</li><li>Expect failure exit status 1 after a reported uncaught exception.</li><li>Unregister handlers in reverse order; use distinct instances for nested middleware.</li><li>Review the generic HTTP fallback and standard reason phrases.</li><li>Replace the old PHP 7.2 development container with the current Compose test service.</li></ul>
+      <ul><li>Raise the runtime to PHP 8.3 or newer.</li><li>Expect failure exit status 1 after a reported uncaught exception.</li><li>Unregister handlers in reverse order; use distinct instances for nested middleware.</li><li>Review the generic HTTP fallback and standard reason phrases.</li><li>Use native Composer checks and the PHP 8.3–8.5 CI matrix; the Docker/Compose setup is removed.</li></ul>
       <p><a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">Read the 2.0 migration guide ↗</a></p>
     </section>
     <section id="limits">

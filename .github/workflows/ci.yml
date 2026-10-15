@@ -29,8 +29,6 @@ jobs:
           - php: '8.4'
             dependencies: highest
           - php: '8.5'
-            dependencies: locked
-          - php: '8.5'
             dependencies: highest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -41,25 +39,12 @@ jobs:
           coverage: none
           tools: composer:v2
       - run: composer validate --strict --no-plugins
-      - if: matrix.dependencies == 'locked'
-        run: composer install --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
       - if: matrix.dependencies == 'highest'
         run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
       - if: matrix.dependencies == 'lowest'
         run: composer update --prefer-lowest --prefer-stable --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
       - run: composer --no-plugins check
-      - name: Verify the documented CLI example
-        run: |
-          python3 - <<'PY'
-          import subprocess
-          result = subprocess.run(['php', 'examples/cli.php'], capture_output=True, text=True, timeout=5)
-          assert result.returncode == 1 and result.stdout == ''
-          assert 'Example warning' in result.stderr and 'Example uncaught exception' in result.stderr
-          provider = subprocess.run(['php', 'examples/fast-forward.php'], capture_output=True, text=True, timeout=5)
-          assert provider.returncode == 0 and provider.stderr == ''
-          assert provider.stdout == 'Reported: FastForward provider warning\n'
-          PY
-      - name: Verify production-only autoload
-        run: |
-          composer install --no-dev --no-plugins --no-scripts --no-interaction --no-progress
-          php -r 'require "vendor/autoload.php"; $provider = new CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider(); $services = FastForward\Container\container($provider); $handler = $services->get(CoiSA\ErrorHandler\ErrorHandlerInterface::class); if (!$handler instanceof CoiSA\ErrorHandler\ErrorHandler || count($provider->getFactories()) !== 9) { throw new RuntimeException("Production provider resolution failed"); }'
+      - name: Verify every documented example and displayed source
+        run: python3 tests/Examples/run.py
+      - name: Verify runtime archive and production-only installation
+        run: python3 tests/Distribution/run.py

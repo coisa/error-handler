@@ -31,6 +31,9 @@ $cases = [
     'parse-error' => [1, ['error'], ParseError::class],
     'compile-fatal' => [255, ['error'], 'CoiSA\\ErrorHandler\\Exception\\ErrorException', E_COMPILE_ERROR],
     'nested-fatal' => [255, ['error'], 'CoiSA\\ErrorHandler\\Exception\\ErrorException', E_COMPILE_ERROR],
+    // An engine fatal inside shutdown aborts the remaining shutdown queue itself.
+    'reregister-shutdown-fatal' => [255, []],
+    'fresh-shutdown-fatal' => [255, []],
     'memory-limit' => [255, ['error'], 'CoiSA\\ErrorHandler\\Exception\\ErrorException', E_ERROR],
     'shutdown-once' => [0, ['shutdown']],
     'unregistered-shutdown' => [0, ['continued']],
@@ -115,7 +118,8 @@ foreach ($cases as $name => $expected) {
         }
     }
     $nativeDiagnostic = in_array($name, [
-        'compile-fatal', 'nested-fatal', 'memory-limit', 'reporter-throws', 'shutdown-reporter-throws',
+        'compile-fatal', 'nested-fatal', 'reregister-shutdown-fatal', 'fresh-shutdown-fatal',
+        'memory-limit', 'reporter-throws', 'shutdown-reporter-throws',
         'recursive-reporter', 'reporter-warning',
     ], true);
     $ok = $ok && ($nativeDiagnostic ? $stderr !== '' : $stderr === '');

@@ -12,7 +12,7 @@ Small, composable PHP error handling with FastForward Container, PSR-14 events a
 
 ## Install and run
 
-To reproduce this branch with PHP 8.5 and Composer 2:
+To reproduce this branch with PHP 8.3–8.5 and Composer 2:
 
 ```sh
 git clone https://github.com/coisa/error-handler.git
@@ -22,7 +22,7 @@ composer --no-plugins check
 php examples/cli.php
 ```
 
-While reviewing an unmerged PR, check out its branch before installing. On PHP 8.3/8.4 use `composer update --no-plugins --no-scripts` to resolve compatible development tools. The CLI example deliberately exits **1** after reporting a warning and an uncaught exception.
+While reviewing an unmerged PR, check out its branch before installing. This library does not commit `composer.lock`; development tools resolve for the selected PHP version. Applications retain their own lock. The CLI example deliberately exits **1** after reporting a warning and an uncaught exception.
 
 For the currently published release, `composer require coisa/error-handler` installs the version available on Packagist; it does not select this unreleased work.
 
@@ -66,7 +66,23 @@ The middleware restores handlers in `finally`, including when response rendering
 
 GitHub Pages is prepared as a **manual** workflow restricted to `master`. After review and merge, an owner can enable Pages with GitHub Actions as the source and run the Documentation workflow from `master`. Nothing in the pull-request CI publishes documentation or executes PHP on Pages.
 
-Dependabot is configured to propose Composer and GitHub Actions updates weekly after this configuration reaches the default branch. Updates remain reviewable pull requests.
+Dependabot is configured to propose Composer, npm release-tooling and GitHub Actions updates weekly after this configuration reaches the default branch. Updates remain reviewable pull requests.
+
+## Complete usage recipes
+
+The [usage cookbook](docs/examples.md) and [documentation site](docs/index.html#examples)
+show all built-in adapters with eight runnable examples: process bootstrap,
+Interop provider, ordered reporters, PSR-14 events with PSR-3 logging, HTTP
+middleware, safe JSON rendering, custom PHP/shutdown handlers and nested scopes.
+CI executes every recipe and verifies that the displayed code matches its source.
+
+## Releases
+
+[Changesets](docs/releases.md) collects English release notes and maintains a
+version PR after changes reach `master`. Merging that reviewed bot PR creates the
+matching Git tag and GitHub release. The initial major note prepares 3.0.0 from
+the published 2.0.0 baseline; no release is performed by this development PR.
+Node is only development release tooling; consumers install the Composer package.
 
 ## Working with coding agents
 
