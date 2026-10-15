@@ -24,6 +24,7 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]' &&
       github.event.pull_request.user.id == 49699333 &&
       github.event.pull_request.head.repo.id == github.event.repository.id &&
+      startsWith(github.head_ref, 'dependabot/') &&
       github.base_ref == github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -37,7 +38,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
+          persist-credentials: true
 
       - uses: actions/setup-node@v7
         with:
@@ -46,40 +47,38 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
-      - uses: actions/github-script@v9
+      - name: Create the release note from the PR title
+        id: note
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          existing=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
+            --jq 'any(.[][]; .status != "removed" and (.filename | test("^\\.changeset/[^/]+\\.md$") and . != ".changeset/README.md"))')
+          if [ "$existing" = true ]; then
+            exit 0
+          fi
+
+          package=$(node -p "require('./package.json').name")
+          npm run changeset -- add --patch "$package" --message "$PR_TITLE"
+
+          current=$(gh pr view "$PR_NUMBER" --json state,headRefOid --jq 'select(.state == "OPEN") | .headRefOid')
+          if [ "$current" = "$PR_HEAD" ]; then
+            echo 'created=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      # The action switches branches after generation and commits only notes.
+      # It does not run the PR's code, tooling or hooks supplied by this workflow.
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        if: steps.note.outputs.created == 'true'
         with:
-          script: |
-            const { execFileSync } = require('node:child_process');
-            const { readdirSync, readFileSync } = require('node:fs');
-            const repo = context.repo;
-            const repository = context.payload.repository;
-            const pull_number = context.payload.pull_request.number;
-            const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number });
-            if (pr.state !== 'open' || pr.user.id !== 49699333 || pr.user.login !== 'dependabot[bot]' ||
-                pr.head.repo?.id !== repository.id || pr.base.repo?.id !== repository.id ||
-                pr.base.ref !== repository.default_branch || !pr.head.ref.startsWith('dependabot/') ||
-                pr.head.sha !== context.payload.pull_request.head.sha) return;
-
-            const files = await github.paginate(github.rest.pulls.listFiles, { ...repo, pull_number });
-            if (files.some(({ filename, status }) => status !== 'removed' &&
-                /^\.changeset\/[^/]+\.md$/.test(filename) && filename !== '.changeset/README.md')) return;
-
-            const before = new Set(readdirSync('.changeset'));
-            const name = JSON.parse(readFileSync('package.json', 'utf8')).name;
-            execFileSync('npm', ['run', 'changeset', '--', 'add', '--patch', name, '--message', pr.title], { stdio: 'inherit' });
-            const generated = readdirSync('.changeset').find((file) => !before.has(file) && file.endsWith('.md'));
-            const { data: current } = await github.rest.pulls.get({ ...repo, pull_number });
-            if (current.state !== 'open' || current.head.sha !== pr.head.sha) return;
-
-            const author = { name: 'github-actions[bot]', email: '41898282+github-actions[bot]@users.noreply.github.com' };
-            await github.rest.repos.createOrUpdateFileContents({
-              ...repo,
-              path: `.changeset/dependabot-${pull_number}.md`,
-              branch: pr.head.ref,
-              message: `chore(release): add Dependabot Changeset [dependabot skip]\n\nSigned-off-by: ${author.name} <${author.email}>`,
-              author,
-              content: readFileSync(`.changeset/${generated}`).toString('base64'),
-            });
+          branch: ${{ github.head_ref }}
+          file_pattern: '.changeset/*.md'
+          commit_message: 'chore(release): add Dependabot Changeset [dependabot skip]'
+          commit_options: --signoff
+          commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
 
   validate:
     name: Validate Changesets

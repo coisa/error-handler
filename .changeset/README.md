@@ -69,13 +69,17 @@ the real PR title:
 npm run changeset -- add --patch "$PACKAGE_NAME" --message "$PR_TITLE"
 ```
 
-Changesets 3 supports these noninteractive flags. The job runs only default-branch
-code/tooling, passes the title as an argument and writes the resulting note to
-`.changeset/dependabot-<PR-number>.md` through the GitHub API. It checks the real
-bot identity, same repository, default base and current head. Existing notes are
-preserved, including manual summaries and release classifications. If a rebase
-removes the note, the next run recreates it using the then-current title. Review
-the proposed dependencies and adjust the default patch classification when needed.
+Changesets 3 supports these noninteractive flags. The job generates the note
+using only default-branch tooling and the PR title as a quoted argument. A small
+`gh` check preserves existing notes and skips stale/closed PRs. Only the real bot's
+branches in this repository targeting its default branch qualify.
+
+[`stefanzweifel/git-auto-commit-action@v7`](https://github.com/stefanzweifel/git-auto-commit-action)
+then switches to the Dependabot branch and commits only `.changeset/*.md`. No PR
+code or tooling runs after that switch. Checkout retains the built-in token only
+in this job so the action can push; no additional secret is required. Existing
+notes/classifications are preserved; a rebase that removes the note gets a new
+one on its next event. Review dependencies and adjust the default patch as needed.
 
 The generated commit has a bot DCO sign-off and `[dependabot skip]`, allowing
 [later rebases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
