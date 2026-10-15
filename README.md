@@ -18,9 +18,10 @@ See the [changelog](CHANGELOG.md) for published release history.
 
 ## Development
 
-The committed development lockfile requires PHP 8.4 or newer. The CoiSA formatter
-is a development dependency; installing the library as a Composer dependency
-retains its existing PHP `^7.4 || ^8.0` runtime requirement.
+The committed development lockfile requires PHP `>=8.4.1 <8.5`.
+
+The CoiSA formatter is a development dependency; installing the library as a
+Composer dependency retains its existing PHP `^7.4 || ^8.0` runtime requirement.
 
 Pull requests run the [PHP style workflow](.github/workflows/php-style.yml), which
 calls the CoiSA formatter's reusable workflow with PHP 8.4. It installs the locked
