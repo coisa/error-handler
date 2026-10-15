@@ -53,30 +53,29 @@ jobs:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           PR_BRANCH: ${{ github.head_ref }}
         run: |
-          existing=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" \
-            --jq 'any(.[][]; .status != "removed" and (.filename | test("^\\.changeset/[^/]+\\.md$") and . != ".changeset/README.md"))')
-          if [ "$existing" = true ]; then
-            exit 0
-          fi
-
           package=$(node -p "require('./package.json').name")
           npm run changeset -- add --patch "$package" --message "$PR_TITLE"
+
+          generated=$(git ls-files --others --exclude-standard -- '.changeset/*.md')
+          note="dependabot-$PR_NUMBER.md"
+          mv "$generated" "$RUNNER_TEMP/$note"
 
           current=$(gh pr view "$PR_NUMBER" --json state,headRefOid --jq 'select(.state == "OPEN") | .headRefOid')
           if [ "$current" = "$PR_HEAD" ]; then
             git fetch --no-tags origin "$PR_HEAD"
-            git branch "$PR_BRANCH" FETCH_HEAD
+            git checkout -b "$PR_BRANCH" FETCH_HEAD
+            mv "$RUNNER_TEMP/$note" ".changeset/$note"
             echo 'created=true' >> "$GITHUB_OUTPUT"
           fi
 
-      # The action switches branches after generation and commits only notes.
-      # It does not run the PR's code, tooling or hooks supplied by this workflow.
+      # Generation runs before switching branches; only this note is committed.
+      # No PR code, tooling or hooks are executed by this workflow.
       - uses: stefanzweifel/git-auto-commit-action@v7
         if: steps.note.outputs.created == 'true'
         with:
           branch: ${{ github.head_ref }}
           skip_fetch: true
-          file_pattern: '.changeset/*.md'
+          file_pattern: '.changeset/dependabot-${{ github.event.pull_request.number }}.md'
           commit_message: 'chore(release): add Dependabot Changeset [dependabot skip]'
           commit_options: --signoff
           commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
