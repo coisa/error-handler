@@ -18,6 +18,9 @@ See the [changelog](CHANGELOG.md) for published release history.
 
 ## Contributing release notes
 
+See [contributor dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for local Composer resolution
+and the policy for library and application lockfiles.
+
 Maintainers use [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md)
 to record changes and review version PRs. Merging a generated version PR starts
 Git tag and GitHub release publication. Node.js is needed only for this
