@@ -123,7 +123,7 @@ is in [FastForward integration](fast-forward.md).
 
 The FastForward-required/autowire revision passes the full check on macOS arm64
 with PHP 8.5.11, PHPUnit 13.3.4 and FastForward Container 1.6.0: **89 tests and
-173 assertions**, maximum PHPStan over `src/`, formatting, **28** isolated scenarios
+185 assertions**, maximum PHPStan over `src/`, formatting, **28** isolated scenarios
 and three HTTP responses. The count replaces tests exclusive to the removed
 standalone container with retained Laminas integration tests and new autowire,
 required-renderer and reporter-reset coverage; it is not the old 118-case suite.
@@ -143,8 +143,21 @@ ordinary application failures. A separate bounded reproduction on FastForward
 autowiring, while an interface override fails construction. Required custom
 renderers therefore use explicit interface bindings in the documented contract.
 
-These local results do not establish PHP 8.3 or new Linux matrix results for
-this revision. Use the CI run attached to the exact follow-up commit for those.
+Highest-dependency CI exposed a version difference: FastForward 1.8.0 normalizes
+ordinary application construction failures as well as PSR failures. The tests
+therefore require the explicitly failing factory to be reached and construction
+to fail with the original throwable or a PSR-11 normalization; they do not promise
+original exception identity or a single construction attempt. Handler delivery
+after a reporter fails remains a separate no-retry contract.
+
+An isolated highest-dependency installation also passes the full check on PHP
+8.5.11 with FastForward 1.8.0, PHPUnit 13.4.2 and PHPStan 2.3.1: 89 tests / 185
+assertions, formatting, all 28 child scenarios and the three HTTP responses.
+That installation changes only its disposable copy; the repository lock keeps
+FastForward 1.6.0 and all existing package versions.
+
+These local results do not establish PHP 8.3 or new Linux matrix results for this
+revision. Use the CI run attached to the exact follow-up commit for those.
 
 ## Boundaries and troubleshooting
 

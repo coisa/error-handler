@@ -102,7 +102,13 @@ the application's PSR container failure and use the library's silent aggregate.
 The merged form prevents that fallback and makes required-reporter failures
 fail construction of both process handler and middleware. FastForward still
 translates PSR failures to not-found; it does not preserve their original cause.
-An ordinary application exception continues to propagate.
+Container 1.6.0 propagates ordinary application exceptions directly; newer
+versions such as 1.8.0 normalize those too. The supported contract is failed
+construction after reaching the required factory, without silent fallback;
+it does not guarantee exception type, message or cause preservation.
+Container resolution may attempt a failing construction more than once while
+trying its delegates and autowiring. Application factories must tolerate those
+attempts; this differs from the handler's no-retry contract after reporting fails.
 
 Optional `PhpErrorHandlerInterface` and `ShutdownHandlerInterface` bindings are
 passed to fresh handlers too. The provider reuses the package's PSR-11 factories

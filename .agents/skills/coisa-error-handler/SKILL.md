@@ -64,6 +64,11 @@ fail. FastForward may translate the PSR error to not-found; do not promise that
 its original exception cause survives. Use the executable example in the
 matching checkout for the complete composition.
 
+Container versions may normalize ordinary application failures too, and may
+attempt construction more than once through delegation/autowiring. Require failed
+construction, not an exact exception type or a single factory invocation. This
+does not change the handler's no-retry contract after a reporter itself fails.
+
 The factory maps do not install PHP callbacks: explicitly register the resolved
 process handler at bootstrap. An empty default reporter aggregate is silent;
 configure a reporter or an event dispatcher before expecting diagnostics.

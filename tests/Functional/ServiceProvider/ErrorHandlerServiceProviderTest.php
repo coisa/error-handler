@@ -116,41 +116,29 @@ final class ErrorHandlerServiceProviderTest extends TestCase
      *
      * @param class-string $service The required renderer interface.
      * @param \Throwable $failure The synthetic construction failure.
-     * @param class-string<\Throwable> $expectedException The expected propagated failure category.
      */
     #[DataProvider('requiredRendererFailures')]
     public function testRequiredRendererFailurePreventsMiddlewareConstruction(
         string $service,
-        \Throwable $failure,
-        string $expectedException
+        \Throwable $failure
     ): void {
-        $application = new ArrayServiceProvider([
-            $service => static function () use ($failure): never {
-                throw $failure;
-            },
-            ResponseFactoryInterface::class => static fn (): Psr17Factory => new Psr17Factory(),
-            StreamFactoryInterface::class => static fn (): Psr17Factory => new Psr17Factory(),
-        ]);
-        $container = self::withApplication($application);
-        $this->expectException($expectedException);
-
-        $container->get(ErrorHandlerMiddleware::class);
+        self::assertRequiredServiceFails(ErrorHandlerMiddleware::class, $service, $failure);
     }
 
     /**
      * Provides PSR and application failures for both required renderer interfaces.
      *
-     * @return iterable<string, array{class-string, \Throwable, class-string<\Throwable>}>
+     * @return iterable<string, array{class-string, \Throwable}>
      *     Required renderer construction failures.
      */
     public static function requiredRendererFailures(): iterable
     {
-        foreach (self::requiredReporterFailures() as $label => [$service, $failure, $expectedException]) {
+        foreach (self::requiredReporterFailures() as $label => [$service, $failure]) {
             if ($service !== ErrorHandlerInterface::class) {
                 continue;
             }
             foreach ([ThrowableStreamFactoryInterface::class, ThrowableResponseFactoryInterface::class] as $renderer) {
-                yield $renderer . ' / ' . $label => [$renderer, $failure, $expectedException];
+                yield $renderer . ' / ' . $label => [$renderer, $failure];
             }
         }
     }
@@ -195,60 +183,19 @@ final class ErrorHandlerServiceProviderTest extends TestCase
      *
      * @param class-string $service The service identifier under test.
      * @param \Throwable $failure The synthetic failure to propagate.
-     * @param class-string<\Throwable> $expectedException The expected propagated failure type.
      */
     #[DataProvider('requiredReporterFailures')]
     public function testRequiredReporterFailureCannotFallBackToASilentDefault(
         string $service,
-        \Throwable $failure,
-        string $expectedException
+        \Throwable $failure
     ): void {
-        $application = new class ($failure) implements ServiceProviderInterface {
-            /**
-             * Stores synthetic collaborators or failures for this test fixture.
-             *
-             * @param \Throwable $failure The synthetic failure to propagate.
-             */
-            public function __construct(private \Throwable $failure)
-            {
-            }
-
-            /**
-             * Supplies application service definitions for the integration fixture.
-             *
-             * @return array<class-string, callable> Application service factories.
-             */
-            public function getFactories(): array
-            {
-                return [
-                    ThrowableHandlerInterface::class => function (): never {
-                        throw $this->failure;
-                    },
-                    ResponseFactoryInterface::class => static fn (): Psr17Factory => new Psr17Factory(),
-                    StreamFactoryInterface::class => static fn (): Psr17Factory => new Psr17Factory(),
-                ];
-            }
-
-            /**
-             * Declares no application service extensions.
-             *
-             * @return array<string, callable> An empty extension map.
-             */
-            public function getExtensions(): array
-            {
-                return [];
-            }
-        };
-        $container = self::withApplication($application);
-        $this->expectException($expectedException);
-
-        $container->get($service);
+        self::assertRequiredServiceFails($service, ThrowableHandlerInterface::class, $failure);
     }
 
     /**
      * Provides required-reporter failure categories for both lifecycle services.
      *
-     * @return iterable<string, array{class-string, \Throwable, class-string<\Throwable>}>
+     * @return iterable<string, array{class-string, \Throwable}>
      *     Required-reporter failure cases.
      */
     public static function requiredReporterFailures(): iterable
@@ -257,18 +204,16 @@ final class ErrorHandlerServiceProviderTest extends TestCase
             'PSR construction failure' => [
                 new class ('Reporter failed') extends \RuntimeException implements ContainerExceptionInterface {
                 },
-                ContainerExceptionInterface::class,
             ],
             'PSR missing dependency' => [
                 new class ('Missing dependency') extends \RuntimeException implements NotFoundExceptionInterface {
                 },
-                ContainerExceptionInterface::class,
             ],
-            'application failure' => [new \LogicException('Reporter failed'), \LogicException::class],
+            'application failure' => [new \LogicException('Reporter failed')],
         ];
         foreach ([ErrorHandlerInterface::class, ErrorHandlerMiddleware::class] as $service) {
-            foreach ($failures as $label => [$failure, $expectedException]) {
-                yield $service . ' / ' . $label => [$service, $failure, $expectedException];
+            foreach ($failures as $label => [$failure]) {
+                yield $service . ' / ' . $label => [$service, $failure];
             }
         }
     }
@@ -528,6 +473,46 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         } finally {
             $process->unregister();
         }
+    }
+
+    /**
+     * Verifies the required factory is reached and construction cannot silently fall back.
+     *
+     * FastForward may propagate the original failure or normalize it to a PSR-11 exception.
+     *
+     * @param class-string $requestedService The process or middleware service being constructed.
+     * @param class-string $failedService The explicitly required reporter or renderer interface.
+     * @param \Throwable $failure The exact failure thrown by the application factory.
+     */
+    private static function assertRequiredServiceFails(
+        string $requestedService,
+        string $failedService,
+        \Throwable $failure
+    ): void {
+        $attempts = 0;
+        $application = new ArrayServiceProvider([
+            $failedService => static function () use ($failure, &$attempts): never {
+                ++$attempts;
+                throw $failure;
+            },
+            ResponseFactoryInterface::class => static fn (): Psr17Factory => new Psr17Factory(),
+            StreamFactoryInterface::class => static fn (): Psr17Factory => new Psr17Factory(),
+        ]);
+        $container = self::withApplication($application);
+
+        try {
+            $container->get($requestedService);
+        } catch (\Throwable $caught) {
+            self::assertTrue(
+                $caught === $failure || $caught instanceof ContainerExceptionInterface,
+                'Construction must propagate the original failure or a PSR-11 normalization.'
+            );
+            self::assertGreaterThan(0, $attempts, 'The explicitly configured failing factory must be reached.');
+
+            return;
+        }
+
+        self::fail('A required service failure must prevent construction instead of falling back.');
     }
 
     /**

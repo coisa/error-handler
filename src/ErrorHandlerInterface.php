@@ -42,8 +42,8 @@ interface ErrorHandlerInterface
      * Unregisters the error handler.
      *
      * Implementing classes MUST ensure that this method restores
-     * previous error and exception handlers and deactivate shutdown handling. If the handler
-     * was never registered, this method SHOULD do nothing.
+     * previous error and exception handlers and deactivates shutdown handling.
+     * If the handler was never registered, this method SHOULD do nothing.
      *
      * @return void
      */
