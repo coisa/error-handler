@@ -58,6 +58,12 @@ releases, publish to npm, or change the existing Composer release process.
 There is no publishing command configured; with no pending release notes, the
 action leaves the repository unchanged.
 
+The workflow follows the official [Version Only recipe](https://changesets.dev/guide/automating#version-only):
+Node.js 24 and the Changesets action without a publishing command. Permissions
+start empty and are granted per job; the version job disables package-manager
+caching. This Composer library needs no npm build or publishing credentials.
+The explicit validation dispatch avoids requiring an additional GitHub App token.
+
 ## Rehearse locally
 
 In a disposable checkout with the tooling installed, run:

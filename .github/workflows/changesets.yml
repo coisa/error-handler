@@ -7,8 +7,7 @@ on:
     branches: [master]
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: changesets-${{ github.event.pull_request.number || github.ref }}
@@ -19,12 +18,14 @@ jobs:
     name: Validate Changesets
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: '24'
           cache: npm
