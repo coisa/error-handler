@@ -60,7 +60,8 @@ as another runtime feature or bug fix.
 
 Changelog entries use the official
 [`@changesets/changelog-github`](https://changesets.dev/packages/changelog-github)
-formatter with its default links to PRs, commits and authors. It reads the
+formatter with links to PRs and commits. Author acknowledgements are disabled
+with `disableThanks: true`. It reads the
 repository from `GITHUB_REPOSITORY`, which Actions provides automatically, and
 uses `GITHUB_TOKEN` for read-only GitHub queries. The validation rehearsal passes
 the built-in token; the version action passes its token to the version command.
