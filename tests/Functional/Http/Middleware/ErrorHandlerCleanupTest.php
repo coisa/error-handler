@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+
 namespace CoiSA\ErrorHandler\Test\Functional\Http\Middleware;
 
 use CoiSA\ErrorHandler\ErrorHandler;
@@ -14,8 +26,18 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+/**
+ * Verifies native callback restoration after response construction fails.
+ *
+ * @package CoiSA\ErrorHandler\Test\Functional\Http\Middleware
+ *
+ * @internal
+ */
 final class ErrorHandlerCleanupTest extends TestCase
 {
+    /**
+     * Verifies response failures preserve the previous error and exception callbacks.
+     */
     public function testRestoresHandlersEvenWhenTheResponseFactoryThrows(): void
     {
         $previousError = static fn (): bool => true;
@@ -25,15 +47,34 @@ final class ErrorHandlerCleanupTest extends TestCase
         set_exception_handler($previousException);
         $failure = new \RuntimeException('response factory failed');
         $responses = new class ($failure) implements ThrowableResponseFactoryInterface {
+            /**
+             * Stores synthetic collaborators or failures for this test fixture.
+             *
+             * @param \Throwable $failure The synthetic failure to propagate.
+             */
             public function __construct(private \Throwable $failure)
             {
             }
+            /**
+             * Throws the configured rendering failure to exercise callback restoration.
+             *
+             * @param \Throwable $throwable The throwable being rendered.
+             *
+             * @return ResponseInterface The fixture result.
+             */
             public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
             {
                 throw $this->failure;
             }
         };
         $next = new class () implements RequestHandlerInterface {
+            /**
+             * Executes the synthetic downstream behavior for the requested test route.
+             *
+             * @param ServerRequestInterface $request The synthetic incoming request.
+             *
+             * @return ResponseInterface The fixture result.
+             */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 throw new \TypeError('request failed');

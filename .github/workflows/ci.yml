@@ -62,4 +62,4 @@ jobs:
       - name: Verify production-only autoload
         run: |
           composer install --no-dev --no-plugins --no-scripts --no-interaction --no-progress
-          php -r 'require "vendor/autoload.php"; new CoiSA\ErrorHandler\Container\ErrorHandlerContainer(); (new CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider())->getFactories(); if (class_exists(FastForward\Container\AggregateContainer::class)) { throw new RuntimeException("FastForward must remain optional"); }'
+          php -r 'require "vendor/autoload.php"; $provider = new CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider(); $services = FastForward\Container\container($provider); $handler = $services->get(CoiSA\ErrorHandler\ErrorHandlerInterface::class); if (!$handler instanceof CoiSA\ErrorHandler\ErrorHandler || count($provider->getFactories()) !== 9) { throw new RuntimeException("Production provider resolution failed"); }'

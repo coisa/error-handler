@@ -26,6 +26,11 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use FastForward\Container\Factory\InvokableFactory;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 
 /**
  * Class ConfigProvider
@@ -35,7 +40,7 @@ use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
  * required for the proper functioning of the error-handler library.
  *
  * @package CoiSA\ErrorHandler\Container
- * @phpstan-type Factories array<class-string, class-string>
+ * @phpstan-type Factories array<class-string, class-string|callable>
  * @phpstan-type Dependencies array{aliases: array<class-string, class-string>, factories: Factories}
  */
 final class ConfigProvider
@@ -101,12 +106,27 @@ final class ConfigProvider
     {
         return [
             ErrorHandler::class                       => Factory\ErrorHandlerFactory::class,
-            ErrorHandlerMiddleware::class             => Factory\ErrorHandlerMiddlewareFactory::class,
-            DispatchErrorEventThrowableHandler::class => Factory\DispatchErrorEventThrowableHandlerFactory::class,
-            DispatchThrowableHandler::class           => Factory\DispatchThrowableHandlerFactory::class,
+            ErrorHandlerMiddleware::class             => ErrorHandlerMiddlewareFactory::class,
+            Factory\ErrorHandlerFactory::class        => new InvokableFactory(Factory\ErrorHandlerFactory::class),
+            DispatchErrorEventThrowableHandler::class => new InvokableFactory(
+                DispatchErrorEventThrowableHandler::class,
+                EventDispatcherInterface::class
+            ),
+            DispatchThrowableHandler::class           => new InvokableFactory(
+                DispatchThrowableHandler::class,
+                EventDispatcherInterface::class
+            ),
             ThrowableHandlerAggregate::class          => Factory\ThrowableHandlerAggregateFactory::class,
-            ThrowableResponseFactory::class           => Factory\ThrowableResponseFactoryFactory::class,
-            ThrowableStreamFactory::class             => Factory\ThrowableStreamFactoryFactory::class,
+            ThrowableResponseFactory::class           => new InvokableFactory(
+                ThrowableResponseFactory::class,
+                ThrowableStreamFactoryInterface::class,
+                ResponseFactoryInterface::class
+            ),
+            ThrowableStreamFactory::class             => new InvokableFactory(
+                ThrowableStreamFactory::class,
+                StreamFactoryInterface::class,
+                ThrowableHandlerInterface::class
+            ),
         ];
     }
 }

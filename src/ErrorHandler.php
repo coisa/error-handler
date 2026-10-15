@@ -56,16 +56,34 @@ final class ErrorHandler implements
      */
     private bool $isRegistered = false;
 
+    /**
+     * @var bool Whether this instance already has a retained PHP shutdown callback.
+     */
     private bool $shutdownRegistered = false;
 
+    /**
+     * @var bool Prevents recursive delivery through the same reporter.
+     */
     private bool $isHandlingThrowable = false;
 
+    /**
+     * @var bool Tracks PHP's temporary exception-callback removal during termination.
+     */
     private bool $isHandlingUncaughtThrowable = false;
 
+    /**
+     * @var bool Prevents retrying a reporter that failed during the current registration.
+     */
     private bool $handlerFailed = false;
 
+    /**
+     * @var \Closure(int, string, string, int): bool Stable callback identity for native PHP errors.
+     */
     private \Closure $errorCallback;
 
+    /**
+     * @var \Closure(\Throwable): never Stable callback identity for uncaught throwables.
+     */
     private \Closure $exceptionCallback;
 
     /**
@@ -116,6 +134,8 @@ final class ErrorHandler implements
      * Unregisters the error handler.
      *
      * This method SHALL restore the previous error and exception handlers.
+     *
+     * @throws \LogicException If another integration owns either active callback.
      */
     public function unregister(): void
     {
@@ -137,6 +157,9 @@ final class ErrorHandler implements
      * Handles throwable exceptions.
      *
      * @param \Throwable $throwable The throwable exception to handle.
+     *
+     * @throws \LogicException If the reporter recursively invokes this handler.
+     * @throws \Throwable If reporting fails or the current registration already failed.
      */
     public function handleThrowable(\Throwable $throwable): void
     {
@@ -168,7 +191,7 @@ final class ErrorHandler implements
      * @param string $filename The filename where the error occurred.
      * @param int $line The line number where the error occurred.
      *
-     * @throws \ErrorException When a PHP error is escalated.
+     * @throws \Throwable If the PHP handler or reporter fails to process the error.
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
@@ -197,6 +220,18 @@ final class ErrorHandler implements
         }
     }
 
+    /**
+     * Adapts PHP's error callback to the public error-handling contract.
+     *
+     * @param int $code The PHP error level.
+     * @param string $message The error message.
+     * @param string $filename The source filename.
+     * @param int $line The source line number.
+     *
+     * @return bool True to suppress PHP's default handler after successful processing.
+     *
+     * @throws \Throwable If the PHP handler or reporter fails.
+     */
     private function onPhpError(int $code, string $message, string $filename, int $line): bool
     {
         $this->handlePhpError($code, $message, $filename, $line);
@@ -204,6 +239,13 @@ final class ErrorHandler implements
         return true;
     }
 
+    /**
+     * Checks ownership without changing the native callback stacks or error masks.
+     *
+     * @param bool $duringShutdown Whether to allow PHP's cleared callback on the terminating path.
+     *
+     * @return bool True when this instance still owns both active callbacks.
+     */
     private function hasActiveCallbacks(bool $duringShutdown = false): bool
     {
         // Probe without changing the existing stacks or their error-level masks.
@@ -221,6 +263,15 @@ final class ErrorHandler implements
         return $currentErrorHandler === $this->errorCallback && $ownsExceptionCallback;
     }
 
+    /**
+     * Reports an uncaught throwable and terminates with a failure exit status.
+     *
+     * @param \Throwable $throwable The original uncaught throwable.
+     *
+     * @return never Successful reporting terminates the process with exit status 1.
+     *
+     * @throws \Throwable If reporting fails and PHP must take its native failure path.
+     */
     private function onUncaughtThrowable(\Throwable $throwable): never
     {
         $this->isHandlingUncaughtThrowable = true;

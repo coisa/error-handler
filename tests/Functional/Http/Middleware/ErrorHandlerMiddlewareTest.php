@@ -30,13 +30,16 @@ use Psr\Http\Server\RequestHandlerInterface;
 /**
  * Class ErrorHandlerMiddlewareTest.
  *
- * @package CoiSA\ErrorHandler\Test\Functional\Container
+ * @package CoiSA\ErrorHandler\Test\Functional\Http\Middleware
  *
  * @internal
  * @coversNothing
  */
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
+    /**
+     * Verifies middleware captures downstream exceptions and renders an application response.
+     */
     public function testErrorHandlerMiddlewareHandleRequestException(): void
     {
         $exception = new \InvalidArgumentException(uniqid('test', true), random_int(400, 500));
@@ -52,13 +55,28 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $serverRequest  = $streamFactory->createServerRequest('GET', 'http://localhost');
 
         $requestHandler = new class ($exception) implements RequestHandlerInterface {
+            /**
+             * @var \Throwable The downstream failure to propagate.
+             */
             private $exception;
 
+            /**
+             * Stores synthetic collaborators or failures for this test fixture.
+             *
+             * @param \Throwable $exception The downstream throwable.
+             */
             public function __construct(\Throwable $exception)
             {
                 $this->exception = $exception;
             }
 
+            /**
+             * Executes the synthetic downstream behavior for the requested test route.
+             *
+             * @param ServerRequestInterface $request The synthetic incoming request.
+             *
+             * @return ResponseInterface The fixture result.
+             */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 throw $this->exception;

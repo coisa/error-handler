@@ -7,7 +7,8 @@ without changing the existing package or namespace. Merge definitions with
 `AggregateServiceProvider`, library first and application last, so a required
 reporter's failure cannot fall back to the silent default. Registration remains explicit;
 use factory services for fresh/nested scopes because container lookups are cached.
-Existing Laminas and standalone PSR-11 integration remain supported.
+The Laminas `ConfigProvider` adapter remains supported; the standalone
+`ErrorHandlerContainer` has been removed in favor of FastForward Container.
 
 1. Upgrade the application to PHP 8.3, 8.4 or 8.5. Resolve Composer dependencies again. The checked-in development lock targets PHP 8.5; developers on 8.3/8.4 use `composer update --no-plugins --no-scripts` to resolve compatible tools. Consumers resolve their own lock as usual.
 2. Expect exit status **1** after a globally uncaught `Throwable` is reported successfully. Version 2 could exit with status 0. A reporter that explicitly terminates the process still controls its own exit code. Direct `handleThrowable()` calls do not exit.
@@ -16,6 +17,33 @@ Existing Laminas and standalone PSR-11 integration remain supported.
 5. Review custom HTTP rendering. Empty output now produces `Internal Server Error`, instead of a stringified exception and stack trace. The string `0` is preserved. Exception messages no longer become HTTP reason phrases. Codes 400–599 map to their matching status; other integer codes and string SQLSTATE codes map to 500.
 6. If you used the old PHP 7.2 Docker setup, replace the two-service invocation with `docker compose run --rm --build tests`. It defaults to PHP 8.3 and resolves dependencies in the image, without using your host `vendor/`.
 
-Public handler and factory interfaces retain their names and method signatures. The PHP floor, CLI exit semantics, lifecycle rejection and HTTP output defaults warrant a major release even though most integration code can remain unchanged.
+7. Replace `new Container\ErrorHandlerContainer($parent)` with
+   `FastForward\Container\container(new ErrorHandlerServiceProvider(), $parent)`
+   when the parent only supplies external PSR dependencies. For application
+   overrides, use the merged provider composition above. FastForward is now a
+   runtime dependency, including its transitive packages; consumers resolve them
+   through Composer. Do not rely on the removed package-specific
+   `Container\Exception\ContainerException` or `NotFoundException`; catch the
+   corresponding PSR-11 exception interfaces instead.
+8. Replace removed constructor-only factories as follows. Names below are relative
+   to `CoiSA\ErrorHandler` except the FastForward factory classes.
+
+| Removed API | Replacement |
+| --- | --- |
+| `Container\Factory\AliasFactory` | `FastForward\Container\Factory\AliasFactory::get($serviceId)` |
+| `Container\Factory\DispatchThrowableHandlerFactory` | Autowire `Handler\DispatchThrowableHandler` |
+| `Container\Factory\DispatchErrorEventThrowableHandlerFactory` | Autowire `Handler\DispatchErrorEventThrowableHandler` |
+| `Container\Factory\ThrowableResponseFactoryFactory` | Autowire `Http\Message\ThrowableResponseFactory` |
+| `Container\Factory\ThrowableStreamFactoryFactory` | Autowire `Http\Message\ThrowableStreamFactory` |
+| `Container\Factory\ErrorHandlerMiddlewareFactory` | `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`, which creates a fresh handler |
+
+For a PSR-11 container without autowiring, use FastForward's `InvokableFactory`
+with explicit constructor service identifiers, as the Laminas adapter does.
+`Container\Factory\ErrorHandlerFactory` and `ThrowableHandlerAggregateFactory`
+remain because they encode lifecycle and reporter-composition behavior.
+
+Public handler interfaces retain their names and method signatures. The PHP
+floor, required FastForward dependency, removed container/factories, CLI exit
+semantics, lifecycle rejection and HTTP output defaults warrant a major release.
 
 Before upgrading a real application, run the [documented checks](testing.md) and application-level tests for the actual reporter, middleware stack and PHP SAPI. These isolated fixtures do not establish reliability of third-party loggers, remote services or production infrastructure.

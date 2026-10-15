@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
@@ -173,6 +185,30 @@ switch ($scenario) {
         ));
         $handler->register();
         throw new RuntimeException('original failure');
+    case 'reporter-reset':
+        $calls = 0;
+        $handler = new ErrorHandler(new CallableThrowableHandler(static function () use (&$calls): void {
+            event('reporter-called');
+            if (++$calls === 1) {
+                throw new RuntimeException('reporter failed');
+            }
+        }));
+        $handler->register();
+        try {
+            $handler->handleThrowable(new RuntimeException('first throwable'));
+        } catch (RuntimeException $failure) {
+            event('first-failure', ['message' => $failure->getMessage()]);
+        }
+        try {
+            $handler->handleThrowable(new RuntimeException('second throwable'));
+        } catch (RuntimeException $failure) {
+            event('suppressed-retry', ['message' => $failure->getMessage()]);
+        }
+        $handler->unregister();
+        $handler->register();
+        $handler->handleThrowable(new RuntimeException('fresh lifecycle'));
+        $handler->unregister();
+        break;
     case 'reporter-warning':
         $handler = new ErrorHandler(new CallableThrowableHandler(static function (): void {
             event('reporter-called');

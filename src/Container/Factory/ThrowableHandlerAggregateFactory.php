@@ -52,7 +52,9 @@ final class ThrowableHandlerAggregateFactory
 
         if ($container->has(CallableThrowableHandler::class)) {
             try {
-                /** @var CallableThrowableHandler $callableHandler */
+                /**
+                 * @var CallableThrowableHandler $callableHandler
+                 */
                 $callableHandler = $container->get(CallableThrowableHandler::class);
                 $handler->attach($callableHandler);
             } catch (NotFoundExceptionInterface) {
@@ -62,13 +64,17 @@ final class ThrowableHandlerAggregateFactory
 
         if ($container->has(EventDispatcherInterface::class)) {
             if ($container->has(DispatchThrowableHandler::class)) {
-                /** @var DispatchThrowableHandler $dispatchHandler */
+                /**
+                 * @var DispatchThrowableHandler $dispatchHandler
+                 */
                 $dispatchHandler = $container->get(DispatchThrowableHandler::class);
                 $handler->attach($dispatchHandler);
             }
 
             if ($container->has(DispatchErrorEventThrowableHandler::class)) {
-                /** @var DispatchErrorEventThrowableHandler $dispatchErrorHandler */
+                /**
+                 * @var DispatchErrorEventThrowableHandler $dispatchErrorHandler
+                 */
                 $dispatchErrorHandler = $container->get(DispatchErrorEventThrowableHandler::class);
                 $handler->attach($dispatchErrorHandler);
             }

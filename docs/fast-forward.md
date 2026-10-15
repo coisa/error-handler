@@ -7,15 +7,17 @@ API; a possible future move to php-fast-forward has not happened.
 
 ## Installation and bootstrap
 
-The library requires the small `container-interop/service-provider:^0.4.1`
-interface package. Its core and provider do not require FastForward or a full
-framework. Applications choosing FastForward install its container explicitly:
+The library requires `fast-forward/container:^1.6` and the
+`container-interop/service-provider:^0.4.1` interface package at runtime.
+Composer installs them for consumers. The provider reuses FastForward's
+`AliasFactory::get()` and `InvokableFactory`; it does not ship a second container.
+To install the container explicitly in an application:
 
 ```sh
 composer require fast-forward/container:^1.6
 ```
 
-The development checkout already includes it in `require-dev`. After installing
+The development checkout includes it in `require`. After installing
 the checkout dependencies, run the complete [example](../examples/fast-forward.php):
 
 ```sh
@@ -57,6 +59,22 @@ There is no provider boot hook. The application decides when to register.
 | `Container\Factory\ErrorHandlerFactory` | Reusable callable that creates a fresh handler on each invocation |
 | `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` | Reusable callable that creates fresh middleware and a fresh handler |
 
+The provider has nine explicit definitions. Dispatch handlers and concrete
+stream/response adapters are resolved through FastForward's constructor
+autowiring. Their interface aliases remain explicit, and application definitions
+can override either an interface or its concrete implementation. The three
+library factories that remain encode optional-handler defaults, reporter
+composition and fresh middleware scopes; autowiring alone does not replace those
+contracts. The factory-object services use FastForward's `InvokableFactory`.
+
+Bind a required custom renderer through `ThrowableStreamFactoryInterface` or
+`ThrowableResponseFactoryInterface`. FastForward 1.6.0 can discard a concrete
+class definition's PSR-11 construction failure and fall back to autowiring that
+class. The same failure on an explicitly bound interface prevents construction,
+because the interface has no autowire fallback. Successful concrete overrides
+work, but they do not provide the same failure contract. The integration suite
+checks both successful concrete overrides and required-interface failures.
+
 Names in the table are relative to `CoiSA\ErrorHandler`; reporter classes are
 under `Handler`, HTTP adapters under `Http\Message`, and middleware under
 `Http\Middleware`.
@@ -89,7 +107,10 @@ An ordinary application exception continues to propagate.
 Optional `PhpErrorHandlerInterface` and `ShutdownHandlerInterface` bindings are
 passed to fresh handlers too. The provider reuses the package's PSR-11 factories
 and introduces no separate configuration format or automatic event subscriptions.
-The Laminas `ConfigProvider` and `ErrorHandlerContainer` remain available.
+The Laminas `ConfigProvider` remains available and uses `InvokableFactory` with
+explicit dependency identifiers for containers without autowiring.
+`ErrorHandlerContainer` and the constructor-only factories have been removed;
+see [migration](migration.md).
 
 ## HTTP scopes and fresh instances
 
@@ -122,12 +143,12 @@ The integration tests use the real released FastForward container, including
 provider-class bootstrap, explicit and optional reporters, custom PHP/shutdown
 handlers, event dispatch, fresh factories, nested HTTP scopes and restoration
 after renderer failure. The full [test command](testing.md) retains the existing
-fatal-error and HTTP checks. CI also loads the provider without development
-dependencies, proving that installing the whole FastForward framework is not
-necessary to use the core library.
+fatal-error and HTTP checks. CI also installs without development dependencies
+and resolves a process handler through the provider, proving that FastForward's
+factory classes and autowiring are available in production installations.
 
-This separates the public Interop/PSR contracts from the optional framework
-consumer. A later move still needs an explicit package/namespace decision,
+The full FastForward framework is not required. A later package move still needs
+an explicit package/namespace decision,
 release and migration guidance; this provider is not a claim that those changes
 have already been made.
 

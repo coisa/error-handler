@@ -6,7 +6,7 @@
 [![CI](https://github.com/coisa/error-handler/actions/workflows/ci.yml/badge.svg)](https://github.com/coisa/error-handler/actions/workflows/ci.yml)
 [![Total Downloads][ico-downloads]][link-downloads]
 
-Small, composable PHP error handling with PSR-11 containers, PSR-14 events and PSR-15 middleware. Report warnings, handle uncaught throwables and inspect fatal errors at shutdown through the same reporter interface.
+Small, composable PHP error handling with FastForward Container, PSR-14 events and PSR-15 middleware. Report warnings, handle uncaught throwables and inspect fatal errors at shutdown through the same reporter interface.
 
 **Development documentation for the next major release.** This branch requires PHP 8.3–8.5 and changes lifecycle, CLI exit and HTTP response behavior. These changes are not part of the published 2.0.0 release. Read the [migration guide](docs/migration.md) before adopting this branch.
 
@@ -44,6 +44,11 @@ throw new RuntimeException('An uncaught exception; the process exits 1.');
 ```
 
 Load Composer's autoloader before the snippet. A normal warning is reported and execution continues. Masked/suppressed warnings are ignored. Direct `handleThrowable()` calls do not terminate the process; only the registered uncaught-exception callback does. Reporters are responsible for their output and privacy.
+
+FastForward Container is a runtime dependency in this development line. Use the
+[service provider](docs/fast-forward.md) for container wiring; `ErrorHandlerContainer`
+has been removed. Direct construction remains available, and `ConfigProvider`
+continues to adapt the library to Laminas ServiceManager.
 
 ## HTTP integration
 

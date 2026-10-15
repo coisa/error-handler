@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+
 // No PHPUnit/application state is shared with the crash scenarios.
 // Each child has a five-second deadline, a 16 MiB limit and a 256 KiB output cap.
 $cases = [
@@ -27,6 +39,8 @@ $cases = [
     'reporter-throws' => [255, ['reporter-called']],
     'shutdown-reporter-throws' => [255, ['reporter-called']],
     'recursive-reporter' => [255, ['reporter-called']],
+    'reporter-reset' => [0, ['reporter-called', 'first-failure', 'suppressed-retry', 'reporter-called'], null, null,
+        [1 => ['message' => 'reporter failed'], 2 => ['message' => 'second throwable']]],
     'reporter-warning' => [0, ['reporter-called', 'continued']],
     'shutdown-throws' => [0, ['error'], RuntimeException::class],
     'aggregate' => [0, ['first', 'second']],

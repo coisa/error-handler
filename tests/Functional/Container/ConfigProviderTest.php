@@ -17,7 +17,6 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Test\Functional\Container;
 
 use CoiSA\ErrorHandler\Container\ConfigProvider;
-use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use Laminas\ServiceManager\ServiceManager;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Phly\EventDispatcher\EventDispatcher;
@@ -38,26 +37,34 @@ use Psr\Http\Message\StreamFactoryInterface;
  */
 final class ConfigProviderTest extends TestCase
 {
-    /** @var ServiceManager */
+    /**
+     * @var ServiceManager
+     */
     private $serviceManager;
 
-    /** @var ErrorHandlerContainer */
-    private $container;
-
-    /** @var ConfigProvider */
+    /**
+     * @var ConfigProvider
+     */
     private $configProvider;
 
+    /**
+     * Creates isolated container and reporting collaborators for each test.
+     */
     protected function setUp(): void
     {
         $this->configProvider = new ConfigProvider();
         $configs              = ($this->configProvider)();
 
         $this->serviceManager = new ServiceManager($configs['dependencies']);
-        $this->container      = new ErrorHandlerContainer($this->serviceManager);
 
         $this->setUpServiceManager($this->serviceManager);
     }
 
+    /**
+     * Supplies application-owned PSR-14 and PSR-17 implementations.
+     *
+     * @param ServiceManager $serviceManager Service Manager for the fixture.
+     */
     public function setUpServiceManager(ServiceManager $serviceManager): void
     {
         $listenerProvider = new ListenerProviderAggregate();
@@ -69,6 +76,11 @@ final class ConfigProviderTest extends TestCase
         $serviceManager->setService(StreamFactoryInterface::class, $factory);
     }
 
+    /**
+     * Provides every service identifier declared by the Laminas adapter.
+     *
+     * @return list<array{class-string}> Independent service-identifier cases.
+     */
     public static function provideContainerDependenciesClassNames(): array
     {
         $dependencies = (new ConfigProvider())->getDependencies();
@@ -76,25 +88,22 @@ final class ConfigProviderTest extends TestCase
         return array_chunk(array_keys(array_merge(...array_values($dependencies))), 1);
     }
 
+    /**
+     * Verifies Laminas advertises each configured service identifier.
+     *
+     * @param class-string $className The configured service identifier.
+     */
     #[DataProvider('provideContainerDependenciesClassNames')]
     public function testServiceManagerHasConfigProviderDependencies(string $className): void
     {
         static::assertTrue($this->serviceManager->has($className));
     }
 
-    #[DataProvider('provideContainerDependenciesClassNames')]
-    public function testContainerWithServiceManagerHasConfigProviderDependencies(string $className): void
-    {
-        static::assertTrue($this->container->has($className));
-    }
-
-    #[DataProvider('provideContainerDependenciesClassNames')]
-    public function testContainerWithoutServiceManagerHasConfigProviderDependencies(string $className): void
-    {
-        $container = new ErrorHandlerContainer();
-        static::assertTrue($container->has($className));
-    }
-
+    /**
+     * Provides service identifiers and their expected concrete types.
+     *
+     * @return list<array{class-string, class-string}> Service identifiers and expected types.
+     */
     public static function provideContainerDependenciesWithInstanceType(): array
     {
         $dependencies = (new ConfigProvider())->getDependencies();
@@ -110,31 +119,16 @@ final class ConfigProviderTest extends TestCase
         }, $classNames);
     }
 
+    /**
+     * Verifies Laminas resolves each alias and factory to its expected type.
+     *
+     * @param class-string $className The configured service identifier.
+     * @param class-string $instanceOf The expected resolved service type.
+     */
     #[DataProvider('provideContainerDependenciesWithInstanceType')]
     public function testServiceManagerCanCreateDependecyThatImplements(string $className, string $instanceOf): void
     {
         $object = $this->serviceManager->get($className);
-        static::assertInstanceOf($instanceOf, $object);
-    }
-
-    #[DataProvider('provideContainerDependenciesWithInstanceType')]
-    public function testContainerCanCreateDependecyThatImplements(string $className, string $instanceOf): void
-    {
-        $object = $this->container->get($className);
-        static::assertInstanceOf($instanceOf, $object);
-    }
-
-    #[DataProvider('provideContainerDependenciesWithInstanceType')]
-    public function testWithCleanServiceManagerCanCreateDependecyThatImplements(
-        string $className,
-        string $instanceOf
-    ): void {
-        $serviceManager = new ServiceManager();
-        $container      = new ErrorHandlerContainer($serviceManager);
-
-        $this->setUpServiceManager($serviceManager);
-
-        $object = $container->get($className);
         static::assertInstanceOf($instanceOf, $object);
     }
 }

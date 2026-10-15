@@ -105,9 +105,12 @@ of the original exception cause.
 
 `php examples/fast-forward.php` exits 0, emits exactly
 `Reported: FastForward provider warning` followed by a newline, and leaves stderr
-empty. CI verifies that output. A separate production-only Composer installation
-also loads the core and all 13 provider definitions without FastForward installed;
-the required integration dependency is the small Interop interface package.
+empty. CI verifies that output. That original provider revision also loaded its
+13 definitions without FastForward installed. The review follow-up makes
+FastForward a runtime dependency, replaces the standalone container, removes
+constructor-only factories and reduces the provider to nine definitions.
+Production-only CI now resolves a process handler through FastForward after
+`composer install --no-dev`; it no longer asserts FastForward is absent.
 The five-job PHP/dependency CI matrix exercises the provider tests too; consult
 the current run for commit-specific Linux evidence.
 
@@ -115,6 +118,33 @@ The consumer skill's frontmatter and source references were validated, and its
 integration procedure is checked against these same public APIs. Repository
 maintenance guidance is in [AGENTS.md](../AGENTS.md); the detailed wiring contract
 is in [FastForward integration](fast-forward.md).
+
+## Review follow-up verification
+
+The FastForward-required/autowire revision passes the full check on macOS arm64
+with PHP 8.5.11, PHPUnit 13.3.4 and FastForward Container 1.6.0: **89 tests and
+173 assertions**, maximum PHPStan over `src/`, formatting, **28** isolated scenarios
+and three HTTP responses. The count replaces tests exclusive to the removed
+standalone container with retained Laminas integration tests and new autowire,
+required-renderer and reporter-reset coverage; it is not the old 118-case suite.
+
+The 25 dependency-free core scenarios also pass on PHP 8.4.26 with `-n`.
+An isolated production-only installation resolves the provider/process alias on
+PHP 8.5.11 and PHP 8.4.26, without PHPUnit. The existing package versions were
+preserved; moving FastForward and its transitive requirements to runtime grows
+the locked production set from 8 to 20 packages. Both executable examples retain
+their exact output and exit contracts.
+
+The additional reporter-reset child verifies that a failed reporter is not
+retried until unregister/register starts a new lifecycle. Six required-renderer
+cases cover both HTTP interfaces against PSR construction, PSR not-found and
+ordinary application failures. A separate bounded reproduction on FastForward
+1.6.0 showed that a concrete renderer override's PSR failure can fall back to
+autowiring, while an interface override fails construction. Required custom
+renderers therefore use explicit interface bindings in the documented contract.
+
+These local results do not establish PHP 8.3 or new Linux matrix results for
+this revision. Use the CI run attached to the exact follow-up commit for those.
 
 ## Boundaries and troubleshooting
 

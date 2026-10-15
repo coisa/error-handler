@@ -20,8 +20,9 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 - Target PHP 8.3–8.5; the current branch describes an unreleased major after 2.0.
   Do not present branch behavior as an already published Composer release.
 - Keep core handlers independent of FastForward. The service provider uses
-  `Interop\Container\ServiceProviderInterface`; FastForward is an optional
-  consumer and a development integration test dependency.
+  `Interop\Container\ServiceProviderInterface` and FastForward's reusable factory
+  classes. FastForward Container is a required runtime dependency and owns
+  service resolution, caching and autowiring; do not add a parallel container.
 - Constructing or discovering a service must not call `register()`. Native PHP
   callbacks are process-wide. Unregister in reverse order and use distinct
   handlers for nested scopes. Follow [the lifecycle contract](docs/api.md).
@@ -29,7 +30,9 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   process handler and use the provider's factory services for fresh scopes.
   Merge application overrides after library definitions in one
   `AggregateServiceProvider`, avoiding silent reporter fallback on PSR errors.
-- Keep the Laminas ConfigProvider and PSR-11 integration working. A possible
+- Keep the Laminas ConfigProvider adapter working. Preserve explicit factories
+  for reporter composition, optional handlers and fresh middleware scopes;
+  use autowiring for plain constructor injection. A possible
   move to php-fast-forward does not itself change package identity or namespace.
 - Reporters own diagnostic output; HTTP fallback bodies must not leak exception
   details. A shutdown callback reports a fatal error and does not recover it.
@@ -53,7 +56,7 @@ the owner's corresponding instruction. Preparing a PR does not perform them.
 Use Composer 2 with `--no-plugins --no-scripts` for dependency installation;
 then run `composer --no-plugins check`. This runs formatting, PHPUnit, maximum
 PHPStan, bounded fire tests and loopback HTTP checks. See [testing](docs/testing.md)
-for PHP-version resolution, optional dependencies and actual platform evidence.
+for PHP-version resolution, application dependencies and actual platform evidence.
 Run `php examples/fast-forward.php` after provider changes. Verify a production
 installation without development dependencies still loads the core and provider.
 Check documentation links and inspect the actual CI result for the tested SHA.

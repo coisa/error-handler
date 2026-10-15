@@ -50,6 +50,13 @@ Use `CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider` with
 `FastForward\Container\ServiceProvider\AggregateServiceProvider`: library first,
 application **last**, then pass that one provider into `container(...)`.
 
+FastForward Container is a runtime dependency in this development line.
+`CoiSA\ErrorHandler\Container\ErrorHandlerContainer` has been removed. Concrete
+dispatch and HTTP adapters use constructor autowiring; the provider retains
+explicit factories for optional callbacks, reporter composition and fresh scopes.
+The Laminas `ConfigProvider` adapter remains available with generic FastForward
+factory definitions. Consult the matching migration guide for removed factories.
+
 Separate variadic providers allow FastForward to fall back to the library's
 silent default if the application's reporter fails with a PSR container error.
 Merged definitions replace that default and make required-reporter construction
@@ -66,6 +73,11 @@ handler, resolve `CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory` and
 invoke it with the container. For fresh middleware, resolve and invoke
 `CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`.
 Do not mistake repeated `get()` calls for a transient lifetime.
+
+Bind required custom renderers through `ThrowableStreamFactoryInterface` or
+`ThrowableResponseFactoryInterface`. FastForward may discard a concrete class
+definition's PSR construction failure and rebuild it through autowiring; explicit
+interface bindings prevent that fallback. Keep application definitions last.
 
 ## Wire HTTP deliberately
 

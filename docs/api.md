@@ -62,6 +62,16 @@ used by FastForward, with callable factories and no automatic callback
 registration. See [FastForward integration](fast-forward.md) for process-service
 aliases, application overrides and fresh middleware scopes.
 
-`Container\ConfigProvider` exposes `__invoke()`, `getDependencies()`, `getAliases()` and `getFactories()` for compatible containers such as Laminas ServiceManager. `ErrorHandlerContainer` can wrap a parent PSR-11 container, delegates known services to it, and caches services built by the library factories.
+FastForward Container is required at runtime and owns service resolution,
+caching and autowiring. Concrete dispatch and HTTP adapters use constructor
+autowiring. Explicit factories remain for optional PHP/shutdown handlers, reporter
+composition and independent middleware scopes. `ErrorHandlerContainer` and its
+private alias/exception machinery have been removed.
+
+`Container\ConfigProvider` exposes `__invoke()`, `getDependencies()`, `getAliases()`
+and `getFactories()` for Laminas ServiceManager. It uses FastForward's generic
+`InvokableFactory` for plain constructor injection, and the same lifecycle
+factories as the provider. Its middleware owns a handler separate from the cached
+process handler. See [migration](migration.md) for removed factory class names.
 
 Provide `ThrowableHandlerInterface` for a custom reporter. Otherwise `ThrowableHandlerAggregateFactory` composes any available callable/event-dispatch reporters; an empty aggregate intentionally produces no diagnostics. HTTP factories also require PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` services. PSR-14 integration needs `EventDispatcherInterface`. These implementations belong to the application; the package ships interfaces and adapters, not a logger, event bus or HTTP framework.

@@ -2,6 +2,18 @@
 
 declare(strict_types=1);
 
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+
 namespace CoiSA\ErrorHandler\Test\Unit\Http\Message;
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
@@ -11,14 +23,32 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * Verifies safe HTTP status mapping, response bodies and output-buffer cleanup.
+ *
+ * @package CoiSA\ErrorHandler\Test\Unit\Http\Message
+ *
+ * @internal
+ */
 final class ThrowableResponseFactoryTest extends TestCase
 {
+    /**
+     * Provides HTTP boundary codes and their expected response statuses.
+     *
+     * @return list<array{int, int}> Input and expected HTTP status pairs.
+     */
     public static function statusCodes(): array
     {
         return [[0, 500], [200, 500], [399, 500], [400, 400], [404, 404], [500, 500],
             [503, 503], [599, 599], [600, 500]];
     }
 
+    /**
+     * Verifies HTTP status mapping, generic bodies and private throwable delivery.
+     *
+     * @param int $code The throwable code to map.
+     * @param int $expected The expected HTTP response status.
+     */
     #[DataProvider('statusCodes')]
     public function testMapsHttpErrorCodesAndDoesNotDiscloseExceptionDetails(int $code, int $expected): void
     {
@@ -37,9 +67,15 @@ final class ThrowableResponseFactoryTest extends TestCase
         self::assertSame([$error], $reported);
     }
 
+    /**
+     * Verifies a string PDO SQLSTATE produces HTTP 500 without a secondary type error.
+     */
     public function testStringSqlStateFallsBackTo500(): void
     {
         $error = new class () extends \PDOException {
+            /**
+             * Stores synthetic collaborators or failures for this test fixture.
+             */
             public function __construct()
             {
                 $this->code = 'HY000';
@@ -52,6 +88,9 @@ final class ThrowableResponseFactoryTest extends TestCase
         self::assertSame(500, $responses->createResponseFromThrowable($error)->getStatusCode());
     }
 
+    /**
+     * Verifies the rendered string zero is preserved as a response body.
+     */
     public function testZeroIsAValidRenderedBody(): void
     {
         $reporter = new CallableThrowableHandler(static function (): void {
@@ -61,6 +100,9 @@ final class ThrowableResponseFactoryTest extends TestCase
         self::assertSame('0', (string) $streams->createStreamFromThrowable(new \RuntimeException('private')));
     }
 
+    /**
+     * Verifies renderer failure cleans nested buffers while preserving the caller buffer.
+     */
     public function testRendererFailureCleansItsBuffersAndPreservesCallerBuffer(): void
     {
         $failure = new \RuntimeException('renderer failed');

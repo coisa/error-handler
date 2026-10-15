@@ -60,10 +60,15 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * This method SHALL process the throwable using the handler and convert
      * its output into a PSR-7 compatible stream.
+     * It SHALL preserve the body "0" and use a generic fallback for empty output.
+     * Renderers MUST balance removable buffers and MUST NOT close caller-owned buffers.
      *
      * @param \Throwable $throwable The throwable instance to process.
      *
      * @return StreamInterface The rendered response body or a generic fallback.
+     *
+     * @throws \Throwable If rendering, buffer cleanup or stream construction fails.
+     *     A renderer failure takes precedence over any later cleanup failure.
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
