@@ -9,7 +9,9 @@
 - Reject out-of-order `unregister()` calls without removing another handler. Only the active registration handles shutdown events.
 - Return a generic HTTP body when a reporter emits nothing; use standard reason phrases instead of exception messages. Preserve valid error status codes through 599.
 - Update PHPUnit, PHPStan, PHP CS Fixer, PHP_CodeSniffer, Docker and CI. Declare PSR-11 as a runtime dependency.
-- Require FastForward Container at runtime and reuse its alias/invokable factories. Remove the standalone `ErrorHandlerContainer`, its alias factory and container exceptions, and constructor-only dispatch/HTTP factories; use autowiring for plain injection. Preserve the Laminas adapter with generic factory definitions.
+- Require FastForward Container at runtime and reuse its alias/invokable factories. Remove the standalone `ErrorHandlerContainer`, its alias factory and container exceptions, and constructor-only dispatch/HTTP factories; use autowiring for plain injection.
+- Keep the Interop service provider as the single container integration entrypoint. Remove the Laminas `ConfigProvider`, discovery metadata and ServiceManager development dependency; move both remaining `Container\Factory` classes to `ServiceProvider\Factory` and migrate their behavior tests.
+- Separate throwable output capture from buffer cleanup through private methods in `ThrowableStreamFactory`, preserving renderer-failure precedence and caller-owned buffers.
 
 ### Fixed
 

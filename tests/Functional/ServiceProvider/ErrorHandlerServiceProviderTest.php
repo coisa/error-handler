@@ -16,7 +16,7 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\ServiceProvider;
 
-use CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;

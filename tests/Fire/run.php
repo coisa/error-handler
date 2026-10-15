@@ -52,6 +52,8 @@ if (in_array('--with-psr', $argv, true)) {
         [0 => ['message' => 'renderer failed', 'remainingBuffers' => 2]]];
     $cases['render-cleanup-throws'] = [0, ['renderer-failure'], RuntimeException::class, null,
         [0 => ['message' => 'renderer failed', 'remainingBuffers' => 0]]];
+    $cases['render-cleanup-only-throws'] = [0, ['renderer-failure'], LogicException::class, null,
+        [0 => ['message' => 'cleanup failed', 'remainingBuffers' => 0]]];
 }
 $failed = 0;
 printf("PHP %s | %s %s | %d isolated scenarios\n", PHP_VERSION, PHP_OS_FAMILY, php_uname('m'), count($cases));

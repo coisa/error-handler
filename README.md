@@ -47,8 +47,8 @@ Load Composer's autoloader before the snippet. A normal warning is reported and 
 
 FastForward Container is a runtime dependency in this development line. Use the
 [service provider](docs/fast-forward.md) for container wiring; `ErrorHandlerContainer`
-has been removed. Direct construction remains available, and `ConfigProvider`
-continues to adapt the library to Laminas ServiceManager.
+and the Laminas `ConfigProvider` have been removed. The Interop service provider
+is the single container integration entrypoint. Direct construction remains available.
 
 ## HTTP integration
 

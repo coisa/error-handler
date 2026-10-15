@@ -14,7 +14,7 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
-namespace CoiSA\ErrorHandler\Container\Factory;
+namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
@@ -30,7 +30,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  * Factory responsible for creating and configuring an instance of ThrowableHandlerAggregate.
  * This factory SHALL attach available handlers from the container to the aggregate handler.
  *
- * @package CoiSA\ErrorHandler\Container\Factory
+ * @package CoiSA\ErrorHandler\ServiceProvider\Factory
  */
 final class ThrowableHandlerAggregateFactory
 {

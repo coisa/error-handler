@@ -55,7 +55,7 @@ The middleware returns normal downstream responses unchanged and catches downstr
 
 Neither the middleware nor the global handler emits PSR-7 responses to a server. The application/framework owns emission, headers, content type and transport. A PHP engine fatal error bypasses normal middleware recovery; shutdown reporting cannot reliably replace an already-started HTTP response.
 
-## PSR-11 container integration
+## Interop service-provider integration
 
 `ServiceProvider\ErrorHandlerServiceProvider` implements the Interop contract
 used by FastForward, with callable factories and no automatic callback
@@ -68,10 +68,11 @@ autowiring. Explicit factories remain for optional PHP/shutdown handlers, report
 composition and independent middleware scopes. `ErrorHandlerContainer` and its
 private alias/exception machinery have been removed.
 
-`Container\ConfigProvider` exposes `__invoke()`, `getDependencies()`, `getAliases()`
-and `getFactories()` for Laminas ServiceManager. It uses FastForward's generic
-`InvokableFactory` for plain constructor injection, and the same lifecycle
-factories as the provider. Its middleware owns a handler separate from the cached
-process handler. See [migration](migration.md) for removed factory class names.
+The Interop provider is the single supported container integration entrypoint.
+`Container\ConfigProvider` and its Laminas discovery metadata have been removed.
+The three lifecycle factories live under `ServiceProvider\Factory`. Consumers
+combine the provider with constructor autowiring, as FastForward's `container()`
+does; PSR-11 alone does not define provider registration or autowiring.
+See [migration](migration.md) for removed and moved class names.
 
 Provide `ThrowableHandlerInterface` for a custom reporter. Otherwise `ThrowableHandlerAggregateFactory` composes any available callable/event-dispatch reporters; an empty aggregate intentionally produces no diagnostics. HTTP factories also require PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` services. PSR-14 integration needs `EventDispatcherInterface`. These implementations belong to the application; the package ships interfaces and adapters, not a logger, event bus or HTTP framework.

@@ -16,7 +16,7 @@ composer --no-plugins check
 # Core crash tests need PHP only; no Composer dependencies or extensions.
 php tests/Fire/run.php
 
-# Include the three isolated PSR renderer regressions after Composer installation.
+# Include the four isolated PSR renderer regressions after Composer installation.
 php tests/Fire/run.php --with-psr
 
 # PSR integration and real HTTP responses.
@@ -50,6 +50,7 @@ Every child uses `php -n`, a 16 MiB PHP memory limit, a five-second wall-clock d
 | Aggregate | Reporters run in attachment order |
 | Renderer failure with removable/non-removable nested buffer (`--with-psr`) | Original renderer failure propagates without a loop; non-removable buffers remain active |
 | Renderer and output-cleanup callback both throw (`--with-psr`) | Original renderer failure wins; reachable buffers are cleaned |
+| Output-cleanup callback throws after successful rendering (`--with-psr`) | Cleanup failure propagates and reachable buffers are cleaned |
 
 The allocation case deliberately requests 32 MiB under a 16 MiB limit. It proves this failure path only. There is no memory reserve and **no guarantee** of reporting arbitrary real-world out-of-memory conditions.
 
@@ -121,7 +122,7 @@ is in [FastForward integration](fast-forward.md).
 
 ## Review follow-up verification
 
-The FastForward-required/autowire revision passes the full check on macOS arm64
+The first FastForward-required/autowire revision passed the full check on macOS arm64
 with PHP 8.5.11, PHPUnit 13.3.4 and FastForward Container 1.6.0: **89 tests and
 185 assertions**, maximum PHPStan over `src/`, formatting, **28** isolated scenarios
 and three HTTP responses. The count replaces tests exclusive to the removed
@@ -158,6 +159,34 @@ FastForward 1.6.0 and all existing package versions.
 
 These local results do not establish PHP 8.3 or new Linux matrix results for this
 revision. Use the CI run attached to the exact follow-up commit for those.
+
+## Interop-only and stream-cleanup follow-up
+
+Container integration now uses only `ServiceProvider\ErrorHandlerServiceProvider`.
+The native Laminas ConfigProvider, its Composer discovery metadata and the
+ServiceManager development dependency are removed. The former Laminas behavior
+tests now exercise the same reporting, event/listener and HTTP behavior through
+FastForward and the Interop provider; adapter-specific configuration tests are
+retired. The two remaining container factories and their unit tests move under
+`ServiceProvider\Factory`.
+
+`ThrowableStreamFactory` keeps output capture and cleanup in the same class,
+using a private cleanup method. Characterization tests passed before extraction:
+balanced nested output preserves the caller's buffer, a renderer failure wins
+over a simultaneous cleanup failure, and a cleanup-only failure propagates. The
+non-removable-buffer and no-progress guards remain in place.
+
+The full check passes on macOS arm64/PHP 8.5.11 with the locked FastForward 1.6.0:
+**70 tests / 168 assertions**, maximum source PHPStan, formatting, **29 isolated
+scenarios** and three loopback HTTP responses. Only ServiceManager was removed
+from the lock; retained dependency versions and the 20-package runtime set are
+unchanged. CI on the exact follow-up head supplies the PHP 8.3–8.5 matrix evidence.
+
+The same full check also passes in an isolated highest-dependency installation
+with FastForward 1.8.0, PHPUnit 13.4.2 and PHPStan 2.3.1. The production-only
+installation resolves the relocated handler factory and creates independent
+handlers, with the old ConfigProvider, old factory namespace and ServiceManager
+absent. Both executable examples retain their exact output and exit contracts.
 
 ## Boundaries and troubleshooting
 

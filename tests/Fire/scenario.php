@@ -238,17 +238,20 @@ switch ($scenario) {
     case 'render-removable':
     case 'render-non-removable':
     case 'render-cleanup-throws':
+    case 'render-cleanup-only-throws':
         require dirname(__DIR__, 2) . '/vendor/autoload.php';
         $flags = PHP_OUTPUT_HANDLER_CLEANABLE | PHP_OUTPUT_HANDLER_FLUSHABLE;
         if ($scenario !== 'render-non-removable') {
             $flags |= PHP_OUTPUT_HANDLER_REMOVABLE;
         }
         $renderer = new CallableThrowableHandler(static function () use ($flags, $scenario): void {
-            $callback = $scenario === 'render-cleanup-throws' ? static function (): never {
+            $callback = str_starts_with($scenario, 'render-cleanup-') ? static function (): never {
                 throw new LogicException('cleanup failed');
             } : null;
             ob_start($callback, 0, $flags);
-            throw new RuntimeException('renderer failed');
+            if ($scenario !== 'render-cleanup-only-throws') {
+                throw new RuntimeException('renderer failed');
+            }
         });
         $factory = new CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory(
             new Nyholm\Psr7\Factory\Psr17Factory(),

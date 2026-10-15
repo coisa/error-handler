@@ -14,11 +14,6 @@
         "prefer-stable": true,
         "optimize-autoloader": true
     },
-    "extra": {
-        "laminas": {
-            "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
-        }
-    },
     "require": {
         "php": "^8.3",
         "container-interop/service-provider": "^0.4.1",
@@ -42,7 +37,6 @@
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.95",
-        "laminas/laminas-servicemanager": "^4.3",
         "nyholm/psr7": "^1.8",
         "phly/phly-event-dispatcher": "^1.0",
         "phpstan/phpstan": "^2.1",

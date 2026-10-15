@@ -14,9 +14,9 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
-namespace CoiSA\ErrorHandler\Test\Functional\Container;
+namespace CoiSA\ErrorHandler\Test\Functional\ServiceProvider;
 
-use CoiSA\ErrorHandler\Container\ConfigProvider;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
@@ -31,7 +31,8 @@ use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\Test\Log\AssertThrowableTestCaseLogger;
-use Laminas\ServiceManager\ServiceManager;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
@@ -39,26 +40,34 @@ use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+use function FastForward\Container\container;
+
 /**
- * Verifies the Laminas configuration adapter's reporting and lifecycle behavior.
+ * Verifies reporter, event and HTTP composition through the Interop service provider.
  *
- * @package CoiSA\ErrorHandler\Test\Functional\Container
+ * @package CoiSA\ErrorHandler\Test\Functional\ServiceProvider
  *
  * @internal
  * @coversNothing
  */
-final class ConfigProviderIntegrationTest extends TestCase
+final class ErrorHandlerCompositionTest extends TestCase
 {
     /**
-     * @var ServiceManager
+     * @var array<class-string, object> Application services supplied before resolving the container.
      */
-    private $serviceManager;
+    private array $services = [];
+
+    /**
+     * @var ContainerInterface|null Lazily composed container for the current test.
+     */
+    private ?ContainerInterface $container = null;
 
     /**
      * @var EventDispatcher
@@ -75,15 +84,12 @@ final class ConfigProviderIntegrationTest extends TestCase
      */
     protected function setUp(): void
     {
-        $this->serviceManager = new ServiceManager((new ConfigProvider())->getDependencies());
-
         $this->listenerProvider = new ListenerProviderAggregate();
         $this->eventDispatcher  = new EventDispatcher($this->listenerProvider);
 
         $factory = new Psr17Factory();
 
-        $this->serviceManager->setService(ResponseFactoryInterface::class, $factory);
-        $this->serviceManager->setService(StreamFactoryInterface::class, $factory);
+        $this->services = [ResponseFactoryInterface::class => $factory, StreamFactoryInterface::class => $factory];
     }
 
     /**
@@ -91,17 +97,19 @@ final class ConfigProviderIntegrationTest extends TestCase
      */
     protected function tearDown(): void
     {
-        $this->serviceManager->get(ErrorHandler::class)->unregister();
+        if ($this->container !== null) {
+            $this->container->get(ErrorHandler::class)->unregister();
+        }
     }
 
     /**
-     * Provides the concrete services declared by the Laminas adapter.
+     * Provides service identifiers explicitly declared by the Interop provider.
      *
-     * @return list<array{class-string}> Concrete service-identifier cases.
+     * @return list<array{class-string}> Declared service-identifier cases.
      */
     public static function provideServiceProviderClassNames(): array
     {
-        $factories = (new ConfigProvider())->getFactories();
+        $factories = (new ErrorHandlerServiceProvider())->getFactories();
 
         return array_chunk(array_keys($factories), 1);
     }
@@ -112,9 +120,9 @@ final class ConfigProviderIntegrationTest extends TestCase
      * @param class-string $service The service identifier under test.
      */
     #[DataProvider('provideServiceProviderClassNames')]
-    public function testContainerHasConfigProviderFactories(string $service): void
+    public function testContainerHasProviderServices(string $service): void
     {
-        static::assertTrue($this->serviceManager->has($service));
+        static::assertTrue($this->container()->has($service));
     }
 
     /**
@@ -123,10 +131,28 @@ final class ConfigProviderIntegrationTest extends TestCase
      * @param class-string $service The service identifier under test.
      */
     #[DataProvider('provideServiceProviderClassNames')]
-    public function testContainerProvideConfigProviderFactories(string $service): void
+    public function testContainerResolvesProviderServices(string $service): void
     {
-        $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
-        static::assertInstanceOf($service, $this->serviceManager->get($service));
+        $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
+        static::assertInstanceOf($service, $this->container()->get($service));
+    }
+
+    /**
+     * Composes the library provider with application service definitions last.
+     *
+     * @return ContainerInterface The shared container for the current test.
+     */
+    private function container(): ContainerInterface
+    {
+        $application = new ArrayServiceProvider(array_map(
+            static fn (object $service): \Closure => static fn (): object => $service,
+            $this->services
+        ));
+
+        return $this->container ??= container(new AggregateServiceProvider(
+            new ErrorHandlerServiceProvider(),
+            $application
+        ));
     }
 
     /**
@@ -137,7 +163,7 @@ final class ConfigProviderIntegrationTest extends TestCase
         $message   = uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $this->expectNotToPerformAssertions();
@@ -155,9 +181,9 @@ final class ConfigProviderIntegrationTest extends TestCase
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable) use ($exception): void {
             $this->assertSame($exception, $throwable);
         });
-        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+        $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -174,9 +200,9 @@ final class ConfigProviderIntegrationTest extends TestCase
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable) use ($exception): void {
             $this->assertSame($exception, $throwable);
         });
-        $this->serviceManager->setService(CallableThrowableHandler::class, $callableThrowableHandler);
+        $this->services[CallableThrowableHandler::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -213,9 +239,9 @@ final class ConfigProviderIntegrationTest extends TestCase
         $this->listenerProvider->attach($errorEventListenerProvider);
         $this->listenerProvider->attach($throwableListenerProvider);
 
-        $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
+        $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -229,9 +255,9 @@ final class ConfigProviderIntegrationTest extends TestCase
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
             $this->assertTrue(false);
         });
-        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+        $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $oldLevel = error_reporting(E_ALL ^ E_USER_NOTICE);
@@ -250,9 +276,9 @@ final class ConfigProviderIntegrationTest extends TestCase
         $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
             $this->assertInstanceOf(ErrorException::class, $throwable);
         });
-        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+        $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         trigger_error('Test user warning', E_USER_WARNING);
@@ -271,9 +297,9 @@ final class ConfigProviderIntegrationTest extends TestCase
                 'message' => $throwable->getMessage(),
             ]);
         });
-        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
+        $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $serverRequest  = (new Psr17Factory())->createServerRequest('GET', '/');
@@ -306,7 +332,7 @@ final class ConfigProviderIntegrationTest extends TestCase
             }
         };
 
-        $middleware = $this->serviceManager->get(ErrorHandlerMiddleware::class);
+        $middleware = $this->container()->get(ErrorHandlerMiddleware::class);
         $response   = $middleware->process($serverRequest, $requestHandler);
 
         static::assertInstanceOf(ResponseInterface::class, $response);
@@ -325,7 +351,7 @@ final class ConfigProviderIntegrationTest extends TestCase
     public function testUnregisteredErrorHandlerHandleShutdownWillDoNothing(): void
     {
         $this->expectOutputString('');
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->handleShutdown();
     }
 
@@ -344,10 +370,10 @@ final class ConfigProviderIntegrationTest extends TestCase
             throw $exception;
         });
 
-        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
-        $this->serviceManager->setService(ShutdownHandlerInterface::class, $callableShutdownHandler);
+        $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
+        $this->services[ShutdownHandlerInterface::class] = $callableShutdownHandler;
 
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->register();
 
         $errorHandler->handleShutdown();
@@ -358,7 +384,7 @@ final class ConfigProviderIntegrationTest extends TestCase
      */
     public function testUnregisterNotRegisteredErrorHandlerShouldNotThrowExceptions(): void
     {
-        $errorHandler = $this->serviceManager->get(ErrorHandler::class);
+        $errorHandler = $this->container()->get(ErrorHandler::class);
         $errorHandler->unregister();
         static::assertTrue(true);
     }

@@ -56,7 +56,7 @@ There is no provider boot hook. The application decides when to register.
 | `DispatchThrowableHandler` / `DispatchErrorEventThrowableHandler` | Existing PSR-14 adapters; require an application dispatcher |
 | `ThrowableStreamFactoryInterface` / `ThrowableResponseFactoryInterface` | Existing rendering adapters; require PSR-17 stream/response factories |
 | `ErrorHandlerMiddleware` | Cached middleware with a handler separate from the process handler |
-| `Container\Factory\ErrorHandlerFactory` | Reusable callable that creates a fresh handler on each invocation |
+| `ServiceProvider\Factory\ErrorHandlerFactory` | Reusable callable that creates a fresh handler on each invocation |
 | `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` | Reusable callable that creates fresh middleware and a fresh handler |
 
 The provider has nine explicit definitions. Dispatch handlers and concrete
@@ -113,10 +113,11 @@ attempts; this differs from the handler's no-retry contract after reporting fail
 Optional `PhpErrorHandlerInterface` and `ShutdownHandlerInterface` bindings are
 passed to fresh handlers too. The provider reuses the package's PSR-11 factories
 and introduces no separate configuration format or automatic event subscriptions.
-The Laminas `ConfigProvider` remains available and uses `InvokableFactory` with
-explicit dependency identifiers for containers without autowiring.
-`ErrorHandlerContainer` and the constructor-only factories have been removed;
-see [migration](migration.md).
+The Interop service provider is the only supported container integration.
+`ConfigProvider`, its Laminas discovery metadata, `ErrorHandlerContainer` and the
+constructor-only factories have been removed. Provider factories all live under
+`ServiceProvider\Factory`; see [migration](migration.md). Provider consumers must
+support constructor autowiring, as FastForward's `container()` does.
 
 ## HTTP scopes and fresh instances
 
@@ -136,7 +137,7 @@ $outer = $makeMiddleware($services);
 $inner = $makeMiddleware($services);
 ```
 
-Likewise invoke the `Container\Factory\ErrorHandlerFactory` service to create
+Likewise invoke the `ServiceProvider\Factory\ErrorHandlerFactory` service to create
 fresh direct handlers. Avoid sharing the process handler with middleware and
 do not pre-register the middleware's own handler. The reusable factory pattern
 does not provide concurrent-request isolation: PHP callback stacks remain

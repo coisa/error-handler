@@ -14,9 +14,9 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
-namespace CoiSA\ErrorHandler\Test\Unit\Container;
+namespace CoiSA\ErrorHandler\Test\Unit\ServiceProvider\Factory;
 
-use CoiSA\ErrorHandler\Container\Factory\ThrowableHandlerAggregateFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ThrowableHandlerAggregateFactory;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +27,7 @@ use Psr\Container\NotFoundExceptionInterface;
 /**
  * Verifies optional reporter discovery and propagation of construction failures.
  *
- * @package CoiSA\ErrorHandler\Test\Unit\Container
+ * @package CoiSA\ErrorHandler\Test\Unit\ServiceProvider\Factory
  *
  * @internal
  */

@@ -101,6 +101,32 @@ final class ThrowableResponseFactoryTest extends TestCase
     }
 
     /**
+     * Verifies successful nested rendering preserves the caller's output buffer.
+     */
+    public function testBalancedRendererBuffersPreserveCallerOutput(): void
+    {
+        $reporter = new CallableThrowableHandler(static function (): void {
+            ob_start();
+            echo 'nested body';
+            $nested = ob_get_clean();
+            echo 'public ' . $nested;
+        });
+        $streams = new ThrowableStreamFactory(new Psr17Factory(), $reporter);
+        ob_start();
+        echo 'caller output';
+        $level = ob_get_level();
+
+        try {
+            $stream = $streams->createStreamFromThrowable(new \RuntimeException('private'));
+            self::assertSame('public nested body', (string) $stream);
+            self::assertSame($level, ob_get_level());
+            self::assertSame('caller output', ob_get_contents());
+        } finally {
+            ob_end_clean();
+        }
+    }
+
+    /**
      * Verifies renderer failure cleans nested buffers while preserving the caller buffer.
      */
     public function testRendererFailureCleansItsBuffersAndPreservesCallerBuffer(): void

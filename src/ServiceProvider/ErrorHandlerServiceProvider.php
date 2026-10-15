@@ -16,8 +16,6 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider;
 
-use CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory;
-use CoiSA\ErrorHandler\Container\Factory\ThrowableHandlerAggregateFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
@@ -28,6 +26,8 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ThrowableHandlerAggregateFactory;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\InvokableFactory;
 use Interop\Container\ServiceProviderInterface;

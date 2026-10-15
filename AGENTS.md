@@ -30,9 +30,11 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   process handler and use the provider's factory services for fresh scopes.
   Merge application overrides after library definitions in one
   `AggregateServiceProvider`, avoiding silent reporter fallback on PSR errors.
-- Keep the Laminas ConfigProvider adapter working. Preserve explicit factories
-  for reporter composition, optional handlers and fresh middleware scopes;
-  use autowiring for plain constructor injection. A possible
+- Support container integration through the Interop service provider only;
+  do not restore the removed ConfigProvider or framework-specific adapters.
+  Keep all provider factories under `ServiceProvider\Factory`. Preserve explicit
+  factories for reporter composition, optional handlers and fresh middleware
+  scopes; use autowiring for plain constructor injection. A possible
   move to php-fast-forward does not itself change package identity or namespace.
 - Reporters own diagnostic output; HTTP fallback bodies must not leak exception
   details. A shutdown callback reports a fatal error and does not recover it.

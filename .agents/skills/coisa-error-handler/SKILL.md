@@ -54,8 +54,10 @@ FastForward Container is a runtime dependency in this development line.
 `CoiSA\ErrorHandler\Container\ErrorHandlerContainer` has been removed. Concrete
 dispatch and HTTP adapters use constructor autowiring; the provider retains
 explicit factories for optional callbacks, reporter composition and fresh scopes.
-The Laminas `ConfigProvider` adapter remains available with generic FastForward
-factory definitions. Consult the matching migration guide for removed factories.
+The Interop provider is the single container integration entrypoint;
+`ConfigProvider` and its Laminas discovery metadata have been removed. Provider
+factories live under `ServiceProvider\Factory`. Consult the migration guide for
+removed and moved class names.
 
 Separate variadic providers allow FastForward to fall back to the library's
 silent default if the application's reporter fails with a PSR container error.
@@ -74,7 +76,7 @@ process handler at bootstrap. An empty default reporter aggregate is silent;
 configure a reporter or an event dispatcher before expecting diagnostics.
 
 FastForward caches resolved instances, including middleware. To create a fresh
-handler, resolve `CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory` and
+handler, resolve `CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory` and
 invoke it with the container. For fresh middleware, resolve and invoke
 `CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`.
 Do not mistake repeated `get()` calls for a transient lifetime.

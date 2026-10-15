@@ -7,8 +7,9 @@ without changing the existing package or namespace. Merge definitions with
 `AggregateServiceProvider`, library first and application last, so a required
 reporter's failure cannot fall back to the silent default. Registration remains explicit;
 use factory services for fresh/nested scopes because container lookups are cached.
-The Laminas `ConfigProvider` adapter remains supported; the standalone
-`ErrorHandlerContainer` has been removed in favor of FastForward Container.
+The Interop provider is the single container integration entrypoint.
+The Laminas `ConfigProvider` adapter and standalone `ErrorHandlerContainer`
+have been removed in favor of FastForward Container with this provider.
 
 1. Upgrade the application to PHP 8.3, 8.4 or 8.5. Resolve Composer dependencies again. The checked-in development lock targets PHP 8.5; developers on 8.3/8.4 use `composer update --no-plugins --no-scripts` to resolve compatible tools. Consumers resolve their own lock as usual.
 2. Expect exit status **1** after a globally uncaught `Throwable` is reported successfully. Version 2 could exit with status 0. A reporter that explicitly terminates the process still controls its own exit code. Direct `handleThrowable()` calls do not exit.
@@ -36,11 +37,17 @@ The Laminas `ConfigProvider` adapter remains supported; the standalone
 | `Container\Factory\ThrowableResponseFactoryFactory` | Autowire `Http\Message\ThrowableResponseFactory` |
 | `Container\Factory\ThrowableStreamFactoryFactory` | Autowire `Http\Message\ThrowableStreamFactory` |
 | `Container\Factory\ErrorHandlerMiddlewareFactory` | `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`, which creates a fresh handler |
+| `Container\ConfigProvider` | `ServiceProvider\ErrorHandlerServiceProvider`; remove Laminas `config-provider` discovery and register the Interop provider with FastForward |
+| `Container\Factory\ErrorHandlerFactory` | `ServiceProvider\Factory\ErrorHandlerFactory` |
+| `Container\Factory\ThrowableHandlerAggregateFactory` | `ServiceProvider\Factory\ThrowableHandlerAggregateFactory` |
 
-For a PSR-11 container without autowiring, use FastForward's `InvokableFactory`
-with explicit constructor service identifiers, as the Laminas adapter does.
-`Container\Factory\ErrorHandlerFactory` and `ThrowableHandlerAggregateFactory`
-remain because they encode lifecycle and reporter-composition behavior.
+Update factory imports and service identifiers to the new namespaces; no aliases
+for the old names are provided. All three remaining factories live under
+`ServiceProvider\Factory` because they encode lifecycle and reporter-composition
+behavior. Use the Interop provider with constructor autowiring; a framework-native
+configuration adapter is no longer shipped. `laminas/laminas-servicemanager` is
+no longer a development dependency; unrelated transitive Laminas packages may
+still be required by FastForward.
 
 Public handler interfaces retain their names and method signatures. The PHP
 floor, required FastForward dependency, removed container/factories, CLI exit

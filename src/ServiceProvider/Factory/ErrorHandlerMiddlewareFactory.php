@@ -16,7 +16,6 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
 
-use CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Psr\Container\ContainerInterface;

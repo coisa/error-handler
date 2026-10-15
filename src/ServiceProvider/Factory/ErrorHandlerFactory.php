@@ -14,7 +14,7 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
-namespace CoiSA\ErrorHandler\Container\Factory;
+namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
@@ -29,7 +29,7 @@ use Psr\Container\ContainerInterface;
  * This factory SHALL ensure proper dependency injection of ThrowableHandlerInterface,
  * PhpErrorHandlerInterface, and ShutdownHandlerInterface.
  *
- * @package CoiSA\ErrorHandler\Container\Factory
+ * @package CoiSA\ErrorHandler\ServiceProvider\Factory
  */
 final class ErrorHandlerFactory
 {
@@ -45,15 +45,21 @@ final class ErrorHandlerFactory
      */
     public function __invoke(ContainerInterface $container): ErrorHandler
     {
-        /** @var ThrowableHandlerInterface $throwableHandler */
+        /**
+         * @var ThrowableHandlerInterface $throwableHandler
+         */
         $throwableHandler = $container->get(ThrowableHandlerInterface::class);
 
-        /** @var PhpErrorHandlerInterface|null $phpErrorHandler */
+        /**
+         * @var PhpErrorHandlerInterface|null $phpErrorHandler
+         */
         $phpErrorHandler = $container->has(PhpErrorHandlerInterface::class)
             ? $container->get(PhpErrorHandlerInterface::class)
             : null;
 
-        /** @var ShutdownHandlerInterface|null $shutdownHandler */
+        /**
+         * @var ShutdownHandlerInterface|null $shutdownHandler
+         */
         $shutdownHandler = $container->has(ShutdownHandlerInterface::class)
             ? $container->get(ShutdownHandlerInterface::class)
             : null;
