@@ -40,7 +40,7 @@
         }
     },
     "require-dev": {
-        "coisa/php-cs-fixer": "^3.0.1",
+        "coisa/php-cs-fixer": "^3.0",
         "laminas/laminas-servicemanager": "^4.3",
         "nyholm/psr7": "^1.8",
         "nyholm/psr7-server": "^1.1",
