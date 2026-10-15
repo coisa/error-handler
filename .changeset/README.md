@@ -58,6 +58,14 @@ that same PR and its title, even when they change the planned release version.
 The `chore(release)` commit records release preparation without classifying it
 as another runtime feature or bug fix.
 
+Changelog entries use the official
+[`@changesets/changelog-github`](https://changesets.dev/packages/changelog-github)
+formatter with its default links to PRs, commits and authors. It reads the
+repository from `GITHUB_REPOSITORY`, which Actions provides automatically, and
+uses `GITHUB_TOKEN` for read-only GitHub queries. The validation rehearsal passes
+the built-in token; the version action passes its token to the version command.
+No personal token, custom template or repository name in the config is needed.
+
 Review the version, changelog and consumed notes before merging that PR. The
 workflow needs the repository setting **Settings → Actions → General → Workflow
 permissions → Allow GitHub Actions to create and approve pull requests** enabled.
@@ -129,7 +137,9 @@ prerelease policy to this stable 2.x flow.
 
 ## Rehearse locally
 
-In a disposable checkout with the tooling installed, run:
+In a disposable checkout with the tooling installed, provide
+`GITHUB_REPOSITORY=coisa/error-handler` and a read-capable `GITHUB_TOKEN` through
+your environment, then run:
 
 ```sh
 npm run changeset:status
@@ -138,6 +148,9 @@ npm run version:packages
 
 git diff -- package.json package-lock.json CHANGELOG.md .changeset
 ```
+
+Never commit the token. Adding notes and running `changeset:status` do not need
+a GitHub token.
 
 With only the initial maintenance note, expect `2.0.1` in both manifests, a patch
 changelog entry, and removal of that note. `composer.json`, `composer.lock` and
