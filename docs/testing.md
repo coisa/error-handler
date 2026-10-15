@@ -93,7 +93,10 @@ The current local PHP 8.5.11/macOS arm64 installation with FastForward 1.6.0 pas
 scenarios**, three HTTP responses and nine executable examples. Dependency
 snapshots used for these local runs are observations, not a committed lock or
 a promise about future resolution. The earlier isolated highest-dependency run
-with FastForward 1.8.0 also passed; the current HTTP follow-up requires current-head verification. Tests additionally
+with FastForward 1.8.0 also passed. The
+[HTTP follow-up CI](https://github.com/coisa/error-handler/actions/runs/38742698841)
+passed all four PHP/dependency jobs and coverage on
+`611ea938178fb480abf24d51285deb264033ea56`. Tests additionally
 verify report-before-render ordering, no stdout from a private reporter/pure JSON
 renderer, successful response identity and concrete response overrides.
 
@@ -126,7 +129,7 @@ minimum of 85% line coverage and rejects negative differences when a baseline
 exists. Owners can override the minimum through `MINIMUM_COVERAGE_THRESHOLD`
 or `MINIMUM_COVERAGE`; values must be integers from 0 to 100.
 
-The local PHPUnit snapshot before the HTTP redesign is **87.04% lines
+The local PHPUnit snapshot after the HTTP redesign is **87.04% lines
 (168/193)**. This excludes the separately executed bounded fatal and loopback
 HTTP fixtures; low shutdown-method coverage does not imply those child scenarios
 were skipped. It is evidence for this exact PHP/dependency snapshot.
