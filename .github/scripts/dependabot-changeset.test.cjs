@@ -94,6 +94,8 @@ test('writes only the deterministic note and fast-forwards the expected parent',
   assert.equal(f.writes[0].base_tree, 'base-tree');
   assert.deepEqual(f.writes[1].parents, [oldHead]);
   assert.match(f.writes[1].message, /\[dependabot skip\]/);
+  assert.match(f.writes[1].message, /Signed-off-by: github-actions\[bot\] <41898282\+github-actions\[bot\]@users\.noreply\.github\.com>/);
+  assert.deepEqual(f.writes[1].author, { name: 'github-actions[bot]', email: '41898282+github-actions[bot]@users.noreply.github.com' });
   assert.deepEqual(f.writes[2], { owner: 'coisa', repo: 'error-handler', ref: `heads/${f.pr.head.ref}`, sha: newHead, force: false });
   assert.equal(f.outputs.head, newHead);
   assert.equal(f.outputs['note-paths'], JSON.stringify([notePath]));

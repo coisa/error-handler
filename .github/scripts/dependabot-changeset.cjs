@@ -1,6 +1,10 @@
 const { readFileSync } = require('node:fs');
 
 const BOT_ID = 49699333;
+const COMMIT_AUTHOR = {
+  name: 'github-actions[bot]',
+  email: '41898282+github-actions[bot]@users.noreply.github.com',
+};
 
 function isEligible(pr, run, repository) {
   return pr.state === 'open'
@@ -74,7 +78,8 @@ async function maintainNote({ github, context, core }) {
       });
       const { data: commit } = await github.rest.git.createCommit({
         ...repo,
-        message: 'chore(release): add dependency update Changeset [dependabot skip]',
+        message: `chore(release): add dependency update Changeset [dependabot skip]\n\nSigned-off-by: ${COMMIT_AUTHOR.name} <${COMMIT_AUTHOR.email}>`,
+        author: COMMIT_AUTHOR,
         tree: tree.sha,
         parents: [head],
       });
