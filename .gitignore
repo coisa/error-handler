@@ -1,6 +1,7 @@
 .composer/
 .idea/
 vendor/
+node_modules/
 tests/html/
 tests/clover.xml
 tests/testdox.html

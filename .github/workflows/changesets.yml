@@ -1,0 +1,206 @@
+name: Changesets
+
+on:
+  pull_request:
+  pull_request_target:
+  push:
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
+concurrency:
+  group: changesets-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate Changesets
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) ||
+      (github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - run: npm run changeset -- status --since="origin/$DEFAULT_BRANCH"
+
+      - name: Select Changesets mode
+        id: mode
+        uses: changesets/action/select-mode@v2
+
+      - name: Rehearse versioning in the disposable checkout
+        if: steps.mode.outputs.mode == 'version'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run version:packages
+
+  status:
+    name: Read PR Changesets
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.base_ref == github.event.repository.default_branch &&
+      !startsWith(github.head_ref, 'changeset-release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+
+    outputs:
+      comment-body: ${{ steps.status.outputs.comment-body }}
+
+    steps:
+      # Check out the trusted base; the action only reads PR files.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Generate Changeset status
+        id: status
+        uses: changesets/action/pr-status@v2
+
+  comment:
+    name: Comment PR Changesets
+    needs: status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Create or update the Changeset comment
+        uses: changesets/action/pr-comment@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ needs.status.outputs.comment-body }}
+
+  version:
+    name: Prepare version PR
+    needs: validate
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_name == github.event.repository.default_branch &&
+      needs.validate.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - run: npm ci --ignore-scripts
+
+      - name: Check the current default-branch tip
+        id: tip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$DEFAULT_BRANCH" --jq .object.sha)
+          if [ "$current" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update the version PR
+        id: version
+        if: steps.tip.outputs.current == 'true'
+        uses: changesets/action/version@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: npm run version:packages
+          pr-title: 'chore(release): prepare next release of ${{ github.repository }}'
+          commit-message: 'chore(release): prepare next version of ${{ github.repository }}'
+
+      - name: Describe the version PR
+        if: steps.version.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.version.outputs.pr-number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+
+          printf 'Prepare %s %s for release.\n\n' "$REPOSITORY" "$version" > "$RUNNER_TEMP/version-pr.md"
+
+          cat >> "$RUNNER_TEMP/version-pr.md" <<'MARKDOWN'
+          Review the generated `CHANGELOG.md`, the versions in `package.json` and
+          `package-lock.json`, and the consumed `.changeset/*.md` notes.
+
+          Merging this PR starts validated Git tag and GitHub release publication.
+          Review it as the release decision. The private npm package is never published.
+          MARKDOWN
+
+          gh pr edit "$PR_NUMBER" \
+            --title "chore(release): release $REPOSITORY $version" \
+            --body-file "$RUNNER_TEMP/version-pr.md"
+
+      - name: Validate the generated version branch
+        if: steps.version.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run changesets.yml --ref "changeset-release/$DEFAULT_BRANCH"
+
+  publish:
+    name: Publish reviewed release
+    needs: validate
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_name == github.event.repository.default_branch &&
+      needs.validate.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - run: npm ci --ignore-scripts
+
+      - name: Publish the Composer tag and GitHub release
+        uses: changesets/action/publish@v2
+        with:
+          create-github-releases: true

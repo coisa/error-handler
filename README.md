@@ -14,6 +14,13 @@
 $ composer require coisa/error-handler
 ```
 
+## Contributing release notes
+
+Maintainers use [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md)
+to record changes and review version PRs. Merging a generated version PR starts
+Git tag and GitHub release publication. Node.js is needed only for this
+development tooling.
+
 ## Credits
 
 - [Felipe Sayão Lobato Abreu][link-author]
