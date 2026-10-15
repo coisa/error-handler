@@ -15,7 +15,7 @@ Use Node.js 24 and npm 10.9 or newer for maintenance:
 ```sh
 npm ci --ignore-scripts
 
-git fetch origin master
+git fetch origin
 
 npm run changeset
 
@@ -30,7 +30,9 @@ separate major-release planning. This setup includes only a maintenance patch.
 
 Keep `package-lock.json` committed to make development dependencies reproducible.
 Do not run the version command as part of an ordinary feature PR.
-Status compares runtime files (`src/` and `composer.json`) against `origin/master`.
+Local status compares runtime files (`src/` and `composer.json`) against the
+configured base (`origin/master` in this repository). CI selects the repository's
+default branch automatically.
 Version PRs can therefore validate after consuming their notes. Tooling-only or
 documentation-only PRs may omit a note when no version bump is intended.
 
@@ -44,8 +46,8 @@ comment. It never installs dependencies or runs PHP or npm scripts from the PR.
 
 ## Review the version PR
 
-After changes reach `master` and validation passes, the version job creates or updates
-`changeset-release/master`. Changesets consumes pending notes, updates
+After changes reach the default branch and validation passes, the version job
+creates or updates `changeset-release/<default-branch>`. Changesets consumes pending notes, updates
 `package.json`, and generates `CHANGELOG.md`. The version script also updates
 `package-lock.json` so both manifests have the same version.
 
@@ -62,7 +64,7 @@ The validation job has read-only repository access. Only the version job can
 write repository contents, manage its PR and dispatch validation.
 All four jobs live in `.github/workflows/changesets.yml`. PR checks run on
 `pull_request`; the status jobs use `pull_request_target` without executing PR
-code. Only pushes to `master` can prepare a version PR. Dispatched runs validate
+code. Only pushes to the default branch can prepare a version PR. Dispatched runs validate
 the generated branch without starting another version job.
 
 This step prepares reviewed versions only. It does not create Git tags or GitHub
@@ -78,7 +80,9 @@ The explicit validation dispatch avoids requiring an additional GitHub App token
 Actions use the publishers' major references (`@v7` and `@v2`) so compatible action
 updates do not require a dependency-update PR for every patch or minor release.
 The version PR title, commit message and description use `github.repository`
-instead of a hardcoded repository name.
+instead of a hardcoded repository name. The workflow uses
+`github.event.repository.default_branch` for event selection, status comparisons,
+the stale-run guard and the generated validation branch.
 
 ## Rehearse locally
 

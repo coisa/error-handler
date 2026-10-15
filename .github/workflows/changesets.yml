@@ -2,14 +2,14 @@ name: Changesets
 
 on:
   pull_request:
-    branches: [master]
   pull_request_target:
-    branches: [master]
   push:
-    branches: [master]
   workflow_dispatch:
 
 permissions: {}
+
+env:
+  DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
 
 concurrency:
   group: changesets-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
@@ -18,7 +18,10 @@ concurrency:
 jobs:
   validate:
     name: Validate Changesets
-    if: github.event_name != 'pull_request_target'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch) ||
+      (github.event_name == 'pull_request' && github.base_ref == github.event.repository.default_branch)
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -38,7 +41,7 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
-      - run: npm run changeset:status
+      - run: npm run changeset:status -- --since="origin/$DEFAULT_BRANCH"
 
       - name: Select Changesets mode
         id: mode
@@ -50,7 +53,10 @@ jobs:
 
   status:
     name: Read PR Changesets
-    if: ${{ github.event_name == 'pull_request_target' && !startsWith(github.head_ref, 'changeset-release/') }}
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.base_ref == github.event.repository.default_branch &&
+      !startsWith(github.head_ref, 'changeset-release/')
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -89,7 +95,9 @@ jobs:
   version:
     name: Prepare version PR
     needs: validate
-    if: github.event_name == 'push'
+    if: >-
+      github.event_name == 'push' &&
+      github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -110,12 +118,12 @@ jobs:
 
       - run: npm ci --ignore-scripts
 
-      - name: Check the current master tip
+      - name: Check the current default-branch tip
         id: tip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq .object.sha)
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$DEFAULT_BRANCH" --jq .object.sha)
           if [ "$current" = "$GITHUB_SHA" ]; then
             echo "current=true" >> "$GITHUB_OUTPUT"
           fi
@@ -155,4 +163,4 @@ jobs:
         if: steps.version.outputs.pr-number != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run changesets.yml --ref changeset-release/master
+        run: gh workflow run changesets.yml --ref "changeset-release/$DEFAULT_BRANCH"
