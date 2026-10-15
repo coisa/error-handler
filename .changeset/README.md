@@ -44,6 +44,64 @@ No Changeset bot installation is needed. A read-only job checks out the trusted
 base and reads PR files without executing them; a separate job can only post the
 comment. It never installs dependencies or runs PHP or npm scripts from the PR.
 
+## Dependabot updates and their release notes
+
+Dependabot checks Composer, the private npm tooling and GitHub Actions weekly,
+with at most three open version-update PRs per ecosystem. Each update remains a
+separate PR; there is no automatic approval or merge. Composer major updates are
+excluded from these maintenance proposals and need an explicit compatibility
+decision. npm and action majors are reviewable development-tooling proposals;
+they do not automatically mean a major release of this PHP library.
+
+Composer uses `versioning-strategy: widen` to retain already supported dependency
+versions rather than raising their minimum. This works with a manifest-only
+library: the automation detects `composer.json` updates without requiring a
+tracked `composer.lock`. Releases already allowed by a constraint do not need a
+new manifest-only PR. Without a committed Composer lockfile, this setup does not
+track a fixed transitive dependency graph or promise transitive security-update
+PRs. Consumer applications resolve and audit their own installations. See
+[Dependabot versioning strategies](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#versioning-strategy).
+
+After the initial **Changesets** PR workflow completes, **Dependabot Changeset**
+adds `.changeset/dependabot-<PR-number>.md` through the GitHub API. The default is
+one maintenance `patch` note. Its summary identifies the dependency ecosystem
+without embedding versions that could become stale after further updates.
+Reviewers must still assess PHP support, public behavior and dependency changes;
+edit the note's summary or bump when the proposed change needs another release
+classification. A dependency's own SemVer bump does not classify this library.
+
+The same path is reused after subsequent updates. Existing notes, including
+manually supplied classifications, are preserved. If Dependabot rebases away
+the generated note, the next run recreates it at that path. The generated commit
+contains `[dependabot skip]` so it does not prevent later Dependabot rebases;
+see [rebasing over extra commits](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
+
+The writer only handles open PRs authored by the real Dependabot account, from
+this repository's `dependabot/` branches into its default branch. It checks the
+current SHA before a non-forced fast-forward, and rejects unexpected update
+files. A trusted `workflow_run` runs default-branch code; PR Markdown is API data.
+It never checks out or executes PR code, installs PR dependencies, or dispatches
+a workflow defined by the PR. The parser job installs only the default branch's
+locked tooling with scripts disabled and read-only access. A separate job can
+publish checks but cannot change repository contents.
+
+Commits made with `GITHUB_TOKEN` do not trigger ordinary PR workflows. Therefore
+the automation parses the existing or generated note with the real Changesets
+parser and publishes **Validate Dependabot Changeset** on the exact current SHA.
+This check validates release-note syntax, package identity, bump type and a
+nonempty summary. It does not replace version rehearsal, PHP checks or testing
+the proposed dependencies. The earlier PR run belongs to the earlier SHA; do
+not treat it as proof for the generated commit. The existing informational
+Changesets sticky comment can remain stale until the next normal PR event.
+See [GitHub token event behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow).
+
+The writer activates only after its workflow is merged into the default branch.
+Observe the first real update PR, generated note, later rebase and exact-SHA
+check after activation; local fixtures do not prove hosted token permissions or
+the Dependabot service's update decisions. Re-run failed jobs for transient API
+errors. If the branch changed during a write, its next normal update/run retries
+against the new SHA. No personal token, additional GitHub App or secret is needed.
+
 ## Review the version PR
 
 After changes reach the default branch and validation passes, the version job

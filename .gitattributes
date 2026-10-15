@@ -1,5 +1,7 @@
 *                           text=auto
 .changeset/                 export-ignore
+.github/dependabot.yml      export-ignore
+.github/scripts/            export-ignore
 .github/workflows/          export-ignore
 node_modules/               export-ignore
 package.json                export-ignore
