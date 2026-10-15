@@ -166,8 +166,9 @@ Never commit the token. Adding notes and running `changeset:status` do not need
 a GitHub token.
 
 With only the initial maintenance note, expect `2.0.1` in both manifests, a patch
-changelog entry, and removal of that note. `composer.json`, `composer.lock` and
-`src/` must remain unchanged. A second run with no pending notes must not bump
+changelog entry, and removal of that note. `composer.json` and `src/` must remain
+unchanged; any ignored local `composer.lock` is outside release preparation.
+A second run with no pending notes must not bump
 the version again; Changesets 3 exits with code 1 for that no-op. The validation
 job skips this command when the release plan is empty. Do not commit a local
 rehearsal into a feature PR.
