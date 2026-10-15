@@ -70,24 +70,17 @@ npm run changeset -- add --patch "$PACKAGE_NAME" --message "$PR_TITLE"
 ```
 
 Changesets 3 supports these noninteractive flags. The job generates the note
-using only default-branch tooling and the PR title as a quoted argument, then
-renames it to `.changeset/dependabot-<PR number>.md`. Every run replaces the same
-file with a patch note based on that run's title. This avoids duplicate generated
-notes without searching existing PR files. Manual edits to that note, including
-its release classification, are overwritten on the next run; make final release
-adjustments after the last dependency update. Other note files are left alone.
-
-A small `gh` check skips stale/closed PRs. The job identifies these PRs by the
-`dependabot/` head-branch prefix, without checking the author's login or ID. It
-writes only to branches in this repository.
+using only default-branch tooling and the PR title as a quoted argument. A small
+`gh` check preserves existing notes and skips stale/closed PRs. The job identifies
+these PRs by the `dependabot/` head-branch prefix, without checking the author's
+login or ID. It writes only to branches in this repository.
 
 [`stefanzweifel/git-auto-commit-action@v7`](https://github.com/stefanzweifel/git-auto-commit-action)
-commits only that PR's generated note after the workflow switches to the checked
-PR commit. Identical contents produce no new commit. No PR code or tooling runs
-after that switch. Checkout retains the built-in token only in this job so the
-action can push; no additional secret is required. A rebase that removes the note
-gets it back at the same path on its next event. Review dependencies and adjust
-the default patch as needed.
+then switches to the Dependabot branch and commits only `.changeset/*.md`. No PR
+code or tooling runs after that switch. Checkout retains the built-in token only
+in this job so the action can push; no additional secret is required. Existing
+notes/classifications are preserved; a rebase that removes the note gets a new
+one on its next event. Review dependencies and adjust the default patch as needed.
 
 The generated commit has a bot DCO sign-off and `[dependabot skip]`, allowing
 [later rebases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
