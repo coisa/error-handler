@@ -124,8 +124,11 @@ registers PHP callbacks during discovery/construction. The explicit lifecycle
 factories live under `ServiceProvider\Factory`; no parallel standalone container
 or native Laminas ConfigProvider remains.
 
-Merge library definitions first and the application last in one AggregateServiceProvider.
-Bind required reporters/renderers explicitly through their interfaces. The default
+Use `container(ErrorHandlerServiceProvider::class, $application)` to supply
+application dependencies and optional reporters. To override existing library
+service IDs, merge library definitions first and the application last in one
+AggregateServiceProvider. Bind required reporters/renderers explicitly through
+their interfaces. The default
 reporter aggregate discovers optional callable/PSR-14 reporters and is silent when
 none are configured. The default HTTP stream alias resolves GenericThrowableStreamFactory.
 Applications supply PSR-14, PSR-17 and logger implementations. See [provider wiring](fast-forward.md)

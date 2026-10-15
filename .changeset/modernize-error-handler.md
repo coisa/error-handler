@@ -41,6 +41,7 @@ Modernize the PHP 8.3–8.5 development line after 2.0 while keeping the package
 - Limit failed-reporter suppression to registered lifecycles and preserve independent direct deliveries.
 - Propagate middleware reporter failures without rendering through the failed reporter a second time.
 - Characterize fatal shutdown-queue termination with fresh and reused handlers in bounded subprocesses.
+- Simplify ordinary provider bootstrap with class-name initializers, distinguish required override semantics, and separate example stages with readable spacing.
 - Expose nine complete executable recipes and all built-in adapters in the cookbook and static site, including direct JSON streams; verify source parity in CI.
 - Introduce private Changesets tooling for reviewed version PRs, immutable Git tags and GitHub releases; Composer remains the distribution channel.
 - Remove the redundant Dockerfile, Compose service and Docker ignore rules; the PHP matrix runs directly in CI.

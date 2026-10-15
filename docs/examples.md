@@ -51,10 +51,13 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 $reporter = new CallableThrowableHandler(static function (Throwable $error): void {
     fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . PHP_EOL);
 });
+
 $handler = new ErrorHandler($reporter);
+
 $handler->register();
 
 trigger_error('Example warning; execution continues.', E_USER_WARNING);
+
 throw new RuntimeException('Example uncaught exception; exit status is 1.');
 ```
 
@@ -62,7 +65,7 @@ throw new RuntimeException('Example uncaught exception; exit status is 1.');
 
 ## Interop service provider
 
-Implement ServiceProviderInterface with lazy getFactories() and getExtensions() maps. Merge the library first and the application last in one AggregateServiceProvider. FastForward resolves and caches services; registration remains an explicit application decision. This example prints Reported: FastForward provider warning and restores the earlier callbacks.
+Implement ServiceProviderInterface with lazy getFactories() and getExtensions() maps. Pass the library provider class and the application provider directly to container(). This example supplies an optional CallableThrowableHandler that the library aggregate discovers. FastForward resolves and caches services; registration remains an explicit application decision. It prints Reported: FastForward provider warning and restores the earlier callbacks.
 
 Run `php examples/fast-forward.php`. [Executable source](../examples/fast-forward.php).
 
@@ -73,9 +76,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use Interop\Container\ServiceProviderInterface;
 
 use function FastForward\Container\container;
@@ -91,7 +92,7 @@ $application = new class () implements ServiceProviderInterface {
     public function getFactories(): array
     {
         return [
-            ThrowableHandlerInterface::class => static fn (): CallableThrowableHandler =>
+            CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
                 new CallableThrowableHandler(static function (Throwable $error): void {
                     printf("Reported: %s\n", $error->getMessage());
                 }),
@@ -109,12 +110,15 @@ $application = new class () implements ServiceProviderInterface {
     }
 };
 
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 /**
  * @var ErrorHandlerInterface $errors
  */
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('FastForward provider warning', E_USER_WARNING);
 } finally {
@@ -147,6 +151,7 @@ $reporters = new ThrowableHandlerAggregate(
         $deliveries[] = 'first: ' . $error->getMessage();
     })
 );
+
 $reporters->attach(new CallableThrowableHandler(
     static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'second: ' . $error->getMessage();
@@ -154,8 +159,10 @@ $reporters->attach(new CallableThrowableHandler(
 ));
 
 $errors = new ErrorHandler($reporters);
+
 // Direct delivery needs no registration and does not terminate the process.
 $errors->handleThrowable(new RuntimeException('Synthetic failure'));
+
 echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 ```
 
@@ -180,7 +187,6 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
@@ -193,6 +199,7 @@ use function FastForward\Container\container;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $deliveries = [];
+
 $logger = new class () extends AbstractLogger {
     /**
      * @var list<string> Synthetic private log records; replace with an application logger.
@@ -213,6 +220,7 @@ $logger = new class () extends AbstractLogger {
         $this->records[] = $level . ': ' . (string) $message;
     }
 };
+
 $throwables = new ThrowableListenerProvider(
     new ThrowableCallableListener(static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'throwable: ' . $error->getMessage();
@@ -224,18 +232,25 @@ $events = new ErrorEventListenerProvider(
     })
 );
 $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
+
 $dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
+
 $application = new ArrayServiceProvider([
     EventDispatcherInterface::class => static fn (): EventDispatcherInterface => $dispatcher,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('Synthetic warning', E_USER_WARNING);
 } finally {
     $errors->unregister();
 }
+
 echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 printf("Private log records: %d\n", count($logger->records));
 ```
@@ -255,10 +270,8 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -272,18 +285,24 @@ use function FastForward\Container\container;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $reported = [];
+
 $psr17 = new Psr17Factory();
+
 $reporter = new CallableThrowableHandler(static function (Throwable $error) use (&$reported): void {
     $reported[] = $error; // Replace with a private logger; do not echo diagnostics.
 });
+
 $application = new ArrayServiceProvider([
-    ThrowableHandlerInterface::class => static fn (): ThrowableHandlerInterface => $reporter,
+    CallableThrowableHandler::class => static fn (): CallableThrowableHandler => $reporter,
     ResponseFactoryInterface::class => static fn (): ResponseFactoryInterface => $psr17,
     StreamFactoryInterface::class => static fn (): StreamFactoryInterface => $psr17,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $process = $services->get(ErrorHandlerInterface::class);
 $middleware = $services->get(ErrorHandlerMiddleware::class);
+
 $downstream = new class () implements RequestHandlerInterface {
     /**
      * Simulates an application failure with an HTTP error status.
@@ -298,15 +317,19 @@ $downstream = new class () implements RequestHandlerInterface {
 };
 
 $process->register();
+
 try {
     $response = $middleware->process($psr17->createServerRequest('GET', 'https://example.test'), $downstream);
+
     // The process handler is active again after the middleware scope ends.
     trigger_error('Synthetic post-request warning', E_USER_WARNING);
 } finally {
     $process->unregister();
 }
+
 printf("HTTP %d | %s\n", $response->getStatusCode(), (string) $response->getBody());
 printf("Reported: %d\n", count($reported));
+
 // Your HTTP framework/emitter sends the response; this example only inspects it.
 ```
 
@@ -343,6 +366,7 @@ $reporter = new CallableThrowableHandler(
         $privateDiagnostics[] = $error; // Replace with a private logger; emit no response body.
     }
 );
+
 $psr17 = new Psr17Factory();
 $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
     /**
@@ -368,8 +392,10 @@ $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
         );
     }
 };
+
 $responses = new ThrowableResponseFactory($streams, $psr17);
 $middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
+
 $downstream = new class () implements RequestHandlerInterface {
     /**
      * Simulates a private application failure with an HTTP error code.
@@ -383,6 +409,7 @@ $downstream = new class () implements RequestHandlerInterface {
         throw new RuntimeException('Private credentials', 503);
     }
 };
+
 $response = $middleware->process($psr17->createServerRequest('GET', '/'), $downstream)
     ->withHeader('Content-Type', 'application/json');
 
@@ -409,9 +436,7 @@ use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 
 use function FastForward\Container\container;
@@ -439,27 +464,34 @@ $phpErrors = new class () implements PhpErrorHandlerInterface {
         }
     }
 };
+
 $shutdowns = 0;
 $shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): void {
     ++$shutdowns;
 });
+
 $application = new ArrayServiceProvider([
-    ThrowableHandlerInterface::class => static fn (): ThrowableHandlerInterface =>
+    CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
         new CallableThrowableHandler(static function (Throwable $error): void {
             error_log($error->getMessage());
         }),
     PhpErrorHandlerInterface::class => static fn (): PhpErrorHandlerInterface => $phpErrors,
     ShutdownHandlerInterface::class => static fn (): ShutdownHandlerInterface => $shutdown,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('Application-owned warning', E_USER_WARNING);
     $errors->handleShutdown(); // Simulate a notification without terminating the process.
 } finally {
     $errors->unregister();
 }
+
 printf("PHP errors: %d | Shutdown notifications: %d\n", count($phpErrors->messages), $shutdowns);
 ```
 
@@ -478,11 +510,9 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -497,22 +527,29 @@ use function FastForward\Container\container;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $reported = 0;
+
 $psr17 = new Psr17Factory();
+
 $reporter = new CallableThrowableHandler(static function () use (&$reported): void {
     ++$reported;
 });
+
 $application = new ArrayServiceProvider([
-    ThrowableHandlerInterface::class => static fn (): ThrowableHandlerInterface => $reporter,
+    CallableThrowableHandler::class => static fn (): CallableThrowableHandler => $reporter,
     ResponseFactoryInterface::class => static fn (): ResponseFactoryInterface => $psr17,
     StreamFactoryInterface::class => static fn (): StreamFactoryInterface => $psr17,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $makeHandler = $services->get(ErrorHandlerFactory::class);
 $first = $makeHandler($services);
 $second = $makeHandler($services);
+
 $makeMiddleware = $services->get(ErrorHandlerMiddlewareFactory::class);
 $outer = $makeMiddleware($services);
 $inner = $makeMiddleware($services);
+
 $downstream = new class () implements RequestHandlerInterface {
     /**
      * Throws a synthetic downstream failure for the inner scope.
@@ -525,6 +562,7 @@ $downstream = new class () implements RequestHandlerInterface {
         throw new RuntimeException('Nested failure');
     }
 };
+
 $next = new class ($inner, $downstream) implements RequestHandlerInterface {
     /**
      * Stores the independently constructed inner middleware and application handler.
@@ -547,14 +585,18 @@ $next = new class ($inner, $downstream) implements RequestHandlerInterface {
         return $this->inner->process($request, $this->downstream);
     }
 };
+
 $process = $services->get(ErrorHandlerInterface::class);
+
 $process->register();
+
 try {
     $response = $outer->process($psr17->createServerRequest('GET', 'https://example.test'), $next);
     trigger_error('Process handler restored', E_USER_WARNING);
 } finally {
     $process->unregister();
 }
+
 printf(
     "Fresh handlers: %s | Fresh middleware: %s\n",
     $first !== $second ? 'yes' : 'no',
@@ -587,7 +629,9 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 $publicRenderer = new CallableThrowableHandler(static function (): void {
     echo 'Public failure page';
 });
+
 $streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);
+
 $body = $streams->createStreamFromThrowable(new RuntimeException('Private diagnostics'));
 
 printf("Captured body: %s\n", (string) $body);

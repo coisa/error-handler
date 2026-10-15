@@ -28,8 +28,11 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   handlers for nested scopes. Follow [the lifecycle contract](docs/api.md).
 - FastForward caches services. Keep the middleware handler separate from the
   process handler and use the provider's factory services for fresh scopes.
-  Merge application overrides after library definitions in one
-  `AggregateServiceProvider`, avoiding silent reporter fallback on PSR errors.
+  Prefer `container(ErrorHandlerServiceProvider::class, $application)` for normal
+  dependency and optional-reporter composition. For required overrides, merge
+  application definitions after library definitions in one
+  `AggregateServiceProvider`: separate providers prioritize the first and may
+  silently fall back on PSR errors.
 - Support container integration through the Interop service provider only;
   do not restore the removed ConfigProvider or framework-specific adapters.
   Keep all provider factories under `ServiceProvider\Factory`. Preserve explicit

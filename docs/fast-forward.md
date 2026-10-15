@@ -24,8 +24,9 @@ the checkout dependencies, run the complete [example](../examples/fast-forward.p
 php examples/fast-forward.php
 ```
 
-It reports one warning and restores the prior PHP callbacks. Merge the library
-and application definitions into one provider, with the application last:
+It reports one warning and restores the prior PHP callbacks. Pass the library
+provider class and application provider directly to `container()`. This example
+adds a callable reporter for the library's optional reporter discovery:
 
 ```php
 <?php
@@ -34,9 +35,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use Interop\Container\ServiceProviderInterface;
 
 use function FastForward\Container\container;
@@ -52,7 +51,7 @@ $application = new class () implements ServiceProviderInterface {
     public function getFactories(): array
     {
         return [
-            ThrowableHandlerInterface::class => static fn (): CallableThrowableHandler =>
+            CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
                 new CallableThrowableHandler(static function (Throwable $error): void {
                     printf("Reported: %s\n", $error->getMessage());
                 }),
@@ -70,12 +69,15 @@ $application = new class () implements ServiceProviderInterface {
     }
 };
 
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 /**
  * @var ErrorHandlerInterface $errors
  */
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('FastForward provider warning', E_USER_WARNING);
 } finally {
@@ -106,7 +108,8 @@ There is no provider boot hook. The application decides when to register.
 The provider has nine explicit definitions. Dispatch handlers and concrete
 generic stream/response adapters are resolved through FastForward's constructor
 autowiring. Their interface aliases remain explicit, and application definitions
-can override either an interface or its concrete implementation. The three
+can override either an interface or its concrete implementation when their
+maps are merged as shown under [required overrides](#required-overrides). The three
 library factories that remain encode optional-handler defaults, reporter
 composition and fresh middleware scopes; autowiring alone does not replace those
 contracts. The factory-object services use FastForward's `InvokableFactory`.
@@ -136,15 +139,36 @@ only a PSR-11 not-found result from `get()`; other construction exceptions are
 propagated. FastForward 1.6.0 can itself translate a failed concrete dependency
 into not-found, so the library cannot distinguish that from an absent optional
 reporter. Use an explicit `ThrowableHandlerInterface` binding for a required
-reporter and the merged-provider composition above; the next paragraph explains
-why both are needed.
+reporter and the merged-provider composition below.
 
-`AggregateServiceProvider` uses the last definition for each service ID, so the
-application's required reporter replaces the default. Passing separate providers
-to `container(...)` instead creates a fallback chain: FastForward may suppress
-the application's PSR container failure and use the library's silent aggregate.
-The merged form prevents that fallback and makes required-reporter failures
-fail construction of both process handler and middleware. FastForward still
+## Required overrides
+
+The short bootstrap above adds optional reporters and external dependencies.
+FastForward 1.6.0 and 1.8.0 search separate providers in the supplied order;
+they do not merge their factory maps. In
+`container(ErrorHandlerServiceProvider::class, $application)`, a duplicate
+`ThrowableHandlerInterface` definition in the application is shadowed by the
+library's default. Moving the application first gives it priority, but its PSR-11
+construction failure can still fall through to the silent library aggregate.
+
+When replacing an existing service ID, merge the definitions explicitly, with
+the application last:
+
+```php
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+
+$services = container(
+    new AggregateServiceProvider(
+        new ErrorHandlerServiceProvider(),
+        $application
+    )
+);
+```
+
+Here `$application` binds the required reporter or renderer interface.
+`AggregateServiceProvider` uses its last definition for each service ID. This
+replaces the library default and makes required-reporter failures fail
+construction of both process handler and middleware. FastForward still
 translates PSR failures to not-found; it does not preserve their original cause.
 Container 1.6.0 propagates ordinary application exceptions directly; newer
 versions such as 1.8.0 normalize those too. The supported contract is failed

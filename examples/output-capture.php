@@ -24,7 +24,9 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 $publicRenderer = new CallableThrowableHandler(static function (): void {
     echo 'Public failure page';
 });
+
 $streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);
+
 $body = $streams->createStreamFromThrowable(new RuntimeException('Private diagnostics'));
 
 printf("Captured body: %s\n", (string) $body);

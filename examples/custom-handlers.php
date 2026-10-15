@@ -18,9 +18,7 @@ use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 
 use function FastForward\Container\container;
@@ -48,25 +46,32 @@ $phpErrors = new class () implements PhpErrorHandlerInterface {
         }
     }
 };
+
 $shutdowns = 0;
 $shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): void {
     ++$shutdowns;
 });
+
 $application = new ArrayServiceProvider([
-    ThrowableHandlerInterface::class => static fn (): ThrowableHandlerInterface =>
+    CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
         new CallableThrowableHandler(static function (Throwable $error): void {
             error_log($error->getMessage());
         }),
     PhpErrorHandlerInterface::class => static fn (): PhpErrorHandlerInterface => $phpErrors,
     ShutdownHandlerInterface::class => static fn (): ShutdownHandlerInterface => $shutdown,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('Application-owned warning', E_USER_WARNING);
     $errors->handleShutdown(); // Simulate a notification without terminating the process.
 } finally {
     $errors->unregister();
 }
+
 printf("PHP errors: %d | Shutdown notifications: %d\n", count($phpErrors->messages), $shutdowns);

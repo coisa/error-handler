@@ -33,6 +33,7 @@ $reporter = new CallableThrowableHandler(
         $privateDiagnostics[] = $error; // Replace with a private logger; emit no response body.
     }
 );
+
 $psr17 = new Psr17Factory();
 $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
     /**
@@ -58,8 +59,10 @@ $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
         );
     }
 };
+
 $responses = new ThrowableResponseFactory($streams, $psr17);
 $middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
+
 $downstream = new class () implements RequestHandlerInterface {
     /**
      * Simulates a private application failure with an HTTP error code.
@@ -73,6 +76,7 @@ $downstream = new class () implements RequestHandlerInterface {
         throw new RuntimeException('Private credentials', 503);
     }
 };
+
 $response = $middleware->process($psr17->createServerRequest('GET', '/'), $downstream)
     ->withHeader('Content-Type', 'application/json');
 

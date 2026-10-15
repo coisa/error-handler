@@ -45,8 +45,20 @@ conversion honors suppression and `error_reporting()`.
 Use `CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider` with
 `FastForward\Container\container()`. It implements the Interop provider contract
 (`getFactories()` and `getExtensions()`), and resolves
-`CoiSA\ErrorHandler\ErrorHandlerInterface`. To override the reporter binding
-`CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface`, merge definitions with
+`CoiSA\ErrorHandler\ErrorHandlerInterface`. The usual bootstrap accepts the
+provider class and application provider directly:
+
+```php
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+
+use function FastForward\Container\container;
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+```
+
+Supply external dependencies and optional `CallableThrowableHandler`/PSR-14
+reporters through `$application`. To override an existing library service ID,
+such as `CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface`, merge maps with
 `FastForward\Container\ServiceProvider\AggregateServiceProvider`: library first,
 application **last**, then pass that one provider into `container(...)`.
 
@@ -59,8 +71,10 @@ The Interop provider is the single container integration entrypoint;
 factories live under `ServiceProvider\Factory`. Consult the migration guide for
 removed and moved class names.
 
-Separate variadic providers allow FastForward to fall back to the library's
-silent default if the application's reporter fails with a PSR container error.
+FastForward 1.6/1.8 prioritize the first of separate variadic providers. A duplicate
+reporter interface in the application can therefore be shadowed by the library;
+placing the application first can still fall back to the library's silent default
+after a PSR container error.
 Merged definitions replace that default and make required-reporter construction
 fail. FastForward may translate the PSR error to not-found; do not promise that
 its original exception cause survives. Use the executable example in the

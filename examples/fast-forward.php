@@ -16,9 +16,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use Interop\Container\ServiceProviderInterface;
 
 use function FastForward\Container\container;
@@ -34,7 +32,7 @@ $application = new class () implements ServiceProviderInterface {
     public function getFactories(): array
     {
         return [
-            ThrowableHandlerInterface::class => static fn (): CallableThrowableHandler =>
+            CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
                 new CallableThrowableHandler(static function (Throwable $error): void {
                     printf("Reported: %s\n", $error->getMessage());
                 }),
@@ -52,12 +50,15 @@ $application = new class () implements ServiceProviderInterface {
     }
 };
 
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 /**
  * @var ErrorHandlerInterface $errors
  */
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('FastForward provider warning', E_USER_WARNING);
 } finally {

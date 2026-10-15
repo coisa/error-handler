@@ -3,9 +3,12 @@
 This is the migration contract for the unreleased next major. It does not describe an already published Packagist release.
 
 FastForward applications can now adopt the [Interop service provider](fast-forward.md)
-without changing the existing package or namespace. Merge definitions with
-`AggregateServiceProvider`, library first and application last, so a required
-reporter's failure cannot fall back to the silent default. Registration remains explicit;
+without changing the existing package or namespace. The short bootstrap is
+`container(ErrorHandlerServiceProvider::class, $application)` for external
+dependencies and optional reporters. To override existing library service IDs,
+merge definitions with `AggregateServiceProvider`, library first and application
+last, so a required reporter is not shadowed or replaced after construction
+fails. Registration remains explicit;
 use factory services for fresh/nested scopes because container lookups are cached.
 The Interop provider is the single container integration entrypoint.
 The Laminas `ConfigProvider` adapter and standalone `ErrorHandlerContainer`
@@ -19,7 +22,7 @@ have been removed in favor of FastForward Container with this provider.
 6. The Docker/Compose development setup is removed. Run the native Composer checks; CI supplies the PHP 8.3–8.5 dependency matrix. No application runtime image is supplied.
 
 7. Replace `new Container\ErrorHandlerContainer($parent)` with
-   `FastForward\Container\container(new ErrorHandlerServiceProvider(), $parent)`
+   `FastForward\Container\container(ErrorHandlerServiceProvider::class, $parent)`
    when the parent only supplies external PSR dependencies. For application
    overrides, use the merged provider composition above. FastForward is now a
    runtime dependency, including its transitive packages; consumers resolve them

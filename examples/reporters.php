@@ -25,6 +25,7 @@ $reporters = new ThrowableHandlerAggregate(
         $deliveries[] = 'first: ' . $error->getMessage();
     })
 );
+
 $reporters->attach(new CallableThrowableHandler(
     static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'second: ' . $error->getMessage();
@@ -32,6 +33,8 @@ $reporters->attach(new CallableThrowableHandler(
 ));
 
 $errors = new ErrorHandler($reporters);
+
 // Direct delivery needs no registration and does not terminate the process.
 $errors->handleThrowable(new RuntimeException('Synthetic failure'));
+
 echo implode(PHP_EOL, $deliveries) . PHP_EOL;

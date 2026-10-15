@@ -15,11 +15,9 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -34,22 +32,29 @@ use function FastForward\Container\container;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $reported = 0;
+
 $psr17 = new Psr17Factory();
+
 $reporter = new CallableThrowableHandler(static function () use (&$reported): void {
     ++$reported;
 });
+
 $application = new ArrayServiceProvider([
-    ThrowableHandlerInterface::class => static fn (): ThrowableHandlerInterface => $reporter,
+    CallableThrowableHandler::class => static fn (): CallableThrowableHandler => $reporter,
     ResponseFactoryInterface::class => static fn (): ResponseFactoryInterface => $psr17,
     StreamFactoryInterface::class => static fn (): StreamFactoryInterface => $psr17,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $makeHandler = $services->get(ErrorHandlerFactory::class);
 $first = $makeHandler($services);
 $second = $makeHandler($services);
+
 $makeMiddleware = $services->get(ErrorHandlerMiddlewareFactory::class);
 $outer = $makeMiddleware($services);
 $inner = $makeMiddleware($services);
+
 $downstream = new class () implements RequestHandlerInterface {
     /**
      * Throws a synthetic downstream failure for the inner scope.
@@ -62,6 +67,7 @@ $downstream = new class () implements RequestHandlerInterface {
         throw new RuntimeException('Nested failure');
     }
 };
+
 $next = new class ($inner, $downstream) implements RequestHandlerInterface {
     /**
      * Stores the independently constructed inner middleware and application handler.
@@ -84,14 +90,18 @@ $next = new class ($inner, $downstream) implements RequestHandlerInterface {
         return $this->inner->process($request, $this->downstream);
     }
 };
+
 $process = $services->get(ErrorHandlerInterface::class);
+
 $process->register();
+
 try {
     $response = $outer->process($psr17->createServerRequest('GET', 'https://example.test'), $next);
     trigger_error('Process handler restored', E_USER_WARNING);
 } finally {
     $process->unregister();
 }
+
 printf(
     "Fresh handlers: %s | Fresh middleware: %s\n",
     $first !== $second ? 'yes' : 'no',

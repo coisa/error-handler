@@ -21,7 +21,6 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
@@ -34,6 +33,7 @@ use function FastForward\Container\container;
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 $deliveries = [];
+
 $logger = new class () extends AbstractLogger {
     /**
      * @var list<string> Synthetic private log records; replace with an application logger.
@@ -54,6 +54,7 @@ $logger = new class () extends AbstractLogger {
         $this->records[] = $level . ': ' . (string) $message;
     }
 };
+
 $throwables = new ThrowableListenerProvider(
     new ThrowableCallableListener(static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'throwable: ' . $error->getMessage();
@@ -65,17 +66,24 @@ $events = new ErrorEventListenerProvider(
     })
 );
 $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
+
 $dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
+
 $application = new ArrayServiceProvider([
     EventDispatcherInterface::class => static fn (): EventDispatcherInterface => $dispatcher,
 ]);
-$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+
+$services = container(ErrorHandlerServiceProvider::class, $application);
+
 $errors = $services->get(ErrorHandlerInterface::class);
+
 $errors->register();
+
 try {
     trigger_error('Synthetic warning', E_USER_WARNING);
 } finally {
     $errors->unregister();
 }
+
 echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 printf("Private log records: %d\n", count($logger->records));
