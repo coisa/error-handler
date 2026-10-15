@@ -71,8 +71,9 @@ npm run changeset -- add --patch "$PACKAGE_NAME" --message "$PR_TITLE"
 
 Changesets 3 supports these noninteractive flags. The job generates the note
 using only default-branch tooling and the PR title as a quoted argument. A small
-`gh` check preserves existing notes and skips stale/closed PRs. Only the real bot's
-branches in this repository targeting its default branch qualify.
+`gh` check preserves existing notes and skips stale/closed PRs. The job identifies
+these PRs by the `dependabot/` head-branch prefix, without checking the author's
+login or ID. It writes only to branches in this repository.
 
 [`stefanzweifel/git-auto-commit-action@v7`](https://github.com/stefanzweifel/git-auto-commit-action)
 then switches to the Dependabot branch and commits only `.changeset/*.md`. No PR
@@ -85,8 +86,10 @@ The generated commit has a bot DCO sign-off and `[dependabot skip]`, allowing
 [later rebases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
 The job uses the existing `pull_request_target` event, following
 [Dependabot's write-access guidance](https://github.com/dependabot/fetch-metadata#enabling-auto-merge),
-and executes only trusted default-branch code. The informational status job waits
-for it before reading PR notes. No PR code is executed by the writer.
+and executes only trusted default-branch code. Informational status and comment
+jobs skip `dependabot/` branches because the CLI already creates the note; they
+do not depend on the writer. The general Changesets validation remains independent.
+No PR code is executed by the writer.
 
 This activates after merge. Observe the first real bot PR and rebase then; local
 checks do not establish hosted write permissions. `GITHUB_TOKEN` commits

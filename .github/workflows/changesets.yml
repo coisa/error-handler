@@ -21,11 +21,8 @@ jobs:
     name: Add Dependabot Changeset
     if: >-
       github.event_name == 'pull_request_target' &&
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.user.id == 49699333 &&
-      github.event.pull_request.head.repo.id == github.event.repository.id &&
-      startsWith(github.head_ref, 'dependabot/') &&
-      github.base_ref == github.event.repository.default_branch
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.head_ref, 'dependabot/')
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -126,11 +123,10 @@ jobs:
 
   status:
     name: Read PR Changesets
-    needs: dependabot
     if: >-
-      always() &&
       github.event_name == 'pull_request_target' &&
       github.base_ref == github.event.repository.default_branch &&
+      !startsWith(github.head_ref, 'dependabot/') &&
       !startsWith(github.head_ref, 'changeset-release/')
     runs-on: ubuntu-latest
     timeout-minutes: 5
