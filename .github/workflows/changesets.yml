@@ -1,0 +1,43 @@
+name: Changesets
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: changesets-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Changesets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Validate pending notes and read the release plan
+        id: plan
+        run: |
+          npm run changeset:status -- --output="$RUNNER_TEMP/changeset-status.json"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const plan = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/changeset-status.json`, 'utf8'));
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `pending=${plan.releases.length > 0}\n`);
+          NODE
+      - name: Rehearse versioning in the disposable checkout
+        if: steps.plan.outputs.pending == 'true'
+        run: npm run version:packages
