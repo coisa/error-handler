@@ -34,6 +34,14 @@ Status compares runtime files (`src/` and `composer.json`) against `origin/maste
 Version PRs can therefore validate after consuming their notes. Tooling-only or
 documentation-only PRs may omit a note when no version bump is intended.
 
+The **Changeset PR status** workflow follows the official
+[non-blocking status example](https://changesets.dev/guide/automating#non-blocking).
+It uses `changesets/action/pr-status` and `changesets/action/pr-comment` to create
+or update one informational comment, skipping `changeset-release/` branches.
+No Changeset bot installation is needed. A read-only job checks out the trusted
+base and reads PR files without executing them; a separate job can only post the
+comment. It never installs dependencies or runs PHP or npm scripts from the PR.
+
 ## Review the version PR
 
 After changes reach `master`, the **Version PR** workflow creates or updates
@@ -64,6 +72,8 @@ Node.js 24 and the Changesets action without a publishing command. Permissions
 start empty and are granted per job; the version job disables package-manager
 caching. This Composer library needs no npm build or publishing credentials.
 The explicit validation dispatch avoids requiring an additional GitHub App token.
+Actions use the publishers' major references (`@v7` and `@v2`) so compatible action
+updates do not require a dependency-update PR for every patch or minor release.
 
 ## Rehearse locally
 

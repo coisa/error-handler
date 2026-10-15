@@ -18,22 +18,29 @@ jobs:
     name: Validate Changesets
     runs-on: ubuntu-latest
     timeout-minutes: 5
+
     permissions:
       contents: read
+
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@v7.1.0
+
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
+
       - run: npm ci --ignore-scripts
+
       - run: npm run changeset:status
+
       - name: Select Changesets mode
         id: mode
-        uses: changesets/action/select-mode@v2.1.2
+        uses: changesets/action/select-mode@v2
+
       - name: Rehearse versioning in the disposable checkout
         if: steps.mode.outputs.mode == 'version'
         run: npm run version:packages

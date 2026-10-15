@@ -15,19 +15,24 @@ jobs:
     if: github.repository == 'coisa/error-handler'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
     permissions:
       contents: write
       pull-requests: write
       actions: write
+
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7.1.0
+
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           package-manager-cache: false
+
       - run: npm ci --ignore-scripts
+
       - name: Check the current master tip
         id: tip
         env:
@@ -37,10 +42,11 @@ jobs:
           if [ "$current" = "$GITHUB_SHA" ]; then
             echo "current=true" >> "$GITHUB_OUTPUT"
           fi
+
       - name: Create or update the version PR
         id: version
         if: steps.tip.outputs.current == 'true'
-        uses: changesets/action@v2.1.2
+        uses: changesets/action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version-script: npm run version:packages
@@ -48,6 +54,7 @@ jobs:
           commit-message: 'chore: version coisa/error-handler'
           create-github-releases: false
           push-git-tags: false
+
       - name: Describe the Composer version PR
         if: steps.version.outputs.pr-number != ''
         env:
@@ -63,6 +70,7 @@ jobs:
           Merging this PR updates release metadata only. Git tags and GitHub releases
           remain a separate maintainer step. The private npm package is never published.
           MARKDOWN
+
       - name: Validate the generated version branch
         if: steps.version.outputs.pr-number != ''
         env:

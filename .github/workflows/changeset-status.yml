@@ -1,0 +1,47 @@
+name: Changeset PR status
+
+on:
+  pull_request_target:
+
+permissions: {}
+
+concurrency:
+  group: changeset-status-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  status:
+    if: ${{ !startsWith(github.head_ref, 'changeset-release/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+
+    outputs:
+      comment-body: ${{ steps.status.outputs.comment-body }}
+
+    steps:
+      # Check out the trusted base; the action only reads PR files.
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Generate Changeset status
+        id: status
+        uses: changesets/action/pr-status@v2
+
+  comment:
+    needs: status
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Create or update the Changeset comment
+        uses: changesets/action/pr-comment@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ needs.status.outputs.comment-body }}
