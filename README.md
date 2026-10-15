@@ -14,6 +14,8 @@
 $ composer require coisa/error-handler
 ```
 
+See the [changelog](CHANGELOG.md) for published release history.
+
 ## Contributing release notes
 
 Maintainers use [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md)

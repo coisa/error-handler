@@ -135,6 +135,18 @@ The first live version PR and release must still be observed after an
 owner-authorized merge. Review prerelease needs separately before adding a
 prerelease policy to this stable 2.x flow.
 
+## Maintain the changelog introduction and history
+
+Keep the changelog title, introduction and historical backfills on the default
+branch. The generator preserves that introduction and inserts new entries before
+the first version heading. Use plain headings such as `## 2.0.0`, with release
+links or other metadata below them.
+
+Edits made only to a generated version PR can be overwritten when it is rebuilt
+from the default branch. Backfill only published versions; pending versions
+belong to their Changesets. A documentation-only backfill does not need a new
+Changeset when no additional version bump is intended.
+
 ## Rehearse locally
 
 In a disposable checkout with the tooling installed, provide
