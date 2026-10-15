@@ -62,8 +62,8 @@ track a fixed transitive dependency graph or promise transitive security-update
 PRs. Consumer applications resolve and audit their own installations. See
 [Dependabot versioning strategies](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#versioning-strategy).
 
-After the initial PR run completes, the same **Changesets** workflow's Dependabot
-job creates a `patch` note using the real PR title:
+The same **Changesets** workflow's Dependabot job creates a `patch` note using
+the real PR title:
 
 ```sh
 npm run changeset -- add --patch "$PACKAGE_NAME" --message "$PR_TITLE"
@@ -79,15 +79,18 @@ the proposed dependencies and adjust the default patch classification when neede
 
 The generated commit has a bot DCO sign-off and `[dependabot skip]`, allowing
 [later rebases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
-The `workflow_run` branch filter and original `pull_request` event guard avoid
-repeating the writer for its own runs. No PR code is executed by the writer.
+The job uses the existing `pull_request_target` event, following
+[Dependabot's write-access guidance](https://github.com/dependabot/fetch-metadata#enabling-auto-merge),
+and executes only trusted default-branch code. The informational status job waits
+for it before reading PR notes. No PR code is executed by the writer.
 
 This activates after merge. Observe the first real bot PR and rebase then; local
 checks do not establish hosted write permissions. `GITHUB_TOKEN` commits
 [do not trigger ordinary PR workflows](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow),
-so the generated commit does not automatically get another validation run or
-refresh the sticky comment. The initial run belongs to its original SHA. General
-dependency/PHP CI remains separate from this minimal release-note job.
+so the generated commit does not automatically get another validation run. The
+existing `workflow_dispatch` trigger can validate the updated branch manually.
+The initial run belongs to its original SHA. General dependency/PHP CI remains
+separate from this minimal release-note job.
 
 ## Review the version PR
 
@@ -124,7 +127,7 @@ on automatic `pull_request` events from `GITHUB_TOKEN` or on a separate PHP CI.
 The validation job has read-only repository access. The version job can write
 version metadata, manage its PR and dispatch validation; the publication job
 can create tags and GitHub releases.
-All five jobs live in `.github/workflows/changesets.yml`. PR checks run on
+All six jobs live in `.github/workflows/changesets.yml`. PR checks run on
 `pull_request`; the status jobs use `pull_request_target` without executing PR
 code. Only pushes to the default branch can prepare a version PR. Dispatched runs validate
 the generated branch without starting another version job.
