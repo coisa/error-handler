@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.1
+
+### Patch Changes
+
+- [#27](https://github.com/coisa/error-handler/pull/27) [`d8973f4`](https://github.com/coisa/error-handler/commit/d8973f4b8c2a861490bf24ce99db103dd6e3ff29) Thanks [@coisa](https://github.com/coisa)! - Add development-only Changesets tooling, GitHub-linked changelogs, reviewed version PRs and GitHub releases after those PRs are merged, preserving the PHP runtime requirements and public API of the 2.x line.
+
 ## 2.0.0
 
 [Release](https://github.com/coisa/error-handler/releases/tag/2.0.0) ·
