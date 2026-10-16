@@ -27,6 +27,55 @@ The response retains the exception message as its reason phrase. Its body comes
 from the configured `ThrowableStreamFactoryInterface`, which receives the same
 throwable instance. Applications control the content produced by that factory.
 
+## Use the 2.x API
+
+The library declares PHP `^7.4 || ^8.0`. Applications own reporters, PSR
+implementations, HTTP emission and when native PHP callbacks are installed.
+These guides describe the existing 2.x API; a pending Changeset is not a published
+Composer release. Check the installed version and its matching source before
+using a maintenance fix or instructions from a different major.
+
+After loading Composer's autoloader and importing `CoiSA\ErrorHandler\ErrorHandler`
+and `CoiSA\ErrorHandler\Handler\CallableThrowableHandler`, explicit reporting needs
+no global registration:
+
+<!-- example: examples/direct.php -->
+```php
+$errors = new ErrorHandler(new CallableThrowableHandler(
+    /**
+     * Print only the synthetic message used by this executable example.
+     *
+     * @param Throwable $error the synthetic failure to report
+     */
+    static function (Throwable $error): void {
+        echo 'reported: ' . $error->getMessage() . PHP_EOL;
+    },
+));
+
+$errors->handleThrowable(new RuntimeException('Example failure'));
+
+echo 'continued' . PHP_EOL;
+```
+
+The complete [direct example](https://github.com/coisa/error-handler/blob/master/examples/direct.php)
+prints a synthetic diagnostic, then continues. Use an appropriate private sink in
+a real application. Read the guide for your integration:
+
+- [Core API, callbacks, adapters and events/logging](docs/api.md).
+- [Legacy container, ConfigProvider and application dependencies](docs/container.md).
+- [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
+- [Runnable cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
+  and its [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
+- [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),
+  retaining source identity when copied into a project; no global installation is required.
+
+The original 2.x runtime metadata and PHP 7.4 alias defects are tracked in
+[#13](https://github.com/coisa/error-handler/issues/13) and
+[#40](https://github.com/coisa/error-handler/issues/40). Use a checkout or published
+patch containing both for a clean PHP 7.4 container installation. The proposed
+major's FastForward provider, pure default renderer and changed exit policy are
+not existing 2.x APIs.
+
 ## Development
 
 Development tools are installed through Composer's development dependencies and
