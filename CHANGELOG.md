@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.5
+
+### Patch Changes
+
+- [#48](https://github.com/coisa/error-handler/pull/48) [`5213f01`](https://github.com/coisa/error-handler/commit/5213f01150dd7f95e7a17955c966d0e62d1d77d7) - Check the complete development quality suite on PHP 8.3–8.5 and clean production distributions on PHP 7.4 and 8.0–8.5, including lowest runtime dependency resolutions at both endpoints.
+
 ## 2.0.4
 
 ### Patch Changes
