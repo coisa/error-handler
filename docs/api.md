@@ -56,6 +56,14 @@ The [process example](https://github.com/coisa/error-handler/blob/master/example
 
 `ThrowErrorExceptionPhpErrorHandler` checks `error_reporting() & $code`, then throws the library's `Exception\ErrorException`. Disabled/suppressed levels are ignored. `ErrorHandler::handlePhpError()` catches `\ErrorException` and delegates it to the reporter; a reported warning can therefore continue.
 
+### Callable PHP-error policy
+
+`Handler\CallablePhpErrorHandler($callback)` is an opt-in additive API: use a checkout/release containing it, not an older installation based only on its 2.x constraint. It invokes the callback once with `(int $code, string $message, string $filename, int $line)` unchanged. It adds no mask check, conversion, output or registration; those choices belong to the callback. Callback failure propagates unchanged. Through `ErrorHandler`, a thrown `\ErrorException` follows the existing reporting boundary; other failures propagate.
+
+The interface returns `void`, so every callback result, including false/null, is ignored. Returning false here does not delegate to PHP's native error handler. The obsolete fifth native errcontext argument is not part of this four-argument contract. To preserve normal suppression/conversion, explicitly check `error_reporting() & $code` and throw the desired ErrorException in the callback, as the [complete example](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php) does.
+
+Inject this wrapper as the second argument: `new ErrorHandler($reporter, new CallablePhpErrorHandler($callback))`. The 2.x constructor still requires interface instances; accepting bare callables in its three positions remains [major-only work](https://github.com/coisa/error-handler/issues/70). Null retains the existing defaults. No automatic factory or default container discovery is added.
+
 `ErrorException::fromPhpError()` preserves message, code, severity, location and the optional previous throwable. `CallableShutdownHandler` adapts an application-owned zero-argument callback.
 
 `PhpLastErrorShutdownHandler` inspects `error_get_last()` and forwards E_ERROR, E_PARSE, E_CORE_ERROR, E_CORE_WARNING, E_COMPILE_ERROR and E_COMPILE_WARNING to its PHP-error handler. The default outer ErrorHandler reports a converted fatal. This observes a failure; it does not restart or recover PHP.
@@ -67,6 +75,7 @@ The 2.x registered exception callback is the same `handleThrowable()` method use
 | Adapter | Existing behavior |
 | --- | --- |
 | `CallableThrowableHandler` | Calls one configured reporter with the throwable. |
+| `CallablePhpErrorHandler` | Calls an explicit four-argument PHP-error callback once, ignoring its result; mask/conversion policy belongs to the callback. |
 | `LogThrowableHandler` | Explicit PSR-3 adapter in the pending minor: logs the exact message and original exception once; logger failures propagate. |
 | `FilteringThrowableHandler` | Evaluates an explicit boolean predicate once; matches forward the same throwable once, nonmatches skip its delegate, failures propagate. |
 | `ThrowableHandlerAggregate` | Calls constructor reporters, then attached reporters, in order. An exception stops later deliveries and propagates. There is no best-effort/retry contract. |
