@@ -84,6 +84,16 @@ it does not recover execution.
 
 ## Conditional composition
 
+For selected diagnostic delivery, explicitly construct
+Handler\FilteringThrowableHandler($reporter, $predicate). The required predicate
+accepts the original Throwable and returns bool: true forwards once, false skips
+only that delegate. Non-boolean results raise TypeError; predicate/reporter
+failures propagate without retry. Use getSeverity() on ErrorException for PHP
+severity, not arbitrary exception codes. It changes no PHP suppression, callback
+or HTTP response policy. No container/default aggregate discovers it. Verify
+that the selected source version contains this additive API, then follow the
+[filtering recipe](https://github.com/coisa/error-handler/blob/master/examples/filtering.php).
+
 For the existing container, construct
 CoiSA\ErrorHandler\Container\ErrorHandlerContainer($application) with an optional
 application PSR-11 parent, then resolve ErrorHandler::class. Provide a reporter:
@@ -109,7 +119,7 @@ optional level (ERROR by default) and context. It logs the exact message once,
 including empty, and keeps the original throwable under exception over caller
 context without coercing other values. Level validity belongs to the logger;
 the identical logger failure propagates. No factory/discovery is added. Prefer
-an explicit process ErrorHandler; a silent logger bound globally as the legacy
+an explicit process ErrorHandler; a silent or filtered reporter bound globally as the legacy
 ThrowableHandlerInterface renderer can fall back to public diagnostic text.
 See the [direct logging contract](https://github.com/coisa/error-handler/blob/master/docs/api.md#direct-psr-3-logging)
 and [runnable recipe](https://github.com/coisa/error-handler/blob/master/examples/logging.php).

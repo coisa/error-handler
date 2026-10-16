@@ -46,9 +46,11 @@ $reporter = new CoiSA\ErrorHandler\Handler\LogThrowableHandler($logger);
 $process = new CoiSA\ErrorHandler\ErrorHandler($reporter);
 ```
 
-An application may bind that object under `ErrorHandler::class` in its parent container. Keep any HTTP renderer/lifecycle composition explicit and separate. Binding the silent logging adapter globally under `ThrowableHandlerInterface` also changes the legacy captured-output renderer's reporter; empty output falls back to diagnostic exception text. It does not establish a safe public response. See [the logging contract](api.md#direct-psr-3-logging) and [HTTP composition](http.md).
+An application may bind that process object under `ErrorHandler::class` in its parent container. Keep any HTTP renderer/lifecycle composition explicit and separate. Binding any reporter globally under `ThrowableHandlerInterface` also selects the legacy captured-output renderer's reporter. A silent reporter, including private logging or a filtering predicate that returns `false`, leaves empty captured output and causes fallback to diagnostic exception text. Select process reporting and public response construction explicitly; neither silence nor filtering establishes a safe public body. See [the logging contract](api.md#direct-psr-3-logging), [conditional reporting](api.md#conditional-reporting) and [HTTP composition](http.md).
 
 ## Factory map and scopes
+
+`FilteringThrowableHandler` requires an application predicate and is not discovered or attached to the default aggregate automatically. Construct it explicitly, then provide it through the application parent's `ThrowableHandlerInterface` service or attach it to an application-composed aggregate. That global service also affects legacy HTTP rendering as explained above; for process-only composition, bind the application `ErrorHandler::class` explicitly. Merely registering a service under `FilteringThrowableHandler::class` does not select it for reporting. There is no library filtering factory or implicit allow-all predicate.
 
 All factory names below are in `CoiSA\ErrorHandler\Container\Factory`.
 
