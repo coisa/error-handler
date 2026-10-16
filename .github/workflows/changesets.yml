@@ -17,6 +17,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  dependabot:
+    name: Add Dependabot Changeset
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.head_ref, 'dependabot/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      # Use default-branch code and tooling; only PR metadata is read by API.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: true
+
+      - name: Write the release note from the PR title
+        id: note
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          package=$(jq -r '.name' package.json)
+          note="dependabot-$PR_NUMBER.md"
+          printf -- '---\n"%s": patch\n---\n\n%s\n' "$package" "$PR_TITLE" > "$RUNNER_TEMP/$note"
+
+          current=$(gh pr view "$PR_NUMBER" --json state,headRefOid --jq 'select(.state == "OPEN") | .headRefOid')
+          if [ "$current" = "$PR_HEAD" ]; then
+            git fetch --no-tags origin "$PR_HEAD"
+            git checkout -b "$PR_BRANCH" FETCH_HEAD
+            mv "$RUNNER_TEMP/$note" ".changeset/$note"
+            echo 'created=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Only this PR's generated note is committed; no PR code or tooling runs.
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        if: steps.note.outputs.created == 'true'
+        with:
+          branch: ${{ github.head_ref }}
+          skip_fetch: true
+          file_pattern: '.changeset/dependabot-${{ github.event.pull_request.number }}.md'
+          commit_message: 'chore(release): add Dependabot Changeset [dependabot skip]'
+          commit_options: --signoff
+          commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+
   validate:
     name: Validate Changesets
     if: >-
@@ -62,6 +114,7 @@ jobs:
     if: >-
       github.event_name == 'pull_request_target' &&
       github.base_ref == github.event.repository.default_branch &&
+      !startsWith(github.head_ref, 'dependabot/') &&
       !startsWith(github.head_ref, 'changeset-release/')
     runs-on: ubuntu-latest
     timeout-minutes: 5

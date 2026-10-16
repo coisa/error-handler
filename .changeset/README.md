@@ -44,6 +44,61 @@ No Changeset bot installation is needed. A read-only job checks out the trusted
 base and reads PR files without executing them; a separate job can only post the
 comment. It never installs dependencies or runs PHP or npm scripts from the PR.
 
+## Dependabot updates and their release notes
+
+Dependabot checks Composer, the private npm tooling and GitHub Actions weekly,
+with at most three open version-update PRs per ecosystem. Each update remains a
+separate PR; there is no automatic approval or merge. Composer major updates are
+excluded from these maintenance proposals and need an explicit compatibility
+decision. npm and action majors are reviewable development-tooling proposals;
+they do not automatically mean a major release of this PHP library.
+
+Composer uses `versioning-strategy: widen` to retain already supported dependency
+versions rather than raising their minimum. This works with a manifest-only
+library: the automation detects `composer.json` updates without requiring a
+tracked `composer.lock`. Releases already allowed by a constraint do not need a
+new manifest-only PR. Without a committed Composer lockfile, this setup does not
+track a fixed transitive dependency graph or promise transitive security-update
+PRs. Consumer applications resolve and audit their own installations. See
+[Dependabot versioning strategies](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference#versioning-strategy).
+
+The same **Changesets** workflow's Dependabot job writes
+`.changeset/dependabot-<PR number>.md` directly with `printf`. It reads the package
+name from the default branch's `package.json` and uses the PR title as the summary
+with a default `patch` classification. This job does not install Node/npm or run
+the Changesets CLI. Each run replaces the same file; identical contents produce
+no new commit. Manual edits to that note, including its release classification,
+are overwritten on the next run. Other note files are left alone.
+
+A small `gh` check skips stale/closed PRs. The job identifies these PRs by the
+`dependabot/` head-branch prefix, without checking the author's login or ID. It
+writes only to branches in this repository.
+
+[`stefanzweifel/git-auto-commit-action@v7`](https://github.com/stefanzweifel/git-auto-commit-action)
+commits only that PR's generated note after the workflow switches to the checked
+PR commit. No PR code or tooling runs after that switch. Checkout retains the
+built-in token only in this job so the action can push; no additional secret is
+required. A rebase that removes the note gets it back at the same path on its next
+event. Review dependencies and make final release adjustments after the last
+dependency update.
+
+The generated commit has a bot DCO sign-off and `[dependabot skip]`, allowing
+[later rebases](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/manage-dependabot-prs#allowing-dependabot-to-rebase-and-force-push-over-extra-commits).
+The job uses the existing `pull_request_target` event, following
+[Dependabot's write-access guidance](https://github.com/dependabot/fetch-metadata#enabling-auto-merge),
+and executes only trusted default-branch code. Informational status and comment
+jobs skip `dependabot/` branches because the writer already creates the note; they
+do not depend on the writer. The general Changesets validation remains independent.
+No PR code is executed by the writer.
+
+This activates after merge. Observe the first real bot PR and rebase then; local
+checks do not establish hosted write permissions. `GITHUB_TOKEN` commits
+[do not trigger ordinary PR workflows](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow),
+so the generated commit does not automatically get another validation run. The
+existing `workflow_dispatch` trigger can validate the updated branch manually.
+The initial run belongs to its original SHA. General dependency/PHP CI remains
+separate from this minimal release-note job.
+
 ## Review the version PR
 
 After changes reach the default branch and validation passes, the version job
@@ -79,7 +134,7 @@ on automatic `pull_request` events from `GITHUB_TOKEN` or on a separate PHP CI.
 The validation job has read-only repository access. The version job can write
 version metadata, manage its PR and dispatch validation; the publication job
 can create tags and GitHub releases.
-All five jobs live in `.github/workflows/changesets.yml`. PR checks run on
+All six jobs live in `.github/workflows/changesets.yml`. PR checks run on
 `pull_request`; the status jobs use `pull_request_target` without executing PR
 code. Only pushes to the default branch can prepare a version PR. Dispatched runs validate
 the generated branch without starting another version job.
