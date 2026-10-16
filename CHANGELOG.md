@@ -10,6 +10,20 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.2
+
+### Patch Changes
+
+- [#36](https://github.com/coisa/error-handler/pull/36) [`2468eec`](https://github.com/coisa/error-handler/commit/2468eeca15df2b5a93c2e9fd3f38f9e242da35c0) - chore(deps-dev): Update squizlabs/php_codesniffer requirement from ^3.13 to ^3.13 || ^4.0
+
+- [#34](https://github.com/coisa/error-handler/pull/34) [`bc9dd4e`](https://github.com/coisa/error-handler/commit/bc9dd4e06314f0969925bb02fa4b673fa5068eb3) - Add weekly Composer, npm and GitHub Actions dependency checks with automatic, reviewable Changesets for Dependabot pull requests.
+
+- [#35](https://github.com/coisa/error-handler/pull/35) [`65baacb`](https://github.com/coisa/error-handler/commit/65baacb0a5d98d77b72c743180d5d6cca46be834) - Stop tracking the library's Composer lockfile and ignore contributor-local locks. Document fresh dependency resolution and application-owned lockfiles while retaining the Node tooling lockfile and the existing PHP runtime requirements and public API.
+
+- [#32](https://github.com/coisa/error-handler/pull/32) [`ea28301`](https://github.com/coisa/error-handler/commit/ea2830100d60b58a2821c4ba598ca62743f701fa) - Update the development-only PHP_CodeSniffer dependency to the patched 3.x series to address CVE-2026-67434, without changing the library's runtime requirements.
+
+- [#28](https://github.com/coisa/error-handler/pull/28) [`2e91d7f`](https://github.com/coisa/error-handler/commit/2e91d7fa88ebf659aa75ef70f66411539eed116e) - Update development tooling to CoiSA PHP CS Fixer 3 and PHPUnit 9.6, which provides the shared diff dependency required by the current formatter. Check changed PHP files in pull requests through the formatter's reusable workflow. Preserve the library's existing runtime requirements and public API.
+
 ## 2.0.1
 
 ### Patch Changes
