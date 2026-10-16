@@ -36,6 +36,18 @@ The default `ThrowableHandlerInterface` alias resolves an initially empty `Throw
 
 HTTP composition additionally requires application `ResponseFactoryInterface` and `StreamFactoryInterface` implementations. A PSR-17 implementation such as Nyholm's Psr17Factory can satisfy both. Missing required implementations are container construction errors; neither `ConfigProvider` nor PSR interfaces provide implementations automatically.
 
+## Explicit process logging
+
+The pending minor's `Handler\LogThrowableHandler` is constructed explicitly; it has no library factory, alias or automatic aggregate membership. Providing `LoggerInterface` alone leaves the existing default aggregate unchanged. With an application logger, construct the process handler directly:
+
+```php
+$reporter = new CoiSA\ErrorHandler\Handler\LogThrowableHandler($logger);
+
+$process = new CoiSA\ErrorHandler\ErrorHandler($reporter);
+```
+
+An application may bind that object under `ErrorHandler::class` in its parent container. Keep any HTTP renderer/lifecycle composition explicit and separate. Binding the silent logging adapter globally under `ThrowableHandlerInterface` also changes the legacy captured-output renderer's reporter; empty output falls back to diagnostic exception text. It does not establish a safe public response. See [the logging contract](api.md#direct-psr-3-logging) and [HTTP composition](http.md).
+
 ## Factory map and scopes
 
 All factory names below are in `CoiSA\ErrorHandler\Container\Factory`.

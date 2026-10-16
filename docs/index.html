@@ -95,6 +95,7 @@
       <p class="nav-title">In this guide</p>
       <a href="#install">Installation</a>
       <a href="#reporting">Direct reporting</a>
+      <a href="#logging">Direct PSR-3 logging</a>
       <a href="#lifecycle">Process lifecycle</a>
       <a href="#adapters">Adapters and events</a>
       <a href="#container">Container integration</a>
@@ -141,6 +142,23 @@ echo 'continued' . PHP_EOL;</code></pre>
         <p>This synthetic reporter prints so its behavior can be verified. Use an appropriate private diagnostic destination in a real application.</p>
       </section>
 
+      <section id="logging" aria-labelledby="logging-title">
+        <h2 id="logging-title">Report directly to an application logger</h2>
+        <p><code>LogThrowableHandler</code> is an explicit minor addition under development. Verify that your checkout or release contains it; a pending Changeset does not publish the API. Supply your own PSR-3 logger, optional string level (ERROR by default) and context.</p>
+        <figure>
+          <figcaption>Excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">examples/logging.php</a> · the complete source supplies an in-memory logger, imports and bootstrap</figcaption>
+          <pre tabindex="0" aria-label="Direct PSR-3 logging PHP source"><code data-source="examples/logging.php">$context = ['component' =&gt; 'worker', 'exception' =&gt; new LogicException('Caller context')];
+$failure = new RuntimeException('Synthetic worker failure');
+$reporter = new LogThrowableHandler($logger, LogLevel::CRITICAL, $context);
+
+$process = new ErrorHandler($reporter);
+
+$process-&gt;handleThrowable($failure);</code></pre>
+        </figure>
+        <p>Each call logs exactly <code>getMessage()</code>, including empty, and places the original throwable under <code>exception</code> over any caller value. Other context is preserved without coercion; key order is not a contract. The logger decides supported levels and its failures propagate unchanged, without adapter retries or output.</p>
+        <p>No automatic discovery or callback registration is added. A private logger is not a public body renderer: keep process logging and the existing HTTP capture/fallback boundary explicit. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">process composition</a> and the <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">complete contract</a>.</p>
+      </section>
+
       <section id="lifecycle" aria-labelledby="lifecycle-title">
         <h2 id="lifecycle-title">Choose the process lifetime</h2>
         <p>For a whole process, register one handler at bootstrap and leave it active for uncaught exceptions. For a caught operation, report inside its catch and restore callbacks in <code>finally</code>.</p>
@@ -165,6 +183,7 @@ echo 'continued' . PHP_EOL;</code></pre>
             <thead><tr><th scope="col">Adapter</th><th scope="col">Existing behavior</th></tr></thead>
             <tbody>
               <tr><td><code>CallableThrowableHandler</code></td><td>Invokes one configured reporter.</td></tr>
+              <tr><td><code>LogThrowableHandler</code></td><td>Pending minor: logs the exact message and original exception once through an explicit application PSR-3 logger.</td></tr>
               <tr><td><code>ThrowableHandlerAggregate</code></td><td>Calls reporters in order; a failure stops later deliveries and propagates.</td></tr>
               <tr><td><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Converts enabled PHP errors; honors the reporting mask and suppression.</td></tr>
               <tr><td><code>CallableShutdownHandler</code><br><code>PhpLastErrorShutdownHandler</code></td><td>Adapts an application shutdown callback or forwards a matching last fatal/compile/core error.</td></tr>
@@ -209,6 +228,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
         <p>Every excerpt above is checked against its executable source. The complete recipes use synthetic input and keep their application dependencies explicit.</p>
         <ul class="recipe-list">
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact/empty messages and original exception context.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">process.php</a><span>Warnings, scoped restoration, uncaught behavior and custom shutdown.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/handlers.php">handlers.php</a><span>Callable/aggregate order, failure propagation, conversion and suppression.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">events.php</a><span>Raw and wrapped dispatch, providers/listeners and PSR-3 logging.</span></li>
