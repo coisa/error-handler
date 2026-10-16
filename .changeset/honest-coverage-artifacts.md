@@ -2,4 +2,4 @@
 "@coisa/error-handler": patch
 ---
 
-Add informative PHPUnit line-coverage artifacts and baseline comparisons, with a SHA-aware sticky note for eligible same-repository pull requests.
+Add PHPUnit line-coverage artifacts, baseline regression checks and a configurable minimum, with a SHA-aware sticky note for eligible same-repository pull requests. Verify that throwable listeners preserve event identity when callbacks return a replacement.

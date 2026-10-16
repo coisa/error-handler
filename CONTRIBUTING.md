@@ -147,30 +147,38 @@ unchanged. `coverage-report-php` retains both XML files for 14 days.
 
 The comparison action receives Cobertura to measure lines. Its
 [Clover parser](https://github.com/clearlyip/code-coverage-report-action/blob/v7/src/reports/clover/parser/index.ts)
-combines statements, methods and conditionals: the current 12/254 elements
-(4.72%) are different from **9/191 lines (4.71%)**. The measured 2.x PHPUnit
-baseline is 101 tests and 199 assertions on PHP 8.5.11. Four test classes declare
-`@coversNothing` and do not contribute to instrumentation; this does not mean
-their behaviors lack tests. Process-termination and HTTP fixtures remain separate
-behavioral evidence.
+combines statements, methods and conditionals: the initial 12/254 elements
+(4.72%) differ from **9/191 lines (4.71%)**. That initial 2.x measurement used
+101 tests and 199 assertions on PHP 8.5.11. A new listener regression test proves
+the original throwable is returned even when its callback returns a replacement.
+Its specific `@covers` scope raises the suite to **12/191 lines (6.28%)** with
+102 tests and 201 assertions. Four existing test classes retain `@coversNothing`
+and do not contribute to instrumentation; this does not mean their behaviors
+lack tests. Process-termination and HTTP fixtures remain separate behavioral
+evidence.
 
-Coverage and differences are **informational**. The action's standard templates
-are used; their displayed minimum of `0%` means the numerical gate is disabled,
-not an accepted quality threshold. Execution, invalid-report and artifact errors
-still fail CI. A future threshold requires reviewing the intended annotation
-scope and measured baseline.
+The action uses its standard templates and fails on a negative coverage difference
+when a baseline is available. Its default comparison checks each file. The overall
+minimum comes from the repository variable `MINIMUM_COVERAGE_THRESHOLD`, with a
+fallback of `0` when absent; no repository variable is created by this workflow.
+Zero disables the absolute minimum, not the regression check or execution,
+invalid-report and artifact failures. A higher minimum requires reviewing the
+intended annotation scope and measured baseline.
 
 After successful collection, the report job downloads this run's XML artifact
 and generates the job summary and `coverage-pr-comment` Markdown artifact
 (14-day retention). Pushes and manual runs on `master` store the Cobertura
 baseline as `phpunit-coverage-master` for 90 days. Before that baseline exists,
 or after it expires, the report shows current coverage without a comparison.
-A manual `PHP CI` run on `master` refreshes it.
+The regression gate cannot compare until that baseline exists. A manual `PHP CI`
+run on `master` refreshes it.
 
 The same report job updates one sticky note only for PRs from this repository,
 excluding branches starting with `dependabot/`, when its token permits comments.
 Fork and Dependabot runs retain useful artifacts but do not receive an automatic
 coverage comment through this workflow. There is no privileged fallback workflow.
+If a threshold check fails after producing Markdown, the report and eligible PR
+note still update while the job remains failed.
 
 Each report identifies the event's head SHA, the tested commit (which can be the
 PR merge commit), and the run URL. A failed or cancelled collection skips the

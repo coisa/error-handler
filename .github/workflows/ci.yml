@@ -202,7 +202,7 @@ jobs:
           name: coverage-report-php
           path: tests
 
-      - name: Create the baseline or compare coverage informatively
+      - name: Create the baseline or check coverage
         id: coverage-diff
         uses: clearlyip/code-coverage-report-action@v7
         with:
@@ -210,12 +210,12 @@ jobs:
           artifact_download_workflow_names: PHP CI
           artifact_name: phpunit-coverage-%name%
           retention_days: '90'
-          overall_coverage_fail_threshold: '0'
-          fail_on_negative_difference: 'false'
+          overall_coverage_fail_threshold: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || '0' }}
+          fail_on_negative_difference: 'true'
           only_list_changed_files: 'true'
 
       - name: Identify the tested head and run
-        if: steps.coverage-diff.outputs.file != ''
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           TESTED_SHA: ${{ github.sha }}
@@ -225,7 +225,7 @@ jobs:
             "$HEAD_SHA" "$TESTED_SHA" "$RUN_URL" >> code-coverage-results.md
 
       - name: Upload the Markdown report
-        if: steps.coverage-diff.outputs.file != ''
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: coverage-pr-comment
@@ -236,6 +236,7 @@ jobs:
 
       - name: Update the PR coverage note
         if: >-
+          !cancelled() &&
           github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository &&
           !startsWith(github.head_ref, 'dependabot/') &&
