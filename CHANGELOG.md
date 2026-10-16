@@ -10,6 +10,16 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.1.0
+
+### Minor Changes
+
+- [#68](https://github.com/coisa/error-handler/pull/68) [`efb5cb2`](https://github.com/coisa/error-handler/commit/efb5cb258c7152ef559899b174f48b0b80ffbfd0) - Add the opt-in FilteringThrowableHandler decorator with an explicit boolean predicate, original-object delivery and fail-fast collaborator errors. Keep default discovery, PHP suppression and HTTP response policy unchanged.
+
+### Patch Changes
+
+- [#58](https://github.com/coisa/error-handler/pull/58) [`c012aa2`](https://github.com/coisa/error-handler/commit/c012aa249836573a39294de8c4e5057d6ac7081b) - Attempt to discard removable output buffers above the stream factory's entry level when reporting or capture throws. If cleanup returns, the primary failure propagates; output callbacks that terminate the process or trigger an engine fatal can prevent that return. Cleanup stops on protected buffers, failed closes, absent progress or callback failure. Successful capture and empty/`0` fallback bytes remain unchanged.
+
 ## 2.0.9
 
 ### Patch Changes
