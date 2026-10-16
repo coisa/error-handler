@@ -73,7 +73,7 @@ CI are evidence for the executed platforms, not universal Windows/signal behavio
 | Reporter throws during native delivery | Three deliveries then exit 255, a known reentry limitation |
 | Shutdown adapter throws | Its actual shutdown failure is forwarded to the reporter |
 | Protected output scopes | Caller bytes survive; a protected nested scope prevents deeper cleanup |
-| Output callback throws | Primary failure remains when control returns; buffers can remain |
+| Output callback throws | Primary failure remains; cleanup continues when PHP removed that buffer and stops without progress |
 | Output callback exits | Its exit status wins; caller catch is never reached |
 
 Direct tests retain empty/`"0"` diagnostic fallback and successful unbalanced

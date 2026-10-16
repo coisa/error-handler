@@ -109,34 +109,35 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * Discards reachable removable buffers after a primary capture failure.
      *
      * Cleanup does not attempt to close buffers at or below the entry level.
-     * It stops on a protected buffer, failed close, absent progress or callback
-     * failure. Callback side effects cannot be undone; cleanup failures must
-     * not replace the primary failure. Process termination or an engine fatal
-     * inside an output callback can prevent cleanup from returning.
+     * It stops on a protected buffer, failed close or absent progress. A throwing
+     * callback does not stop cleanup when PHP already removed its buffer.
+     * Callback side effects cannot be undone; cleanup failures must not replace
+     * the primary failure. Process termination or an engine fatal inside an output
+     * callback can prevent cleanup from returning.
      *
      * @param int $entryLevel the output-buffer depth before capture started
      */
     private function discardOutputBuffers(int $entryLevel): void
     {
-        try {
-            while (ob_get_level() > $entryLevel) {
-                $level = ob_get_level();
-                $status = ob_get_status();
+        while (ob_get_level() > $entryLevel) {
+            $level = ob_get_level();
+            $status = ob_get_status();
 
-                if (0 === ($status['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)) {
-                    return;
-                }
+            if (0 === ($status['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)) {
+                return;
+            }
 
+            try {
                 if (!ob_end_clean()) {
                     return;
                 }
-
-                if (ob_get_level() >= $level) {
-                    return;
-                }
+            } catch (\Throwable $cleanupFailure) {
+                // PHP can remove the buffer before its callback failure propagates.
             }
-        } catch (\Throwable $cleanupFailure) {
-            // Preserve the primary handler or capture failure.
+
+            if (ob_get_level() >= $level) {
+                return;
+            }
         }
     }
 }

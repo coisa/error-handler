@@ -159,8 +159,9 @@ before wiring this route; do not invent a built-in pure/default JSON renderer.
 
 For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
 reporter/capture failure triggers best-effort removal of removable buffers above
-the entry level. Cleanup stops at a protected buffer, failed close, absent progress
-or throwing output callback; earlier caller buffers are not deliberately closed.
+the entry level. Cleanup stops at a protected buffer, failed close or absent progress;
+earlier caller buffers are not deliberately closed. A throwing output callback does
+not stop cleanup when PHP has removed its buffer and cleanup can still make progress.
 If cleanup returns, the same primary failure propagates. An output handler that
 calls exit()/die() or triggers an engine fatal can prevent that propagation and
 terminate execution. Callback side effects cannot be undone. Verify the selected
