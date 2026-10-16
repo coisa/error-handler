@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
@@ -21,7 +21,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 
 /**
- * Class ThrowableStreamFactory
+ * Class ThrowableStreamFactory.
  *
  * Creates PSR-7 streams from Throwable instances.
  * This class SHALL ensure that throwable instances are converted into a
@@ -32,20 +32,20 @@ use Psr\Http\Message\StreamInterface;
 final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
 {
     /**
-     * @var StreamFactoryInterface Factory for creating PSR-7 streams.
+     * @var StreamFactoryInterface factory for creating PSR-7 streams
      */
     private StreamFactoryInterface $streamFactory;
 
     /**
-     * @var ThrowableHandlerInterface Handler for processing throwable instances.
+     * @var ThrowableHandlerInterface handler for processing throwable instances
      */
     private ThrowableHandlerInterface $throwableHandler;
 
     /**
      * Constructs the ThrowableStreamFactory.
      *
-     * @param StreamFactoryInterface $streamFactory Factory for creating PSR-7 streams.
-     * @param ThrowableHandlerInterface $throwableHandler Handler for throwable instances.
+     * @param StreamFactoryInterface    $streamFactory    factory for creating PSR-7 streams
+     * @param ThrowableHandlerInterface $throwableHandler handler for throwable instances
      */
     public function __construct(
         StreamFactoryInterface $streamFactory,
@@ -61,9 +61,9 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * This method SHALL process the throwable using the handler and convert
      * its output into a PSR-7 compatible stream.
      *
-     * @param \Throwable $throwable The throwable instance to process.
+     * @param \Throwable $throwable the throwable instance to process
      *
-     * @return StreamInterface The resulting PSR-7 stream containing throwable details.
+     * @return StreamInterface the resulting PSR-7 stream containing throwable details
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {

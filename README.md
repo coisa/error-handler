@@ -33,7 +33,7 @@ Development tools are installed through Composer's development dependencies and
 are not required to use the library. Dependency resolution produces an ignored
 local lockfile, as described in the contributor guide below.
 
-Pull requests run the [PHP style workflow](.github/workflows/php-style.yml), which
+Pull requests run the [PHP style workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/php-style.yml), which
 calls the CoiSA formatter's reusable workflow. It installs development
 dependencies with Composer plugins and scripts disabled, then checks
 only changed PHP files within the existing Finder scope. It does not apply fixes.

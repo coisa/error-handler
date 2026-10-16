@@ -57,15 +57,19 @@ schema. The explicit `phpspec/prophecy-phpunit:^2.1` bridge supplies
 
 PHPStan remains at maximum level over both `src` and `tests`.
 `jangregor/phpstan-prophecy:^1.0` supplies the extension compatible with PHPStan
-1.x, loaded from its package-root `extension.neon`. The obsolete callback
-suppression was removed so that its diagnostic remains visible.
+1.x, loaded from its package-root `extension.neon`. A single callback-signature
+exception is bounded by `argument.type`, `src/ErrorHandler.php` and an expected
+count of one. The process callback intentionally returns `void`/`null`: PHP
+delegates to its native handler only when a callback returns strictly `false`,
+as documented by [the PHP manual](https://www.php.net/manual/en/function.set-error-handler.php).
+Unmatched exceptions remain errors; do not broaden this rule to other callbacks.
 
-Restoring these integrations leaves existing style and source/test type findings
-visible; they can still fail the aggregate check. The toolchain work is tracked
-in [issue #10](https://github.com/coisa/error-handler/issues/10). Do not hide
-findings or treat an executable tool as a passing quality gate. Broad style/PHPDoc
-cleanup belongs to the separate
-[issue #19](https://github.com/coisa/error-handler/issues/19).
+Review formatter diffs as code changes. The shared preset can make test data
+providers static, add compatible iterable return types, make unbound closures
+static, order methods and replace late-static assertion calls in final test
+classes. Verify that providers do not use instance state and closures do not
+depend on binding. Qualifying native functions also requires checking for local
+namespace overrides. Preserve the public runtime API and PHP 7.4 syntax.
 
 Dependency installation in a fresh checkout resolves a local lockfile; subsequent
 installs can reuse it. CI must record the actual resolution for its runner, and
@@ -113,3 +117,13 @@ latest `2.0`. Keep at least one consumer requiring only the library to verify
 transitive runtime installation. Version `1.0.0` must fail dependency resolution.
 Record actual runtime and resolved package versions; a simulated Composer
 platform alone does not prove runtime compatibility.
+
+Before installing an exported package, inspect its committed archive:
+
+```sh
+git archive --format=tar --output=/absolute/temporary/package.tar HEAD
+php tests/Production/archive.php /absolute/temporary/package.tar
+```
+
+This checks archive paths and bytes against the selected source, including every
+runtime file. Then run the clean consumer and production container smoke above.

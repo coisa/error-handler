@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentor.dev.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler;
 
@@ -23,7 +23,7 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowErrorExceptionPhpErrorHandler;
 
 /**
- * Class ErrorHandler
+ * Class ErrorHandler.
  *
  * Handles errors, exceptions, and shutdown events within the application.
  * This class MUST adhere to PSR-1, PSR-12, and PER standards.
@@ -37,33 +37,33 @@ final class ErrorHandler implements
     ShutdownHandlerInterface
 {
     /**
-     * @var PhpErrorHandlerInterface Handles PHP errors.
+     * @var PhpErrorHandlerInterface handles PHP errors
      */
     private PhpErrorHandlerInterface $phpErrorHandler;
 
     /**
-     * @var ThrowableHandlerInterface Handles throwable exceptions.
+     * @var ThrowableHandlerInterface handles throwable exceptions
      */
     private ThrowableHandlerInterface $throwableHandler;
 
     /**
-     * @var ShutdownHandlerInterface Handles shutdown processes.
+     * @var ShutdownHandlerInterface handles shutdown processes
      */
     private ShutdownHandlerInterface $shutdownHandler;
 
     /**
-     * @var bool Indicates if the error handler is registered.
+     * @var bool indicates if the error handler is registered
      */
     private bool $isRegistered = false;
 
     /**
      * Constructs the ErrorHandler.
      *
-     * @param ThrowableHandlerInterface $throwableHandler Handles throwable exceptions.
-     * @param ?PhpErrorHandlerInterface $phpErrorHandler Handles PHP errors.
-     *     Defaults to ThrowErrorExceptionPhpErrorHandler.
-     * @param ?ShutdownHandlerInterface $shutdownHandler Handles shutdown events.
-     *     Defaults to PhpLastErrorShutdownHandler.
+     * @param ThrowableHandlerInterface $throwableHandler handles throwable exceptions
+     * @param ?PhpErrorHandlerInterface $phpErrorHandler  Handles PHP errors.
+     *                                                    Defaults to ThrowErrorExceptionPhpErrorHandler.
+     * @param ?ShutdownHandlerInterface $shutdownHandler  Handles shutdown events.
+     *                                                    Defaults to PhpLastErrorShutdownHandler.
      */
     public function __construct(
         ThrowableHandlerInterface $throwableHandler,
@@ -114,7 +114,7 @@ final class ErrorHandler implements
     /**
      * Handles throwable exceptions.
      *
-     * @param \Throwable $throwable The throwable exception to handle.
+     * @param \Throwable $throwable the throwable exception to handle
      */
     public function handleThrowable(\Throwable $throwable): void
     {
@@ -124,14 +124,14 @@ final class ErrorHandler implements
     /**
      * Handles PHP errors.
      *
-     * Converts PHP errors into ErrorException if required.
+     * Invokes the PHP error adapter and reports any resulting ErrorException.
      *
-     * @param int $code The error level.
-     * @param string $message The error message.
-     * @param string $filename The filename where the error occurred.
-     * @param int $line The line number where the error occurred.
+     * @param int    $code     the error level
+     * @param string $message  the error message
+     * @param string $filename the filename where the error occurred
+     * @param int    $line     the line number where the error occurred
      *
-     * @throws \ErrorException When a PHP error is escalated.
+     * @throws \Throwable if another adapter failure or a reporter failure propagates
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
@@ -145,7 +145,7 @@ final class ErrorHandler implements
     /**
      * Handles shutdown events.
      *
-     * Ensures graceful shutdown and captures any remaining errors.
+     * Reports a shutdown-adapter failure while registered; it does not recover the process.
      */
     public function handleShutdown(): void
     {

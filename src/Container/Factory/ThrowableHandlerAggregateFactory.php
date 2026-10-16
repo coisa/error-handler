@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container\Factory;
 
@@ -24,7 +24,7 @@ use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Class ThrowableHandlerAggregateFactory
+ * Class ThrowableHandlerAggregateFactory.
  *
  * Factory responsible for creating and configuring an instance of ThrowableHandlerAggregate.
  * This factory SHALL attach available handlers from the container to the aggregate handler.
@@ -41,9 +41,9 @@ final class ThrowableHandlerAggregateFactory
      * - DispatchThrowableHandler
      * - DispatchErrorEventThrowableHandler
      *
-     * @param ContainerInterface $container The PSR-11 container instance.
+     * @param ContainerInterface $container the PSR-11 container instance
      *
-     * @return ThrowableHandlerAggregate The configured aggregate handler.
+     * @return ThrowableHandlerAggregate the configured aggregate handler
      */
     public function __invoke(ContainerInterface $container): ThrowableHandlerAggregate
     {
