@@ -259,3 +259,5 @@ runtime file. Then run the clean consumer and production container smoke above.
 ## Optional development HTML dependency
 
 The development graph includes `filp/whoops:^2.18.4` to verify the opt-in HTML adapter. Consumer runtime requirements remain unchanged: applications install Whoops only when selecting development HTML, and ordinary no-dev core/container installations need none of it. Record actual lower/current Whoops resolutions and PHP versions when verifying the bridge. The [HTML guide](docs/http.md#opt-in-development-html-with-whoops) describes explicit activation, fresh page configuration and diagnostic disclosure limits.
+
+The optional Whoops profile is checked with the same real FastForward graph as JSON. Its default/custom page callbacks are lazy, and middleware scope construction remains independent of page creation. Verify installed applications both without Whoops (inert profile construction, useful diagnostic on renderer selection) and with FastForward/Whoops in the application's runtime requirements under `--no-dev`. Use the existing bounded verifier's `--with-fast-forward` option for the full provider recipes; no separate runner is needed.

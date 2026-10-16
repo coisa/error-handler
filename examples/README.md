@@ -2,7 +2,7 @@
 
 These source-checkout examples use synthetic data and PHP 7.4-compatible syntax. They target the existing 2.x API, not the proposed major. Verify the installed package/checkouts and pending patch boundaries in the [API guide](../docs/api.md).
 
-Read all twelve complete recipes, including imports and every executable branch, in the [2.x cookbook](../docs/examples.md). Its displayed code is checked against these sources; setup and bounded execution remain documented here and in the verifier guide.
+Read all fourteen complete recipes, including imports and every executable branch, in the [2.x cookbook](../docs/examples.md). Its displayed code is checked against these sources; setup and bounded execution remain documented here and in the verifier guide.
 
 ## Application dependencies
 
@@ -22,13 +22,15 @@ The JSON recipe requires a checkout or release containing `JsonThrowableResponse
 
 Its `public` mode returns only the generic payload. Its explicitly selected `debug` mode adds native exception/trace metadata without arguments or objects and sends `Cache-Control: no-store`. The CLI mode stands in for trusted application configuration; do not select debug from public request input. PHP 7.4 debug use requires the optional JSON extension, included by PHP 8; it does not become a core requirement.
 
-The optional Interop provider recipe additionally requires application PHP 8.3+ and FastForward Container in the application's runtime dependencies:
+The optional Interop provider recipes additionally require application PHP 8.3+ and FastForward Container in the application's runtime dependencies:
 
 ```sh
 composer require 'fast-forward/container:^1.9' --no-plugins --no-scripts --no-interaction
 ```
 
 Its application map supplies PSR-17 and a private reporter. `JsonErrorHandlerServiceProvider` selects reporting plus JSON, while its scope factory creates a new handler for the middleware. Config passes a real bool to the profile before container construction. No environment/header autodetection or output capture is added. Select a source/release containing these optional providers; the existing core recipes remain usable without FastForward.
+
+`WhoopsErrorHandlerServiceProvider` selects explicit development HTML with the same private reporting and fresh-scope factory. Its optional page callback is lazy and must create a new `PrettyPageHandler` on every render. The default class-string form needs no constructor configuration. Install the optional Whoops package below wherever this profile is selected; Config values configure the application callback, not automatic constructor hydration.
 
 Individual recipes need only their application dependencies. The bounded
 verifier additionally uses Symfony Process as a development tool. Add it in the
@@ -65,10 +67,11 @@ The optional development HTML recipe requires `composer require --dev 'filp/whoo
 | [http.php](http.php) | PSR-15/PSR-17 response composition, actual output capture/empty/zero fallback, an explicit safe application renderer and callback restoration after failure. |
 | [http-json.php](http-json.php) | Generic or explicitly selected development JSON, integer HTTP 400–599 status preservation, one original private report through a decorator, metadata-only trace and no output capture/emission. |
 | [provider-json.php](provider-json.php) | Optional FastForward/Interop JSON profile, required application services, explicit Config bool and a fresh middleware scope; PHP 8.3+ with FastForward installed at runtime. |
+| [provider-whoops.php](provider-whoops.php) | Optional FastForward/Interop development HTML profile, lazy default/configured pages, two fresh middleware scopes and one private report per original; PHP 8.3+ with FastForward at runtime and optional Whoops. |
 
 Run direct/logging/adapter/event/container recipes individually with `php examples/<file>.php`. Run process/fatal/HTTP scenarios through `php examples/verify.php` to preserve the documented bounds and observed exit/output checks. The verifier also covers default fatal-shutdown reporting through PhpLastErrorShutdownHandler.
 
-On PHP 8.3+ with FastForward installed, add `--with-fast-forward` to include both provider JSON modes in the same bounded verifier. Requesting that option without its dependencies fails clearly; omitting it keeps the core PHP 7.4 verification independent of FastForward.
+On PHP 8.3+ with FastForward and Whoops installed, add `--with-fast-forward` to include both JSON and both Whoops provider modes in the same bounded verifier. Requesting that option without its PHP/container prerequisites fails clearly; omitting it keeps the core PHP 7.4 verification independent of FastForward.
 
 Examples return response objects and synthetic log records. They do not deliver real logs, start a web server, emit HTTP to a client or certify an application's transport. Applications own those integrations.
 

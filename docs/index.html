@@ -257,13 +257,18 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
       </section>
 
       <section id="interop" aria-labelledby="interop-title">
-        <h2 id="interop-title">Select an optional JSON provider</h2>
+        <h2 id="interop-title">Select an optional response provider</h2>
         <p>For a source/release containing the optional Interop providers, an application using PHP 8.3+ can install <code>fast-forward/container:^1.9</code> as its own runtime dependency. Supply PSR-17 response/stream factories and a private <code>ThrowableHandlerInterface</code> reporter, then choose JSON explicitly:</p>
         <figure>
           <figcaption>Public JSON selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · the complete recipe provides application services and imports</figcaption>
           <pre tabindex="0" aria-label="Interop JSON provider PHP source"><code data-source="examples/provider-json.php">$services = container(JsonErrorHandlerServiceProvider::class, $application);</code></pre>
         </figure>
         <p>The JSON profile composes one private report before pure rendering for the existing 2.x middleware. Public JSON is the default. A constructor bool, passed from trusted Config values before container construction, enables development details deliberately; no request header or environment name enables them. Use strict typing and real bool values rather than casting the string <code>"false"</code>.</p>
+        <figure>
+          <figcaption>Explicit development HTML selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php">examples/provider-whoops.php</a> · application services and configured callback appear in the full source</figcaption>
+          <pre tabindex="0" aria-label="Interop Whoops provider PHP source"><code data-source="examples/provider-whoops.php">$services = container(WhoopsErrorHandlerServiceProvider::class, $application);</code></pre>
+        </figure>
+        <p>The Whoops profile uses the same private reporting and fresh-scope factory. Install optional <code>filp/whoops:^2.18.4</code> wherever development HTML is selected. Its optional constructor callback creates a new configured <code>PrettyPageHandler</code> per render; the default is lazy. Discovery and scope construction create no page. This choice exposes diagnostics deliberately, without a debug boolean or Accept detection. Selected key hiding is not complete redaction.</p>
         <figure>
           <figcaption>Fresh scope from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">the same executable recipe</a> · factory service under <code>ServiceProvider\Factory</code></figcaption>
           <pre tabindex="0" aria-label="Fresh Interop middleware scope PHP source"><code data-source="examples/provider-json.php">$middlewareFactory = $services-&gt;get(ErrorHandlerMiddlewareFactory::class);
@@ -313,7 +318,7 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
 
       <section id="examples" aria-labelledby="examples-title">
         <h2 id="examples-title">Run the complete recipes</h2>
-        <p>Every excerpt above is checked against its executable source. Read all twelve complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
+        <p>Every excerpt above is checked against its executable source. Read all fourteen complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
         <ul class="recipe-list">
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact/empty messages and original exception context.</span></li>
@@ -328,8 +333,9 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">http-json.php</a><span>Generic/development JSON, HTTP error statuses and one explicit private report.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">http-whoops.php</a><span>Trusted development HTML, fresh configured Whoops pages and a generic public path.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">provider-json.php</a><span>Optional Interop/FastForward JSON profile, explicit Config bool and fresh middleware scope; PHP 8.3+.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php">provider-whoops.php</a><span>Optional Whoops profile, lazy default/configured pages, private reporting and two fresh middleware scopes; PHP 8.3+.</span></li>
         </ul>
-        <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Add <code>--with-fast-forward</code> on PHP 8.3+ with FastForward installed to include both provider JSON modes. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
+        <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Add <code>--with-fast-forward</code> on PHP 8.3+ with FastForward and Whoops installed to include JSON and HTML provider modes. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
       </section>
 
       <section id="sources" aria-labelledby="sources-title">

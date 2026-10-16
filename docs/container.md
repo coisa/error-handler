@@ -80,7 +80,7 @@ Invoking `ErrorHandlerMiddlewareFactory` constructs a middleware wrapper but ask
 
 ## Optional Interop and FastForward providers
 
-First verify that the selected source/release contains `ServiceProvider\ErrorHandlerServiceProvider` and `JsonErrorHandlerServiceProvider`. These optional providers use `Interop\Container\ServiceProviderInterface` and FastForward's reusable factories. Core PHP 7.4 consumers retain the legacy routes. The provider integration needs PHP 8.3+ and FastForward installed as an **application runtime dependency**:
+First verify that the selected source/release contains the optional `ServiceProvider\ErrorHandlerServiceProvider`, `JsonErrorHandlerServiceProvider` or `WhoopsErrorHandlerServiceProvider` profile you select. They use `Interop\Container\ServiceProviderInterface` and FastForward's reusable factories. Core PHP 7.4 consumers retain the legacy routes. The provider integration needs PHP 8.3+ and FastForward installed as an **application runtime dependency**:
 
 ```sh
 composer require 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
@@ -96,7 +96,7 @@ $services = container(JsonErrorHandlerServiceProvider::class, $application);
 
 The JSON profile declares its pure concrete renderer and selects `ReportingThrowableResponseFactory` under `ThrowableResponseFactoryInterface`. The existing 2.x middleware therefore reports the original privately once before rendering. Generic JSON is the default; it preserves integer HTTP 400–599 codes and returns `{"error":"Request failed"}` without diagnostic text. A reporter that prints still owns that output; use one that writes no public diagnostics. The concrete JSON factory remains pure when resolved directly.
 
-The base `ErrorHandlerServiceProvider` has no arguments. It defines lifecycle aliases, reusable scope factories and the existing capture defaults, requiring the application's reporter instead of selecting an empty aggregate. It registers neither JSON nor an implicit reporter. Merely providing PSR-17 or a logger does not choose JSON or compose reporting.
+The base `ErrorHandlerServiceProvider` has no arguments. It defines lifecycle aliases, reusable scope factories and the existing capture defaults, requiring the application's reporter instead of selecting an empty aggregate. It registers neither JSON, Whoops nor an implicit reporter. Merely providing PSR-17 or a logger does not select a profile or compose reporting.
 
 For explicit development JSON, give the profile a real bool from trusted application configuration **before** building the container:
 
@@ -112,6 +112,38 @@ $services = container(
 ```
 
 Use `declare(strict_types=1)` in the application entrypoint, as the complete recipe does. Config supplies values; it does not hydrate this object or inject constructor scalars automatically. The bool follows PHP's normal caller-dependent typing: weak callers may coerce strings, and `(bool) 'false'` is true. Do not derive diagnostics from public request headers or naïvely cast an environment string. Debug details and `Cache-Control: no-store` follow the [JSON contract](http.md#opt-in-json-responses-and-explicit-reporting).
+
+### Development HTML profile
+
+Select `WhoopsErrorHandlerServiceProvider` only after the application's trusted development and HTML-format decision. Install optional `filp/whoops:^2.18.4` where that renderer is used. With the same application PSR-17 and private reporter definitions, the default form is:
+
+```php
+use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
+
+$services = container(WhoopsErrorHandlerServiceProvider::class, $application);
+```
+
+The profile composes the base lifecycle definitions, declares its pure `WhoopsThrowableResponseFactory` and selects `ReportingThrowableResponseFactory` for the 2.x middleware. It does not select JSON or install callbacks. Resolving services creates no page; each rendering creates a fresh default `PrettyPageHandler`. Choosing this diagnostic profile is the explicit opt-in, so it has no additional debug boolean or request/Accept detection.
+
+For page configuration, pass a `callable(): Whoops\Handler\PrettyPageHandler` to the constructor. Config values are captured by the application callback before container construction, not hydrated by the container. Return a new page on each invocation:
+
+```php
+$profile = new WhoopsErrorHandlerServiceProvider(
+    /** @return Whoops\Handler\PrettyPageHandler a fresh application-configured page */
+    static function (): Whoops\Handler\PrettyPageHandler {
+        $page = new Whoops\Handler\PrettyPageHandler();
+        $page->setPageTitle('Application diagnostics');
+
+        return $page;
+    },
+);
+
+$services = container($profile, $application);
+```
+
+The callback remains a constructor value even if a callable string has the same name as a service ID. It is called once per render, not during provider discovery or middleware construction. A private reporter runs once before the page; reporter failure prevents rendering, and page/renderer failures propagate without another report. The concrete renderer remains pure when resolved directly. Whoops stays optional: loading and constructing the profile without it is inert; selecting the renderer requires the package and supplies installation guidance if it is absent.
+
+The [complete provider recipe](../examples/provider-whoops.php) exercises default and configured pages with two fresh middleware scopes. Default pages expose diagnostic data; hiding selected keys does not redact messages, traces, source excerpts or every secret. Read the [HTML disclosure and failure contract](http.md#opt-in-development-html-with-whoops) before enabling this profile. The following scope and override rules apply to either renderer profile.
 
 ### Cached services and fresh HTTP scopes
 
@@ -152,4 +184,4 @@ Applications decide when a resolved process handler calls `register()`. For HTTP
 
 ## Optional development HTML composition
 
-The opt-in `WhoopsThrowableResponseFactory` adds no aliases, default bindings or container factory. Supply application PSR-17 factories and a callable creating a fresh `Whoops\Handler\PrettyPageHandler` per render, and compose private reporting with `ReportingThrowableResponseFactory` in 2.x. The renderer can be cached with configuration; do not capture a current request or reuse a page. Construct it only after the application's trusted development/format decision. Core/container installation does not require Whoops; choosing the adapter without installing `filp/whoops:^2.18.4` raises `LogicException`. See [the HTML guide](http.md#opt-in-development-html-with-whoops) and [runnable recipe](../examples/http-whoops.php). Existing container/discovery/middleware defaults remain unchanged.
+For manual or legacy-container composition, supply application PSR-17 factories and a callable creating a fresh `Whoops\Handler\PrettyPageHandler` per render, then compose private reporting with `ReportingThrowableResponseFactory` in 2.x. The renderer adds no legacy aliases or ConfigProvider bindings; the separate opt-in [Whoops Interop profile](#development-html-profile) supplies its own map. The renderer can be cached with configuration; do not capture a current request or reuse a page. Construct it only after the application's trusted development/format decision. Core/container installation does not require Whoops; choosing the adapter without installing `filp/whoops:^2.18.4` raises `LogicException`. See [the HTML guide](http.md#opt-in-development-html-with-whoops) and [manual recipe](../examples/http-whoops.php). Existing container/discovery/middleware defaults remain unchanged.

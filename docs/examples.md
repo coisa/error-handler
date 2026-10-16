@@ -1,6 +1,6 @@
 # Complete 2.x cookbook
 
-These complete recipes use the `coisa/error-handler` 2.x API and PHP 7.4-compatible syntax. They match the executable sources in this checkout; verify that an installed release contains the adapters you select. The optional Interop/FastForward recipe requires PHP 8.3+ at runtime. It does not adopt the proposed major's required container, constructor callables or report-before-render middleware.
+These complete recipes use the `coisa/error-handler` 2.x API and PHP 7.4-compatible syntax. They match the executable sources in this checkout; verify that an installed release contains the adapters you select. The optional Interop/FastForward recipes require PHP 8.3+ at runtime. They do not adopt the proposed major's required container, constructor callables or report-before-render middleware.
 
 Start with the [application dependencies and execution setup](https://github.com/coisa/error-handler/blob/master/examples/README.md). The recipes share [bootstrap.php](https://github.com/coisa/error-handler/blob/master/examples/bootstrap.php) for the application's Composer autoloader and [check.php](https://github.com/coisa/error-handler/blob/master/examples/check.php) for their synthetic assertions. When adapting a recipe to an application, use its existing autoloader and tests.
 
@@ -28,6 +28,8 @@ The displayed PHP retains imports, declarations, spacing and every executable br
 | [http.php](#http-responses-output-capture-and-a-safe-application-adapter) | HTTP responses, output capture and a safe application adapter |
 | [http-json.php](#pure-json-with-one-private-report) | Pure JSON with one private report |
 | [provider-json.php](#optional-interop-json-profile) | Optional Interop JSON profile, PHP 8.3+ |
+| [http-whoops.php](#optional-development-html-with-whoops) | Explicit development HTML and private reporting |
+| [provider-whoops.php](#optional-interop-whoops-profile) | Optional Interop Whoops profile, PHP 8.3+ |
 
 ## Direct throwable reporting
 
@@ -1366,5 +1368,170 @@ if ($debug) {
 
 // No response is emitted. Hiding selected keys is not complete redaction or production authorization.
 echo 'HTTP Whoops ' . $mode . ': explicit renderer selection and one private report passed' . PHP_EOL;
+```
+
+
+## Optional Interop Whoops profile
+
+With PHP 8.3+, install FastForward as an application runtime dependency and optional Whoops ^2.18.4 as described in the [provider guide](container.md#development-html-profile). Trusted application configuration selects this diagnostic HTML profile. The default form is a class string; the configured form supplies a lazy callback that returns a fresh page. Both use private reporting and two distinct middleware scopes, without negotiation or emission.
+
+Source: [examples/provider-whoops.php](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php).
+
+<!-- source: examples/provider-whoops.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
+use FastForward\Container\Factory\AliasFactory;
+use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Whoops\Handler\PrettyPageHandler;
+
+use function FastForward\Config\config;
+use function FastForward\Container\container;
+
+require __DIR__ . '/bootstrap.php';
+
+exampleCheck(
+    PHP_VERSION_ID >= 80300 && function_exists('FastForward\Container\container'),
+    'Install fast-forward/container:^1.9 in the application and use PHP 8.3 or newer.',
+);
+
+// FastForward integration requires PHP 8.3+ and an application runtime dependency.
+// Selecting this profile deliberately chooses diagnostic HTML; no request enables it.
+$mode = $argv[1] ?? 'default';
+exampleCheck(in_array($mode, ['default', 'configured'], true), 'Choose default or configured mode.');
+
+$messages = new Psr17Factory();
+$reports = [];
+$pageCalls = 0;
+
+$privateReporter = new CallableThrowableHandler(
+    /** @param Throwable $event the unchanged application failure delivered privately */
+    static function (Throwable $event) use (&$reports): void {
+        $reports[] = $event; // Replace with the application's private log transport.
+    },
+);
+
+$application = new ArrayServiceProvider([
+    ResponseFactoryInterface::class => new ServiceFactory($messages),
+    StreamFactoryInterface::class => AliasFactory::get(ResponseFactoryInterface::class),
+    ThrowableHandlerInterface::class => new ServiceFactory($privateReporter),
+]);
+
+if ('configured' === $mode) {
+    $settings = config([
+        'development' => [
+            'page_title' => 'Synthetic application diagnostics',
+        ],
+    ]);
+
+    $profile = new WhoopsErrorHandlerServiceProvider(
+        /** @return PrettyPageHandler a new page configured through Whoops' public API */
+        static function () use ($settings, &$pageCalls): PrettyPageHandler {
+            ++$pageCalls;
+            $page = new PrettyPageHandler();
+
+            $page->setPageTitle($settings->get('development.page_title'));
+            $page->hideSuperglobalKey('_SERVER', 'HTTP_AUTHORIZATION');
+            $page->hideSuperglobalKey('_COOKIE', 'session');
+            $page->hideSuperglobalKey('_ENV', 'APP_SECRET');
+
+            return $page;
+        },
+    );
+
+    $services = container($profile, $application);
+} else {
+    $services = container(WhoopsErrorHandlerServiceProvider::class, $application);
+}
+
+$middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
+exampleCheck($middlewareFactory instanceof ErrorHandlerMiddlewareFactory, 'Expected the fresh-scope factory.');
+
+$firstScope = $middlewareFactory($services);
+$secondScope = $middlewareFactory($services);
+
+exampleCheck(0 === $pageCalls, 'Discovery and scope construction must not render a page.');
+exampleCheck($firstScope !== $secondScope, 'Each HTTP scope needs a new middleware and handler.');
+
+$failures = [
+    new RuntimeException(base64_encode('First synthetic provider diagnostic'), 503),
+    new RuntimeException(base64_encode('Second synthetic provider diagnostic'), 404),
+];
+
+/**
+ * Creates a synthetic route for the selected application failure.
+ *
+ * @param Throwable $failure the original failure for this HTTP scope
+ *
+ * @return RequestHandlerInterface the failing application route
+ */
+function exampleWhoopsRoute(Throwable $failure): RequestHandlerInterface
+{
+    return new class ($failure) implements RequestHandlerInterface {
+        /** @var Throwable the unchanged synthetic route failure */
+        private Throwable $failure;
+
+        /** @param Throwable $failure the application error thrown in this request */
+        public function __construct(Throwable $failure)
+        {
+            $this->failure = $failure;
+        }
+
+        /**
+         * @param ServerRequestInterface $request the synthetic application request
+         *
+         * @return ResponseInterface this route never produces a normal response
+         *
+         * @throws Throwable the unchanged application failure
+         */
+        public function handle(ServerRequestInterface $request): ResponseInterface
+        {
+            throw $this->failure;
+        }
+    };
+}
+
+$first = $firstScope->process(
+    $messages->createServerRequest('GET', '/first'),
+    exampleWhoopsRoute($failures[0]),
+);
+
+$second = $secondScope->process(
+    $messages->createServerRequest('GET', '/second'),
+    exampleWhoopsRoute($failures[1]),
+);
+
+exampleCheck($failures === $reports, 'Each original must reach the private reporter once.');
+exampleCheck(503 === $first->getStatusCode() && 404 === $second->getStatusCode(), 'Expected original HTTP codes.');
+exampleCheck('text/html; charset=UTF-8' === $first->getHeaderLine('Content-Type'), 'Expected HTML.');
+exampleCheck('no-store' === $first->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
+exampleCheck(
+    false === strpos((string) $second->getBody(), $failures[0]->getMessage()),
+    'The next page must not retain the first diagnostic.',
+);
+
+if ('configured' === $mode) {
+    exampleCheck(2 === $pageCalls, 'Expected one configured page per render.');
+    exampleCheck(
+        false !== strpos((string) $first->getBody(), '<title>Synthetic application diagnostics</title>'),
+        'Expected the application-configured title.',
+    );
+}
+
+// No HTTP emission. Hiding selected keys is not comprehensive redaction.
+echo 'Whoops provider ' . $mode . ': lazy pages, fresh scopes and private reporting passed' . PHP_EOL;
 ```
 

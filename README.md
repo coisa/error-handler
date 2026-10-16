@@ -36,7 +36,7 @@ by that factory; reason validation does not redact diagnostic body content.
 
 ## Use the 2.x API
 
-For explicit development HTML, see the [optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [complete recipe](examples/http-whoops.php). Verify that the selected checkout/release contains this additive API; a pending Changeset is not a published release. Applications own trusted debug activation and format selection.
+For explicit development HTML, see the [optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops), [manual recipe](examples/http-whoops.php) and [optional provider recipe](examples/provider-whoops.php). Verify that the selected checkout/release contains this additive API; a pending Changeset is not a published release. Applications own trusted debug activation and format selection.
 
 The library declares PHP `^7.4 || ^8.0`. Applications own reporters, PSR
 implementations, HTTP emission and when native PHP callbacks are installed.
@@ -79,6 +79,7 @@ a real application. Read the guide for your integration:
 - [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
 - [Opt-in JSON responses with one explicit private report](docs/http.md#opt-in-json-responses-and-explicit-reporting) and the [complete JSON recipe](examples/http-json.php); verify the selected source/release contains both response adapters.
 - [Optional FastForward JSON profile](docs/container.md#optional-interop-and-fastforward-providers) and its [complete provider recipe](examples/provider-json.php): application PHP 8.3+, PSR-17 and a private reporter; core PHP 7.4 and legacy defaults remain supported.
+- [Optional Whoops profile](docs/container.md#development-html-profile) and its [complete provider recipe](examples/provider-whoops.php): explicit development HTML, a lazy configurable page factory and fresh middleware scopes.
 - [Complete 2.x cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
   and [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
 - [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),
@@ -96,7 +97,7 @@ The original 2.x runtime metadata and PHP 7.4 alias defects are tracked in
 patch containing both for a clean PHP 7.4 container installation. The proposed
 major's required FastForward container, pure default renderer and changed exit
 policy are not existing 2.x APIs. The opt-in Interop providers documented here
-are additive 2.x composition, with reporting before JSON rendering.
+are additive 2.x composition, with reporting before JSON or HTML rendering.
 
 ## Development
 

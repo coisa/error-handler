@@ -71,6 +71,15 @@ if (in_array('--with-fast-forward', $argv, true)) {
             'Interop JSON ' . $mode . ": configured profile, fresh scope and one private report passed\n",
         ];
     }
+
+    foreach (['default', 'configured'] as $mode) {
+        $cases[] = [
+            'provider-whoops.php',
+            [$mode],
+            0,
+            'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n",
+        ];
+    }
 }
 
 foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 'reporter-failure'] as $mode) {
