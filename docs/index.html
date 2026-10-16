@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="The CoiSA Error Handler 2.x API: reporting, process callbacks, legacy container integration and PSR-15 HTTP composition.">
+  <title>CoiSA Error Handler — 2.x documentation</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #162b35;
+      --muted: #52666d;
+      --paper: #f5f6f1;
+      --line: #d8e1dc;
+      --accent: #087b69;
+      --night: #112c35;
+      --mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 2rem; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.7 "Avenir Next", "Segoe UI", sans-serif; }
+    a { color: var(--accent); text-underline-offset: .2em; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+    .skip { position: absolute; top: 8px; left: 12px; padding: 12px 18px; background: white; transform: translateY(-200%); z-index: 2; }
+    .skip:focus { transform: none; }
+    .masthead { border-bottom: 1px solid var(--line); }
+    .masthead-inner { max-width: 1200px; padding: 20px 30px; margin: auto; display: flex; justify-content: space-between; gap: 24px; align-items: center; }
+    .brand { color: var(--ink); font-size: 19px; font-weight: 750; letter-spacing: -.025em; text-decoration: none; }
+    .source-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
+    .layout { display: grid; grid-template-columns: 200px minmax(0, 820px); gap: 64px; max-width: 1200px; margin: auto; padding: 48px 30px 80px; }
+    nav { position: sticky; top: 24px; align-self: start; max-height: calc(100vh - 48px); overflow-y: auto; font-size: 14px; }
+    .nav-title, .eyebrow { font: 12px/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    .nav-title { color: var(--muted); margin: 0 0 16px; }
+    nav a { display: flex; align-items: center; min-height: 44px; padding: 8px 4px; color: var(--muted); text-decoration: none; }
+    nav a:hover { color: var(--accent); text-decoration: underline; }
+    main { min-width: 0; }
+    .eyebrow { color: var(--accent); font-weight: 700; margin: 0; }
+    h1 { font-size: clamp(36px, 5vw, 56px); line-height: 1.1; letter-spacing: -.045em; margin: 18px 0 24px; }
+    .lead { font-size: 21px; line-height: 1.6; color: var(--muted); max-width: 700px; }
+    p { margin: 16px 0; }
+    .version-note { padding: 18px 22px; margin: 28px 0; border: 1px solid var(--line); background: #fff; font-size: 15px; }
+    section { margin-top: 54px; padding-top: 32px; border-top: 1px solid var(--line); }
+    h2 { font-size: 29px; letter-spacing: -.025em; line-height: 1.25; margin: 0 0 20px; }
+    h3 { font-size: 20px; line-height: 1.35; margin: 28px 0 12px; }
+    code { font-family: var(--mono); font-size: .84em; overflow-wrap: anywhere; }
+    .install-command { display: block; padding: 18px 22px; background: #e4efe8; border: 1px solid #c0d9cb; }
+    figure { margin: 26px 0; }
+    figcaption { font: 12px/1.7 var(--mono); color: var(--muted); margin: 0 0 10px; }
+    pre { margin: 0; padding: 24px; overflow-x: auto; border-radius: 6px; background: var(--night); color: #e1f1e8; font: 13px/1.8 var(--mono); tab-size: 4; }
+    pre code { font: inherit; overflow-wrap: normal; }
+    .table-scroll { overflow-x: auto; margin: 24px 0; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 14px 18px 14px 0; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 650; }
+    td:first-child { min-width: 190px; }
+    ul { padding-left: 24px; }
+    li { margin: 10px 0; }
+    .recipe-list { list-style: none; padding: 0; }
+    .recipe-list li { padding: 14px 0; border-bottom: 1px solid var(--line); margin: 0; }
+    .recipe-list a { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--mono); font-size: 14px; }
+    .recipe-list span { display: block; color: var(--muted); font-size: 15px; }
+    footer { margin-top: 54px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; padding: 28px 22px 56px; gap: 32px; }
+      nav { position: static; max-height: none; display: flex; flex-wrap: wrap; gap: 0 20px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+      .nav-title { flex-basis: 100%; margin-bottom: 8px; }
+      .masthead-inner { padding: 14px 22px; }
+      .lead { font-size: 19px; }
+      section { margin-top: 40px; }
+      pre { padding: 18px; font-size: 12px; }
+    }
+    @media (max-width: 440px) {
+      .masthead-inner { flex-wrap: wrap; gap: 0 18px; }
+      .brand { font-size: 18px; }
+      h2 { font-size: 26px; }
+    }
+    @media print {
+      nav, .skip, .source-link { display: none; }
+      .layout { display: block; padding: 20px; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; color: #162b35; background: #fff; border: 1px solid #d8e1dc; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="brand" href="#overview">CoiSA / Error Handler</a>
+      <a class="source-link" href="https://github.com/coisa/error-handler">Source repository</a>
+    </div>
+  </header>
+  <div class="layout">
+    <nav aria-label="Documentation sections">
+      <p class="nav-title">In this guide</p>
+      <a href="#install">Installation</a>
+      <a href="#reporting">Direct reporting</a>
+      <a href="#lifecycle">Process lifecycle</a>
+      <a href="#adapters">Adapters and events</a>
+      <a href="#container">Container integration</a>
+      <a href="#http">HTTP composition</a>
+      <a href="#examples">Executable recipes</a>
+      <a href="#sources">Guides and verification</a>
+    </nav>
+    <main id="content" tabindex="-1">
+      <div id="overview">
+        <p class="eyebrow">2.x API · PHP 7.4+</p>
+        <h1>Error Handler 2.x</h1>
+        <p class="lead">Compose diagnostic reporting, native PHP callbacks and HTTP responses with explicit application boundaries.</p>
+        <p>The library supplies handlers and PSR adapters. Your application chooses reporters, PSR implementations, callback installation and HTTP emission.</p>
+        <div class="version-note">This guide describes the existing 2.x API and compatible maintenance on <code>master</code>. Check your installed version and matching source. A pending Changeset is not a published release.</div>
+      </div>
+
+      <section id="install" aria-labelledby="install-title">
+        <h2 id="install-title">Installation</h2>
+        <code class="install-command">composer require 'coisa/error-handler:^2.0'</code>
+        <p>The package declares PHP <code>^7.4 || ^8.0</code>. Composer installs PSR interfaces; applications supply concrete dispatchers, loggers and HTTP factories when those integrations are used.</p>
+        <p>For the runnable recipes, use the <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">cookbook's explicit application dependencies</a>. Resolve them with the actual PHP runtime and retain the application's lockfile.</p>
+      </section>
+
+      <section id="reporting" aria-labelledby="reporting-title">
+        <h2 id="reporting-title">Start with direct reporting</h2>
+        <p><code>handleThrowable()</code> delegates to your reporter without installing process callbacks. If the reporter returns, execution continues; reporter failures propagate.</p>
+        <figure>
+          <figcaption>Excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">examples/direct.php</a> · imports and bootstrap in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Direct reporting PHP source"><code data-source="examples/direct.php">$errors = new ErrorHandler(new CallableThrowableHandler(
+    /**
+     * Print only the synthetic message used by this executable example.
+     *
+     * @param Throwable $error the synthetic failure to report
+     */
+    static function (Throwable $error): void {
+        echo 'reported: ' . $error-&gt;getMessage() . PHP_EOL;
+    },
+));
+
+$errors-&gt;handleThrowable(new RuntimeException('Example failure'));
+
+echo 'continued' . PHP_EOL;</code></pre>
+        </figure>
+        <p>This synthetic reporter prints so its behavior can be verified. Use an appropriate private diagnostic destination in a real application.</p>
+      </section>
+
+      <section id="lifecycle" aria-labelledby="lifecycle-title">
+        <h2 id="lifecycle-title">Choose the process lifetime</h2>
+        <p>For a whole process, register one handler at bootstrap and leave it active for uncaught exceptions. For a caught operation, report inside its catch and restore callbacks in <code>finally</code>.</p>
+        <figure>
+          <figcaption>Scoped-warning excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">examples/process.php</a> · uses its configured handler</figcaption>
+          <pre tabindex="0" aria-label="Scoped registration PHP source"><code data-source="examples/process.php">    $errors-&gt;register();
+
+    try {
+        trigger_error('Scoped warning', E_USER_WARNING);
+    } finally {
+        $errors-&gt;unregister();
+    }</code></pre>
+        </figure>
+        <p>Callbacks are process-wide. Use distinct handlers for nested scopes and unregister in reverse order. An unwinding <code>finally</code> runs before the uncaught-exception callback; unregistering there can prevent that handler from seeing the exception.</p>
+        <p>PHP cannot remove queued shutdown functions. Repeated register/unregister cycles enqueue callbacks. A successfully reported uncaught exception currently exits <code>0</code>; native compile-fatal reporting observes exit <code>255</code> and does not recover execution.</p>
+      </section>
+
+      <section id="adapters" aria-labelledby="adapters-title">
+        <h2 id="adapters-title">Compose adapters deliberately</h2>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Built-in reporting adapters">
+          <table>
+            <thead><tr><th scope="col">Adapter</th><th scope="col">Existing behavior</th></tr></thead>
+            <tbody>
+              <tr><td><code>CallableThrowableHandler</code></td><td>Invokes one configured reporter.</td></tr>
+              <tr><td><code>ThrowableHandlerAggregate</code></td><td>Calls reporters in order; a failure stops later deliveries and propagates.</td></tr>
+              <tr><td><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Converts enabled PHP errors; honors the reporting mask and suppression.</td></tr>
+              <tr><td><code>CallableShutdownHandler</code><br><code>PhpLastErrorShutdownHandler</code></td><td>Adapts an application shutdown callback or forwards a matching last fatal/compile/core error.</td></tr>
+              <tr><td><code>DispatchThrowableHandler</code><br><code>DispatchErrorEventThrowableHandler</code></td><td>Dispatches a raw throwable or an <code>ErrorEvent</code> through application-owned PSR-14.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Both listener providers and callable listeners are demonstrated in <a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">the event example</a>. <code>LogErrorEventListener</code> passes the event string to an application PSR-3 logger, at ERROR by default. Configuring raw and wrapped routes creates separate deliveries.</p>
+      </section>
+
+      <section id="container" aria-labelledby="container-title">
+        <h2 id="container-title">Keep the existing container boundary</h2>
+        <p><code>ErrorHandlerContainer</code> accepts an optional application PSR-11 parent. The parent's known services take priority; otherwise library aliases and factories resolve services. The default reporter aggregate is empty and silent, so supply a reporter explicitly.</p>
+        <figure>
+          <figcaption>Resolution excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">examples/container.php</a> · application services are configured earlier</figcaption>
+          <pre tabindex="0" aria-label="Legacy container resolution PHP source"><code data-source="examples/container.php">$legacy = new ErrorHandlerContainer($application);
+
+$process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
+        </figure>
+        <p><code>ConfigProvider</code> retains aliases, factories and Laminas discovery metadata. ServiceManager is an optional application integration, with a version compatible with that application's PHP.</p>
+        <p>Services are cached. Calling <code>ErrorHandlerFactory</code> explicitly creates a new core handler; a fresh middleware wrapper can still resolve the cached handler. Discovery and construction do not call <code>register()</code>.</p>
+      </section>
+
+      <section id="http" aria-labelledby="http-title">
+        <h2 id="http-title">Separate HTTP responsibilities</h2>
+        <p>The PSR-15 middleware registers its lifecycle handler, invokes downstream, delegates caught throwables to a response factory and unregisters in <code>finally</code>. It does not independently report before rendering.</p>
+        <p>The built-in stream factory reports while capturing output. Empty output and the string <code>"0"</code> fall back to the throwable's diagnostic string. The built-in response factory also uses the exception message as its reason phrase; a silent private logger does not create a safe public response.</p>
+        <figure>
+          <figcaption>Application safe-renderer excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">examples/http.php</a> · this is an explicit application adapter</figcaption>
+          <pre tabindex="0" aria-label="Application-owned safe response PHP source"><code data-source="examples/http.php">            $this-&gt;reporter-&gt;handleThrowable($error);
+
+            return $this-&gt;messages-&gt;createResponse(500)-&gt;withBody(
+                $this-&gt;messages-&gt;createStream('Internal Server Error'),
+            );</code></pre>
+        </figure>
+        <p>The application supplies PSR-17 factories, private diagnostic delivery and its emitter. The built-in status policy accepts integer codes from <code>400</code> through <code>500</code> inclusive; other integers and all string codes, including SQLSTATE, become <code>500</code>. Use application-owned mapping for domain errors.</p>
+        <p>See <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">the HTTP guide</a> for success/failure restoration, capture limitations and the complete application composition.</p>
+      </section>
+
+      <section id="examples" aria-labelledby="examples-title">
+        <h2 id="examples-title">Run the complete recipes</h2>
+        <p>Every excerpt above is checked against its executable source. The complete recipes use synthetic input and keep their application dependencies explicit.</p>
+        <ul class="recipe-list">
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">process.php</a><span>Warnings, scoped restoration, uncaught behavior and custom shutdown.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/handlers.php">handlers.php</a><span>Callable/aggregate order, failure propagation, conversion and suppression.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">events.php</a><span>Raw and wrapped dispatch, providers/listeners and PSR-3 logging.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>
+        </ul>
+        <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
+      </section>
+
+      <section id="sources" aria-labelledby="sources-title">
+        <h2 id="sources-title">Continue in the source guides</h2>
+        <ul>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Core API and process lifecycle</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">Legacy container, ConfigProvider and factories</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP output and application rendering</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Native checks, bounded probes and evidence limits</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md">Portable consumer skill</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/CHANGELOG.md">Published release history</a></li>
+        </ul>
+      </section>
+      <footer>Source-backed guidance for <a href="https://github.com/coisa/error-handler">coisa/error-handler</a>, under the <a href="https://github.com/coisa/error-handler/blob/master/LICENSE">MIT license</a>. Choose the source version matching your installed package.</footer>
+    </main>
+  </div>
+</body>
+</html>
