@@ -1,9 +1,8 @@
-COMPOSER_BIN := composer
+COMPOSER_BIN ?= composer
 
 COMPOSER_FLAGS := --prefer-dist \
 				--no-scripts \
 				--no-progress \
-				--no-suggest \
 				--optimize-autoloader \
 				--no-ansi \
 				--no-interaction \
@@ -13,13 +12,11 @@ COMPOSER_FLAGS := --prefer-dist \
 
 install: vendor
 uninstall: clean
-reinstall: clean vendor
+reinstall: clean
+	$(MAKE) vendor
 
 clean:
 	rm -rf vendor
 
-/usr/local/bin/composer:
-	curl -s https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
-
-vendor: /usr/local/bin/composer
+vendor:
 	$(COMPOSER_BIN) install $(COMPOSER_FLAGS)
