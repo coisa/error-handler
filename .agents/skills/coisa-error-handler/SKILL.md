@@ -129,6 +129,13 @@ reuse a cached handler. Read the matching source's
 [container guide](https://github.com/coisa/error-handler/blob/master/docs/container.md)
 when selecting this route; it includes the complete application recipe.
 
+For source/releases containing the [container-cause repair](https://github.com/coisa/error-handler/issues/90),
+the two public container-exception factories preserve the exact original throwable
+as getPrevious(). Integer codes are copied; string codes use 0 on the wrapper,
+including numeric-looking SQLSTATE values. Read the original code from the cause.
+Nested library factory/alias wrappers retain that cause chain; this does not
+change direct parent delegation or redact diagnostic messages.
+
 For PSR-14 or PSR-3, supply an application dispatcher/logger. Raw throwable and
 ErrorEvent adapters are separate deliveries. Read the matching
 [API guide](https://github.com/coisa/error-handler/blob/master/docs/api.md)

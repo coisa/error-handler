@@ -16,6 +16,8 @@ $errors = $services->get(CoiSA\ErrorHandler\ErrorHandler::class);
 
 The parent takes priority for IDs it reports as present. Otherwise library aliases and factories resolve services. Instances, including alias results and handlers, are cached. Unknown IDs throw the library's PSR-11 `NotFoundException`; construction errors are wrapped in `ContainerException`. A failed parent service is not a signal to silently substitute a different reporter.
 
+For source/releases containing the [container-cause repair](https://github.com/coisa/error-handler/issues/90), both `ContainerException::createFromThrowable()` and `NotFoundException::createFromThrowable()` keep the exact original throwable as `getPrevious()`, including its earlier cause chain. Integer codes, including zero and negative values, are copied unchanged. String codes such as PDO SQLSTATE `HY000` or `23000` use `0` on the wrapper; the original string remains on the previous throwable. Numeric-looking strings are not converted to integers. Nested library factory/alias wrappers retain that original diagnostic in their cause chain. Direct parent delegation keeps its existing behavior.
+
 Alternatively a `ConfigProvider`-aware application can consume its maps:
 
 ```php
