@@ -4,7 +4,9 @@ Run `php examples/verify.php` from the source checkout after installing the appl
 
 Optional `ERROR_HANDLER_AUTOLOAD` names a readable Composer autoloader from an isolated application. It falls back to the checkout's vendor/autoload.php. Paths and package versions belong to the caller; a Composer platform setting alone does not prove minimum-runtime behavior.
 
-The verifier uses its own PHP_BINARY and starts one child per fixed scenario, with captured stdout/stderr, a five-second deadline and a 16 KiB output bound. It temporarily sets the fixture-only ERROR_HANDLER_BOUNDED_FIXTURE flag so the guarded native-fatal case cannot be invoked accidentally as an ordinary example.
+The verifier reuses `tests/Support/process.php` from the source checkout. It uses its own PHP_BINARY and starts one child per fixed scenario with `php -n`, a 64 MiB PHP memory limit, a five-second active deadline and a 16 KiB combined stdout/stderr cap. The shared runner reads bounded chunks, checks the final drain and closes pipes/process handles in `finally`; cleanup allows 250 ms graceful termination and one second of forced-termination observation. Every scenario must confirm that its child was reaped. See [the harness guide](../docs/testing.md) for its self-checks and platform limits.
+
+Children receive only an explicit environment containing the fixture-only ERROR_HANDLER_BOUNDED_FIXTURE flag and optional ERROR_HANDLER_AUTOLOAD. The guarded native-fatal case cannot run as an ordinary example, and the verifier does not mutate its parent's environment or inherit application credentials/configuration.
 
 Successful execution prints sixteen scenario results and the actual PHP version, then exits 0. A failed assertion, unavailable process API, unexpected exit/output or bound violation causes a nonzero verifier exit. No host configuration or application callback is changed in the parent. Children use only synthetic input and their own callbacks/buffers.
 

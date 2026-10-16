@@ -5,7 +5,7 @@ Its instructions and example are original guidance under the bundled MIT license
 Retain the package name, namespace, license and source link when copying it.
 
 The existing 2.x API was checked at repository commit
-`a5dd27170b2a064fedcd99baff8d6e6fcf047f6f`. The next-major consumer procedure was
+`774f1ab1971c9d939fae37a7d53a2cac6484c34c`. The next-major consumer procedure was
 reviewed for source identity and scope/verification decisions. Its FastForward
 wiring, removed legacy APIs, intersection middleware, pure default renderer and
 exit1 claims were rejected for this 2.x procedure.

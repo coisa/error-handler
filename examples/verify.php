@@ -14,6 +14,10 @@
 
 declare(strict_types=1);
 
+use function CoiSA\ErrorHandler\Test\Harness\runProcess;
+
+require dirname(__DIR__) . '/tests/Support/process.php';
+
 $cases = [
     ['direct.php', [], 0, "reported: Example failure\ncontinued\n"],
     ['handlers.php', [], 0, "callable, aggregate, conversion, suppression and shutdown adapters passed\n"],
@@ -36,72 +40,45 @@ foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 're
     ];
 }
 
-$boundedBefore = getenv('ERROR_HANDLER_BOUNDED_FIXTURE');
-putenv('ERROR_HANDLER_BOUNDED_FIXTURE=1');
+$environment = ['ERROR_HANDLER_BOUNDED_FIXTURE' => '1'];
+$autoload = getenv('ERROR_HANDLER_AUTOLOAD');
 
-try {
-    foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput]) {
-        $command = array_merge([
-            PHP_BINARY,
-            '-d', 'display_errors=stderr',
-            '-d', 'log_errors=0',
-            __DIR__ . '/' . $file,
-        ], $arguments);
-        $process = proc_open($command, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+if (false !== $autoload) {
+    $environment['ERROR_HANDLER_AUTOLOAD'] = $autoload;
+}
 
-        if (!is_resource($process)) {
-            throw new RuntimeException('Unable to start the bounded example child.');
-        }
+foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput]) {
+    $command = array_merge([
+        PHP_BINARY,
+        '-n',
+        '-d', 'memory_limit=64M',
+        '-d', 'display_errors=stderr',
+        '-d', 'log_errors=0',
+        __DIR__ . '/' . $file,
+    ], $arguments);
+    $result = runProcess($command, 5.0, 16384, null, $environment);
 
-        fclose($pipes[0]);
-        stream_set_blocking($pipes[1], false);
-        stream_set_blocking($pipes[2], false);
-
-        $output = '';
-        $errors = '';
-        $deadline = microtime(true) + 5;
-
-        do {
-            $output .= stream_get_contents($pipes[1]);
-            $errors .= stream_get_contents($pipes[2]);
-            $state = proc_get_status($process);
-
-            if (strlen($output) + strlen($errors) > 16384 || microtime(true) > $deadline) {
-                proc_terminate($process, 9);
-
-                throw new RuntimeException('The example exceeded its five-second or 16 KiB bound.');
-            }
-
-            if ($state['running']) {
-                usleep(10000);
-            }
-        } while ($state['running']);
-
-        $output .= stream_get_contents($pipes[1]);
-        $errors .= stream_get_contents($pipes[2]);
-
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-
-        $closed = proc_close($process);
-        $exit = $state['exitcode'] >= 0 ? $state['exitcode'] : $closed;
-
-        if ($exit !== $expectedExit || (null !== $expectedOutput && ($output !== $expectedOutput || '' !== $errors))) {
-            throw new RuntimeException(
-                $file . ' ' . implode(' ', $arguments) . ' failed: exit=' . $exit . "\n" . $output . $errors,
-            );
-        }
-
-        if (null === $expectedOutput && (false === strpos($output, 'reported: Cannot redeclare') || 255 !== $exit)) {
-            throw new RuntimeException('The fatal fixture did not report its native compile failure.');
-        }
-
-        echo $file . (' ' . implode(' ', $arguments)) . ': passed' . PHP_EOL;
+    if ('exit' !== $result['reason'] || !$result['reaped']) {
+        throw new RuntimeException(
+            $file . ' exceeded its process bounds or was not reaped: ' . $result['reason'],
+        );
     }
-} finally {
-    putenv(
-        false === $boundedBefore ? 'ERROR_HANDLER_BOUNDED_FIXTURE' : 'ERROR_HANDLER_BOUNDED_FIXTURE=' . $boundedBefore,
-    );
+
+    $exit = $result['exitCode'];
+    $output = $result['stdout'];
+    $errors = $result['stderr'];
+
+    if ($exit !== $expectedExit || (null !== $expectedOutput && ($output !== $expectedOutput || '' !== $errors))) {
+        throw new RuntimeException(
+            $file . ' ' . implode(' ', $arguments) . ' failed: exit=' . $exit . "\n" . $output . $errors,
+        );
+    }
+
+    if (null === $expectedOutput && (false === strpos($output, 'reported: Cannot redeclare') || 255 !== $exit)) {
+        throw new RuntimeException('The fatal fixture did not report its native compile failure.');
+    }
+
+    echo $file . (' ' . implode(' ', $arguments)) . ': passed' . PHP_EOL;
 }
 
 echo count($cases) . ' bounded example scenarios passed on PHP ' . PHP_VERSION . PHP_EOL;

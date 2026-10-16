@@ -14,6 +14,11 @@ php tests/Http/run.php
 php tests/Http/run.php --check-port-retry
 ```
 
+For runnable consumer integrations, use the [2.x cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
+and its [bounded example verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
+That verifier reuses the shared process runner below with explicit application
+dependencies; it does not require Make or a container runtime.
+
 The first fire command requires PHP only and runs 16 core scenarios. `--with-psr`
 adds five legacy response-capture scenarios and requires a compatible Composer
 autoload file containing the PSR interfaces and Nyholm PSR-7. The HTTP runner uses
