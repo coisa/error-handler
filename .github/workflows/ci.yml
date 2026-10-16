@@ -142,17 +142,10 @@ jobs:
     name: PHPUnit coverage / PHP 8.5
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - name: Check the trusted publisher with isolated fixtures
-        run: node --test tests/Coverage/publisher.test.mjs
 
       - name: Isolate Composer state
         run: |
@@ -175,38 +168,64 @@ jobs:
           composer check-platform-reqs
           composer show --locked
 
-      - name: Run PHPUnit with Clover instrumentation
+      - name: Run PHPUnit with Clover and line-coverage reports
         env:
           XDEBUG_MODE: coverage
-        run: composer --no-plugins test-coverage
+        run: composer --no-plugins test-coverage -- --coverage-cobertura tests/cobertura.xml
 
       - name: Upload the raw PHPUnit coverage
-        if: ${{ !cancelled() && hashFiles('tests/clover.xml') != '' }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-php
-          path: tests/clover.xml
+          path: |
+            tests/clover.xml
+            tests/cobertura.xml
           if-no-files-found: error
           retention-days: 14
           overwrite: true
 
+  coverage-report:
+    name: Coverage report
+    needs: coverage
+    if: ${{ !cancelled() && needs.coverage.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Download this run's coverage artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-report-php
+          path: tests
+
       - name: Create the baseline or compare coverage informatively
         id: coverage-diff
-        if: ${{ !cancelled() && hashFiles('tests/clover.xml') != '' }}
         uses: clearlyip/code-coverage-report-action@v7
         with:
-          filename: tests/clover.xml
+          filename: tests/cobertura.xml
           artifact_download_workflow_names: PHP CI
           artifact_name: phpunit-coverage-%name%
           retention_days: '90'
           overall_coverage_fail_threshold: '0'
           fail_on_negative_difference: 'false'
           only_list_changed_files: 'true'
-          without_base_coverage_template: .github/coverage-templates/without-base-coverage.hbs
-          with_base_coverage_template: .github/coverage-templates/with-base-coverage.hbs
 
-      - name: Export available Markdown even when an earlier step fails
-        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
+      - name: Identify the tested head and run
+        if: steps.coverage-diff.outputs.file != ''
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTED_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          printf '\n\nHead: %s. Tested commit: %s. [PHP CI run](%s).\n' \
+            "$HEAD_SHA" "$TESTED_SHA" "$RUN_URL" >> code-coverage-results.md
+
+      - name: Upload the Markdown report
+        if: steps.coverage-diff.outputs.file != ''
         uses: actions/upload-artifact@v7
         with:
           name: coverage-pr-comment
@@ -214,3 +233,14 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           overwrite: true
+
+      - name: Update the PR coverage note
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          !startsWith(github.head_ref, 'dependabot/') &&
+          steps.coverage-diff.outputs.file != ''
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: phpunit-coverage
+          path: ${{ steps.coverage-diff.outputs.file }}

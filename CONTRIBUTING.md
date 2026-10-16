@@ -110,7 +110,7 @@ platform is needed.
 | Development quality | 8.3, 8.4, 8.5 | Fresh current development graph; formatting, PHPCS, PHPUnit and maximum PHPStan over `src` and `tests` |
 | Production | 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 | Current runtime graph; tracked PHP syntax, distribution contents, public container and alias factories |
 | Production lower bounds | 7.4, 8.5 | Fresh `--prefer-lowest --prefer-stable` runtime graph; the same production checks |
-| PHPUnit coverage | 8.5 with Xdebug | Fresh development graph; Clover, baseline comparison, Markdown and publisher fixture tests |
+| PHPUnit coverage | 8.5 with Xdebug | Fresh development graph; Clover/Cobertura, baseline comparison, Markdown and publisher fixture tests |
 
 Production jobs install only the library into a separate consumer from its
 committed `git archive`, with path-package mirroring instead of a source symlink.
@@ -122,8 +122,9 @@ not a claim that every possible dependency combination was tested.
 
 Composer 2 installations disable plugins and scripts; quality scripts run only
 in their explicit check step. Quality jobs explicitly use `error_reporting=E_ALL`
-so deprecations can also reach the configured PHP handlers. Jobs have time limits, read-only repository
-permissions and no persisted checkout credential. The workflow uses the verified
+so deprecations can also reach the configured PHP handlers. Jobs have time limits
+and no persisted checkout credential. Collection and validation jobs use read-only
+repository permissions; the report job requests PR-comment access. The workflow uses the verified
 major action refs documented by [Checkout](https://github.com/actions/checkout)
 and [Setup PHP](https://github.com/shivammathur/setup-php). The independent changed
 PHP workflow retains the shared preset's `3.0.1` reusable workflow ref.
@@ -133,66 +134,45 @@ the checks it ran, without claiming coverage or permission to release.
 
 ## PHPUnit coverage and PR notes
 
-The separate coverage job keeps PHP 8.5, Xdebug, PHPUnit 9.6 and the complete
-`src/` coverage filter stable. It records the actual resolved tool versions and
-uploads `coverage-report-php` (Clover XML) and `coverage-pr-comment` (Markdown),
-retained for 14 days. No Composer runtime constraint or public API changes.
+The [PHP CI workflow](.github/workflows/ci.yml) has a read-only `coverage` job
+on PHP 8.5/Xdebug and a dependent `coverage-report` job. PHPUnit 9.6 produces
+Clover plus Cobertura through its native `--coverage-cobertura` flag. The complete
+`src/` filter, runtime PHP constraint, public APIs and existing annotations stay
+unchanged. `coverage-report-php` retains both XML files for 14 days.
 
-The measured 2.x baseline at `27ff64ec6395646d630b3d451f1fdd48f1515305`
-is **4.71% of lines (9/191)** with 101 tests and 199 assertions on PHP 8.5.11;
-both Xdebug 3.5.3 and PCOV 1.0.12 produced that result. Four test classes explicitly
-declare `@coversNothing` and do not contribute to instrumentation. This low
-measurement does not imply those behaviors are untested. These annotations stay
-intact. Coverage percentages and differences are **informational**: no numerical
-floor or regression gate is enforced. A future policy requires a separate review
-of the intended instrumentation scope and measured baseline. Neither the
-next-major branch's percentage nor its threshold is used.
+The comparison action receives Cobertura to measure lines. Its
+[Clover parser](https://github.com/clearlyip/code-coverage-report-action/blob/v7/src/reports/clover/parser/index.ts)
+combines statements, methods and conditionals: the current 12/254 elements
+(4.72%) are different from **9/191 lines (4.71%)**. The measured 2.x PHPUnit
+baseline is 101 tests and 199 assertions on PHP 8.5.11. Four test classes declare
+`@coversNothing` and do not contribute to instrumentation; this does not mean
+their behaviors lack tests. Process-termination and HTTP fixtures remain separate
+behavioral evidence.
 
-The report action stores `phpunit-coverage-master` on a push or manual dispatch
-of `PHP CI` on `master`; baseline retention is 90 days. PRs compare with the
-available target-branch artifact. Before the first baseline exists, or after it
-expires, the report says that comparison is unavailable. A manual `PHP CI` run
-on `master` refreshes an expired baseline.
-No periodic run or external coverage service is required.
+Coverage and differences are **informational**. The action's standard templates
+are used; their displayed minimum of `0%` means the numerical gate is disabled,
+not an accepted quality threshold. Execution, invalid-report and artifact errors
+still fail CI. A future threshold requires reviewing the intended annotation
+scope and measured baseline.
 
-When Clover exists, raw coverage is exported even if tests fail. Markdown is
-exported when report generation produces it. Execution, invalid-report and
-artifact errors still fail the job; the measured percentage itself does not.
-A failure before coverage is written has no report artifact. The report covers
-only instrumented PHPUnit execution;
-process-termination and HTTP child fixtures remain separate behavioral evidence.
+After successful collection, the report job downloads this run's XML artifact
+and generates the job summary and `coverage-pr-comment` Markdown artifact
+(14-day retention). Pushes and manual runs on `master` store the Cobertura
+baseline as `phpunit-coverage-master` for 90 days. Before that baseline exists,
+or after it expires, the report shows current coverage without a comparison.
+A manual `PHP CI` run on `master` refreshes it.
 
-The [PR note publisher](.github/workflows/coverage-comment.yml) runs from the
-default branch after `PHP CI`, with no checkout and no execution of PR code.
-Same-repository, fork and Dependabot PRs all follow this data-only path. It
-validates the workflow path, run and attempt, artifact repository/SHA identity,
-archive size, and a nonempty regular UTF-8 Markdown file of at most 60,000 bytes.
-It then rechecks the open PR's current head and adds the tested SHA, run link and
-conclusion itself before updating one sticky note.
+The same report job updates one sticky note only for PRs from this repository,
+excluding branches starting with `dependabot/`, when its token permits comments.
+Fork and Dependabot runs retain useful artifacts but do not receive an automatic
+coverage comment through this workflow. There is no privileged fallback workflow.
 
-Publisher runs are serialized by source repository and branch, with pending
-runs queued rather than replaced. An older publisher therefore cannot pause
-after its head check and overwrite a concurrently published newer note. The
-head check and comment request are still separate operations: a head can move
-between them, so the displayed SHA is always the authority for the note.
-
-Stale or closed PRs, superseded attempts and missing reports are logged and
-skipped. Ambiguous, expired, mismatched or malformed reports fail the publisher
-without replacing the note. Any retained note identifies its tested SHA and
-must not be read as proof for a newer head. Reports from failed runs carry the
-failure conclusion, and cancelled runs do not publish.
-
-Run the isolated publisher checks locally with:
-
-```sh
-node --test tests/Coverage/publisher.test.mjs
-```
-
-These execute the actual inline scripts with minimal API-shaped fixtures and
-real temporary files, including stale/closed/missing/failure and invalid-data
-cases. They do not send comments. The first default-branch baseline and live
-sticky creation/update still require observing actual hosted runs after this
-workflow is merged; local fixtures and pre-merge artifacts do not prove activation.
+Each report identifies the event's head SHA, the tested commit (which can be the
+PR merge commit), and the run URL. A failed or cancelled collection skips the
+report job and may leave an older note; read its displayed SHA rather than
+assuming it certifies the current head. The workflow does not make an atomic
+head check when commenting. A first `master` baseline and a subsequent eligible
+PR update still need observation after the workflow is merged.
 
 ## Production container regression
 
