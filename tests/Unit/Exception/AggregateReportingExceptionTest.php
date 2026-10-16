@@ -88,6 +88,7 @@ final class AggregateReportingExceptionTest extends TestCase
             'repeated' => $first,
         ]);
 
+        self::assertInstanceOf(AggregateReportingException::class, $exception);
         self::assertSame($original, $exception->getOriginalThrowable());
         self::assertSame([$first, $second, $first], $exception->getFailures());
     }
