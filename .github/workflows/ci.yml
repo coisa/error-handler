@@ -212,6 +212,7 @@ jobs:
           retention_days: '90'
           overall_coverage_fail_threshold: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || '0' }}
           fail_on_negative_difference: 'true'
+          negative_difference_by: overall
           only_list_changed_files: 'true'
 
       - name: Identify the tested head and run

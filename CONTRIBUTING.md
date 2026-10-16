@@ -157,8 +157,9 @@ and do not contribute to instrumentation; this does not mean their behaviors
 lack tests. Process-termination and HTTP fixtures remain separate behavioral
 evidence.
 
-The action uses its standard templates and fails on a negative coverage difference
-when a baseline is available. Its default comparison checks each file. The overall
+The action uses its standard templates and fails when overall line coverage drops
+against an available target-branch baseline, including new uncovered source files.
+Changed files and their differences remain visible in the report. The overall
 minimum comes from the repository variable `MINIMUM_COVERAGE_THRESHOLD`, with a
 fallback of `0` when absent; no repository variable is created by this workflow.
 Zero disables the absolute minimum, not the regression check or execution,
@@ -171,7 +172,9 @@ and generates the job summary and `coverage-pr-comment` Markdown artifact
 baseline as `phpunit-coverage-master` for 90 days. Before that baseline exists,
 or after it expires, the report shows current coverage without a comparison.
 The regression gate cannot compare until that baseline exists. A manual `PHP CI`
-run on `master` refreshes it.
+run on `master` refreshes it. A manual run on another branch stores a baseline
+for that actual branch, allowing a stacked PR targeting it to compare before
+the workflow reaches `master`.
 
 The same report job updates one sticky note only for PRs from this repository,
 excluding branches starting with `dependabot/`, when its token permits comments.
