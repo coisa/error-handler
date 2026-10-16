@@ -762,6 +762,8 @@ echo 'legacy container, cached services, fresh factory and ConfigProvider passed
 
 Exercise normal and failed PSR-15 processing, captured output, the legacy empty/zero diagnostic fallback and an explicit application response factory. The current middleware does not report independently before rendering; do not add a second diagnostic call around the built-in capture chain.
 
+The example's single-line reason remains unchanged. In a checkout/release containing the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89), diagnostics with forbidden status-line controls use the PSR-17 default reason instead. This does not redact the original throwable or the legacy body fallback; see [the HTTP contract](http.md#existing-response-and-output-capture).
+
 Source: [examples/http.php](https://github.com/coisa/error-handler/blob/master/examples/http.php).
 
 <!-- source: examples/http.php -->

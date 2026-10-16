@@ -53,4 +53,6 @@ Run direct/logging/adapter/event/container recipes individually with `php exampl
 
 Examples return response objects and synthetic log records. They do not deliver real logs, start a web server, emit HTTP to a client or certify an application's transport. Applications own those integrations.
 
+The HTTP example's valid single-line reason remains unchanged by the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89). With that repair present, forbidden controls select the PSR-17 default reason; the original throwable and capture/empty/zero body behavior remain unchanged. See [the HTTP reason contract](../docs/http.md#existing-response-and-output-capture) before emitting responses.
+
 Continue with [core API](../docs/api.md), [container composition](../docs/container.md), and [HTTP behavior](../docs/http.md).
