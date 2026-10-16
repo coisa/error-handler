@@ -10,6 +10,14 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.4.2
+
+### Patch Changes
+
+- [#93](https://github.com/coisa/error-handler/pull/93) [`e39b363`](https://github.com/coisa/error-handler/commit/e39b363f9467434ebd3c7907fc99bf6351cb9b54) - Preserve the original failure when wrapping container exceptions with string codes such as PDO SQLSTATE. Integer codes remain unchanged; string codes use zero on the wrapper and remain available on its previous throwable.
+
+- [#91](https://github.com/coisa/error-handler/pull/91) [`9e4876d`](https://github.com/coisa/error-handler/commit/9e4876da10dceb857fc55e130c3ee8ef35f93339) - Use the application's PSR-17 default reason phrase when an exception message contains forbidden HTTP status-line control bytes. Preserve valid messages, the existing 400–500 status mapping, original throwable reporting and response body behavior.
+
 ## 2.4.1
 
 ### Patch Changes

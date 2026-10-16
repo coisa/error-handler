@@ -24,6 +24,7 @@
     },
     "require": {
         "php": "^7.4 || ^8.0",
+        "container-interop/service-provider": "^0.4",
         "psr/container": "^1.1 || ^2.0",
         "psr/http-server-middleware": "^1.0",
         "psr/http-factory": "^1.1",
@@ -32,6 +33,7 @@
     },
     "suggest": {
         "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8.",
+        "fast-forward/container": "^1.9",
         "filp/whoops": "Install ^2.18.4 for optional development HTML responses."
     },
     "autoload": {
@@ -49,6 +51,7 @@
     },
     "require-dev": {
         "coisa/php-cs-fixer": "^3.0",
+        "fast-forward/container": "^1.9",
         "filp/whoops": "^2.18.4",
         "jangregor/phpstan-prophecy": "^1.0",
         "laminas/laminas-servicemanager": "^4.3",

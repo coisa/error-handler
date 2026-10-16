@@ -1,6 +1,6 @@
 ---
 name: coisa-error-handler
-description: Integrate the existing coisa/error-handler 2.x PHP API with explicit reporters, process callbacks, legacy PSR-11/ConfigProvider composition or PSR-15 middleware, then verify reporting, output and callback restoration.
+description: Integrate the coisa/error-handler 2.x API with explicit reporters, process callbacks, legacy PSR-11/ConfigProvider or optional Interop/FastForward providers and PSR-15 middleware, then verify reporting, output and callback restoration.
 license: MIT
 compatibility: PHP and Composer matching the selected 2.x package; PHP 7.4-compatible application code. Applications supply PSR-14/17 implementations and HTTP emission.
 metadata:
@@ -12,7 +12,8 @@ metadata:
 Package: coisa/error-handler; namespace: CoiSA\ErrorHandler.
 [Source and maintenance](https://github.com/coisa/error-handler).
 Retain that identity when copying the package into a consumer. This procedure
-uses the existing 2.x API, not the proposed FastForward-based major.
+uses the existing 2.x API, including optional providers where the selected source
+contains them; it does not adopt the proposed major's required container/defaults.
 
 ## Select the API and scope
 
@@ -129,6 +130,42 @@ reuse a cached handler. Read the matching source's
 [container guide](https://github.com/coisa/error-handler/blob/master/docs/container.md)
 when selecting this route; it includes the complete application recipe.
 
+For optional Interop integration, first verify the selected source contains
+ServiceProvider\ErrorHandlerServiceProvider and JsonErrorHandlerServiceProvider.
+The application needs PHP 8.3+ and fast-forward/container:^1.9 in its own require,
+not only require-dev. The core keeps PHP 7.4 and the legacy integration intact.
+Provide ResponseFactoryInterface, StreamFactoryInterface and a private
+ThrowableHandlerInterface reporter through the application provider. Select
+container(JsonErrorHandlerServiceProvider::class, $application) for public JSON
+with report-before-render composition appropriate to the 2.x middleware. The
+base ErrorHandlerServiceProvider alone retains legacy capture defaults and
+requires the application's reporter; it does not discover a silent aggregate.
+
+Use new JsonErrorHandlerServiceProvider($debug) only with a real bool chosen from
+trusted application configuration. FastForward Config supplies values before
+container construction; it does not hydrate constructor scalars. Use a strict
+entrypoint, and never cast the string "false" to bool or infer debug from headers.
+For a required override of a library-defined service, use one
+AggregateServiceProvider with the application definitions last; separate providers
+prioritize the first successful resolution and may fall back after PSR failures.
+Read the source-matching
+[provider guide](https://github.com/coisa/error-handler/blob/master/docs/container.md#optional-interop-and-fastforward-providers)
+and [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php).
+
+For distinct HTTP scopes, resolve the reusable
+ServiceProvider\Factory\ErrorHandlerMiddlewareFactory and invoke it with the
+container. Each invocation builds a fresh core handler and middleware; the
+process ErrorHandlerInterface alias and direct middleware service remain cached.
+Lookup does not register callbacks. Keep native shutdown-queue limits visible:
+fresh objects do not make repeated registrations a bounded worker mechanism.
+
+For source/releases containing the [container-cause repair](https://github.com/coisa/error-handler/issues/90),
+the two public container-exception factories preserve the exact original throwable
+as getPrevious(). Integer codes are copied; string codes use 0 on the wrapper,
+including numeric-looking SQLSTATE values. Read the original code from the cause.
+Nested library factory/alias wrappers retain that cause chain; this does not
+change direct parent delegation or redact diagnostic messages.
+
 For PSR-14 or PSR-3, supply an application dispatcher/logger. Raw throwable and
 ErrorEvent adapters are separate deliveries. Read the matching
 [API guide](https://github.com/coisa/error-handler/blob/master/docs/api.md)
@@ -176,6 +213,17 @@ Read the matching
 and [complete JSON example](https://github.com/coisa/error-handler/blob/master/examples/http-json.php)
 before wiring this route; older releases may not contain these opt-in classes.
 
+For a source/release containing the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89),
+the built-in response factory preserves valid exception messages byte-for-byte
+as reason phrases, including horizontal tabs and opaque high bytes. Forbidden
+controls such as CR, LF, NUL and DEL omit the reason argument to select the
+application's PSR-17 default. Empty messages are still passed explicitly,
+preserving the selected implementation's existing behavior. Status mapping remains
+integer 400–500, with 500 for other integers or string codes. The original
+throwable still reaches stream/reporting once; body capture and diagnostic
+fallback are unchanged. Valid messages can still reveal details in the reason,
+so this repair does not replace an explicit public-safe application renderer.
+
 For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
 reporter/capture failure triggers best-effort removal of removable buffers above
 the entry level. Cleanup stops at a protected buffer, failed close or absent progress;
@@ -199,6 +247,10 @@ success/failure and configured response bodies. Run uncaught/fatal experiments
 only through a bounded child fixture. Read the
 [complete 2.x cookbook](https://github.com/coisa/error-handler/blob/master/docs/examples.md)
 with its [application setup and verifier](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+On PHP 8.3+ with FastForward installed, --with-fast-forward includes the optional
+provider modes in that same bounded verifier. Core checks remain independent of
+this optional container. An application's no-dev installation must still include
+FastForward if that application chose the provider route.
 In a consumer, retain focused tests against its own reporters and transports.
 Library/example checks do not prove delivery to a real logging service.
 

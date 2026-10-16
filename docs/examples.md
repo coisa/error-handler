@@ -1,6 +1,6 @@
 # Complete 2.x cookbook
 
-These complete recipes use the existing `coisa/error-handler` 2.x API and PHP 7.4-compatible syntax. They match the executable sources in this checkout; verify that an installed release contains the adapters you select. They do not describe the proposed major's FastForward provider, constructor callables or report-before-render middleware.
+These complete recipes use the `coisa/error-handler` 2.x API and PHP 7.4-compatible syntax. They match the executable sources in this checkout; verify that an installed release contains the adapters you select. The optional Interop/FastForward recipe requires PHP 8.3+ at runtime. It does not adopt the proposed major's required container, constructor callables or report-before-render middleware.
 
 Start with the [application dependencies and execution setup](https://github.com/coisa/error-handler/blob/master/examples/README.md). The recipes share [bootstrap.php](https://github.com/coisa/error-handler/blob/master/examples/bootstrap.php) for the application's Composer autoloader and [check.php](https://github.com/coisa/error-handler/blob/master/examples/check.php) for their synthetic assertions. When adapting a recipe to an application, use its existing autoloader and tests.
 
@@ -27,6 +27,7 @@ The displayed PHP retains imports, declarations, spacing and every executable br
 | [container.php](#existing-container-and-configprovider-integration) | Existing container and ConfigProvider integration |
 | [http.php](#http-responses-output-capture-and-a-safe-application-adapter) | HTTP responses, output capture and a safe application adapter |
 | [http-json.php](#pure-json-with-one-private-report) | Pure JSON with one private report |
+| [provider-json.php](#optional-interop-json-profile) | Optional Interop JSON profile, PHP 8.3+ |
 
 ## Direct throwable reporting
 
@@ -763,6 +764,8 @@ echo 'legacy container, cached services, fresh factory and ConfigProvider passed
 
 Exercise normal and failed PSR-15 processing, captured output, the legacy empty/zero diagnostic fallback and an explicit application response factory. The current middleware does not report independently before rendering; do not add a second diagnostic call around the built-in capture chain.
 
+The example's single-line reason remains unchanged. In a checkout/release containing the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89), diagnostics with forbidden status-line controls use the PSR-17 default reason instead. This does not redact the original throwable or the legacy body fallback; see [the HTTP contract](http.md#existing-response-and-output-capture).
+
 Source: [examples/http.php](https://github.com/coisa/error-handler/blob/master/examples/http.php).
 
 <!-- source: examples/http.php -->
@@ -1116,6 +1119,130 @@ exampleCheck($bufferLevel === ob_get_level(), 'JSON composition unexpectedly cha
 
 // The application owns response emission; this CLI recipe prints only its verification summary.
 echo 'HTTP JSON ' . $mode . ': explicit payload, status preservation and one private report passed' . PHP_EOL;
+```
+
+## Optional Interop JSON profile
+
+Use the additive JSON profile with application-owned PSR-17 and a private reporter. The base keeps lifecycle/defaults; the JSON profile selects reporting plus its pure renderer. This integration requires PHP 8.3+ and FastForward installed in the application's runtime dependencies. Config supplies an explicit bool before container construction. Each scope-factory invocation creates a distinct handler and middleware; existing 2.x shutdown-queue limits remain. Select these two modes with the existing verifier's `--with-fast-forward` option.
+
+Source: [examples/provider-json.php](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php).
+
+<!-- source: examples/provider-json.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
+use FastForward\Container\Factory\AliasFactory;
+use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+
+use function FastForward\Config\config;
+use function FastForward\Container\container;
+
+require __DIR__ . '/bootstrap.php';
+
+exampleCheck(
+    PHP_VERSION_ID >= 80300 && function_exists('FastForward\Container\container'),
+    'Install fast-forward/container:^1.9 in the application and use PHP 8.3 or newer.',
+);
+$mode = $argv[1] ?? 'public';
+exampleCheck(in_array($mode, ['public', 'debug'], true), 'Choose the public or debug example mode.');
+
+// This CLI choice stands in for trusted application configuration, never request headers.
+$settings = config(['error_handler' => ['json' => ['debug' => 'debug' === $mode]]]);
+$messages = new Psr17Factory();
+$original = new RuntimeException('Private synthetic provider failure', 503);
+$reports = [];
+$reporter = new CallableThrowableHandler(
+    /**
+     * Record one original event without writing diagnostics into a public response.
+     *
+     * @param Throwable $event the original downstream failure
+     */
+    static function (Throwable $event) use (&$reports): void {
+        $reports[] = $event; // Replace this recording sink with the application's private transport.
+    },
+);
+
+$application = new ArrayServiceProvider([
+    ResponseFactoryInterface::class => new ServiceFactory($messages),
+    StreamFactoryInterface::class => AliasFactory::get(ResponseFactoryInterface::class),
+    ThrowableHandlerInterface::class => new ServiceFactory($reporter),
+]);
+
+if ('debug' === $mode) {
+    $services = container(
+        new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
+        $application,
+    );
+} else {
+    $services = container(JsonErrorHandlerServiceProvider::class, $application);
+}
+
+// Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.
+$middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
+
+$middleware = $middlewareFactory($services);
+
+$next = new class ($original) implements RequestHandlerInterface {
+    /** @var Throwable the synthetic downstream failure */
+    private Throwable $original;
+
+    /**
+     * Retain original identity for the private reporter.
+     *
+     * @param Throwable $original the event that the middleware will catch
+     */
+    public function __construct(Throwable $original)
+    {
+        $this->original = $original;
+    }
+
+    /**
+     * Fail a synthetic route without emission or registration of its own callbacks.
+     *
+     * @param ServerRequestInterface $request the synthetic HTTP request
+     *
+     * @return ResponseInterface no response is returned by this failing route
+     *
+     * @throws Throwable the original downstream failure
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        throw $this->original;
+    }
+};
+
+$response = $middleware->process($messages->createServerRequest('GET', '/provider-json'), $next);
+
+exampleCheck([$original] === $reports, 'The profile must report the exact original once.');
+exampleCheck(503 === $response->getStatusCode(), 'Expected the native HTTP error code.');
+exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected JSON.');
+
+if ('debug' === $mode) {
+    $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+    exampleCheck(
+        $original->getMessage() === $payload['exception']['message'],
+        'Trusted debug configuration did not reach the renderer.',
+    );
+    exampleCheck('no-store' === $response->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
+} else {
+    exampleCheck('{"error":"Request failed"}' === (string) $response->getBody(), 'Public JSON leaked diagnostics.');
+}
+
+// Applications emit the response; this CLI fixture prints only its verification summary.
+echo 'Interop JSON ' . $mode . ': configured profile, fresh scope and one private report passed' . PHP_EOL;
 ```
 
 Continue with the [core API](api.md), [container integration](container.md), [HTTP composition](http.md) and [testing guide](testing.md). Those guides explain lifecycle ownership, reporting failures and the current output-capture limits.

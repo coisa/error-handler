@@ -2,7 +2,7 @@
 
 These source-checkout examples use synthetic data and PHP 7.4-compatible syntax. They target the existing 2.x API, not the proposed major. Verify the installed package/checkouts and pending patch boundaries in the [API guide](../docs/api.md).
 
-Read all eleven complete recipes, including imports and every executable branch, in the [2.x cookbook](../docs/examples.md). Its displayed code is checked against these sources; setup and bounded execution remain documented here and in the verifier guide.
+Read all twelve complete recipes, including imports and every executable branch, in the [2.x cookbook](../docs/examples.md). Its displayed code is checked against these sources; setup and bounded execution remain documented here and in the verifier guide.
 
 ## Application dependencies
 
@@ -21,6 +21,14 @@ The direct logging recipe requires a checkout or release containing `LogThrowabl
 The JSON recipe requires a checkout or release containing `JsonThrowableResponseFactory` and `ReportingThrowableResponseFactory`. Both are opt-in: existing releases/default middleware do not acquire this composition automatically. It uses the same application-owned PSR-17 implementation as the legacy HTTP example.
 
 Its `public` mode returns only the generic payload. Its explicitly selected `debug` mode adds native exception/trace metadata without arguments or objects and sends `Cache-Control: no-store`. The CLI mode stands in for trusted application configuration; do not select debug from public request input. PHP 7.4 debug use requires the optional JSON extension, included by PHP 8; it does not become a core requirement.
+
+The optional Interop provider recipe additionally requires application PHP 8.3+ and FastForward Container in the application's runtime dependencies:
+
+```sh
+composer require 'fast-forward/container:^1.9' --no-plugins --no-scripts --no-interaction
+```
+
+Its application map supplies PSR-17 and a private reporter. `JsonErrorHandlerServiceProvider` selects reporting plus JSON, while its scope factory creates a new handler for the middleware. Config passes a real bool to the profile before container construction. No environment/header autodetection or output capture is added. Select a source/release containing these optional providers; the existing core recipes remain usable without FastForward.
 
 Individual recipes need only their application dependencies. The bounded
 verifier additionally uses Symfony Process as a development tool. Add it in the
@@ -56,9 +64,14 @@ The optional development HTML recipe requires `composer require --dev 'filp/whoo
 | [container.php](container.php) | Legacy ErrorHandlerContainer, ConfigProvider/Laminas maps, an application reporter, cached services and fresh ErrorHandlerFactory invocation. |
 | [http.php](http.php) | PSR-15/PSR-17 response composition, actual output capture/empty/zero fallback, an explicit safe application renderer and callback restoration after failure. |
 | [http-json.php](http-json.php) | Generic or explicitly selected development JSON, integer HTTP 400–599 status preservation, one original private report through a decorator, metadata-only trace and no output capture/emission. |
+| [provider-json.php](provider-json.php) | Optional FastForward/Interop JSON profile, required application services, explicit Config bool and a fresh middleware scope; PHP 8.3+ with FastForward installed at runtime. |
 
 Run direct/logging/adapter/event/container recipes individually with `php examples/<file>.php`. Run process/fatal/HTTP scenarios through `php examples/verify.php` to preserve the documented bounds and observed exit/output checks. The verifier also covers default fatal-shutdown reporting through PhpLastErrorShutdownHandler.
 
+On PHP 8.3+ with FastForward installed, add `--with-fast-forward` to include both provider JSON modes in the same bounded verifier. Requesting that option without its dependencies fails clearly; omitting it keeps the core PHP 7.4 verification independent of FastForward.
+
 Examples return response objects and synthetic log records. They do not deliver real logs, start a web server, emit HTTP to a client or certify an application's transport. Applications own those integrations.
+
+The HTTP example's valid single-line reason remains unchanged by the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89). With that repair present, forbidden controls select the PSR-17 default reason; the original throwable and capture/empty/zero body behavior remain unchanged. See [the HTTP reason contract](../docs/http.md#existing-response-and-output-capture) before emitting responses.
 
 Continue with [core API](../docs/api.md), [container composition](../docs/container.md), and [HTTP behavior](../docs/http.md).

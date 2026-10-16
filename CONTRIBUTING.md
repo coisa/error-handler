@@ -31,6 +31,14 @@ also prevents resolving the complete development graph on PHP 7.4. A production
 consumer must resolve only the library's runtime dependencies when checking
 that minimum.
 
+The optional Interop providers are tested with the real
+`fast-forward/container:^1.9` development dependency in the normal PHPUnit and
+PHPStan checks. FastForward requires PHP 8.3; it is not a core runtime requirement.
+The Production jobs create an external consumer from `git archive`, so the
+library's `require-dev` is not transitively installed on PHP 7.4. An application
+that chooses these providers must install FastForward in its own `require`, not
+only `require-dev`, to retain its container in production.
+
 ## Quality checks
 
 The `coisa/php-cs-fixer:^3.0` preset supplies the formatter policy. A local override

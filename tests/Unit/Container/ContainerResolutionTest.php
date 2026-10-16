@@ -20,6 +20,7 @@ use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
 use CoiSA\ErrorHandler\Container\Exception\ContainerException;
 use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
@@ -126,16 +127,108 @@ final class ContainerResolutionTest extends TestCase
         }
     }
 
-    /** Verifies both public wrapper factories preserve their exact Throwable cause. */
-    public function testExceptionFactoriesPreserveDiagnosticMetadata(): void
+    /**
+     * Verifies both factories preserve integer codes and retain string codes on the cause.
+     *
+     * @param int|string $code         the original exception code without coercion
+     * @param int        $expectedCode the integer code accepted by the native wrapper
+     *
+     * @dataProvider provideExceptionFactoriesPreserveDiagnosticMetadataCases
+     */
+    public function testExceptionFactoriesPreserveDiagnosticMetadata($code, int $expectedCode): void
     {
-        $cause = new \Exception('original cause', 42);
+        $previous = new \RuntimeException('Earlier synthetic failure');
+        $cause = self::createThrowableWithCode($code, $previous);
+
         foreach ([ContainerException::class, NotFoundException::class] as $class) {
             $exception = $class::createFromThrowable($cause);
             self::assertInstanceOf($class, $exception);
             self::assertSame($cause, $exception->getPrevious());
             self::assertSame('original cause', $exception->getMessage());
-            self::assertSame(42, $exception->getCode());
+            self::assertSame($expectedCode, $exception->getCode());
+            self::assertSame($code, $cause->getCode());
+            self::assertSame($previous, $cause->getPrevious());
         }
+    }
+
+    /**
+     * Supplies native integer codes and string codes that must not be coerced.
+     *
+     * @return array<string, array{int|string, int}> original and expected wrapper codes
+     */
+    public static function provideExceptionFactoriesPreserveDiagnosticMetadataCases(): iterable
+    {
+        return [
+            'positive integer' => [42, 42],
+            'zero integer' => [0, 0],
+            'negative integer' => [-17, -17],
+            'alphanumeric SQLSTATE' => ['HY000', 0],
+            'numeric SQLSTATE' => ['23000', 0],
+            'numeric-looking HTTP status' => ['404', 0],
+        ];
+    }
+
+    /** Verifies nested alias and factory failures retain the original SQLSTATE cause. */
+    public function testNestedFactoryFailurePreservesStringCodeCause(): void
+    {
+        $failure = self::createThrowableWithCode('HY000');
+        $parent = $this->createMock(ContainerInterface::class);
+        $parent->method('has')->willReturnCallback(
+            /**
+             * Selects the optional reporter whose construction fails in the parent.
+             *
+             * @param string $id the requested identifier
+             *
+             * @return bool whether the parent advertises the reporter
+             */
+            static fn(string $id): bool => CallableThrowableHandler::class === $id,
+        );
+        $parent->expects(self::once())->method('get')->with(CallableThrowableHandler::class)
+            ->willThrowException($failure)
+        ;
+
+        try {
+            (new ErrorHandlerContainer($parent))->get(ErrorHandler::class);
+            self::fail('The failed reporter must propagate through the container cause chain.');
+        } catch (ContainerException $caught) {
+            $aliasFailure = $caught->getPrevious();
+            self::assertInstanceOf(ContainerException::class, $aliasFailure);
+            $aggregateFailure = $aliasFailure->getPrevious();
+            self::assertInstanceOf(ContainerException::class, $aggregateFailure);
+            self::assertSame($failure, $aggregateFailure->getPrevious());
+
+            foreach ([$caught, $aliasFailure, $aggregateFailure] as $wrapper) {
+                self::assertSame('original cause', $wrapper->getMessage());
+                self::assertSame(0, $wrapper->getCode());
+            }
+
+            self::assertSame('HY000', $failure->getCode());
+        }
+    }
+
+    /**
+     * Creates a driver-free native exception with the code type supplied by a PDO driver.
+     *
+     * @param int|string      $code     the original code, including string SQLSTATE values
+     * @param null|\Throwable $previous an optional earlier failure preserved by the fixture
+     *
+     * @return \PDOException an exception carrying the original diagnostic metadata
+     */
+    private static function createThrowableWithCode($code, ?\Throwable $previous = null): \PDOException
+    {
+        return new class ($code, $previous) extends \PDOException {
+            /**
+             * Initializes metadata without requiring a database connection or driver.
+             *
+             * @param int|string      $code     the code a PDO driver could provide
+             * @param null|\Throwable $previous the original earlier failure
+             */
+            public function __construct($code, ?\Throwable $previous)
+            {
+                parent::__construct('original cause', 0, $previous);
+
+                $this->code = $code;
+            }
+        };
     }
 }
