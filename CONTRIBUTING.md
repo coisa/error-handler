@@ -78,6 +78,28 @@ cache keys must not require a committed Composer lockfile.
 `package-lock.json` remains tracked for the independent Node release tooling.
 Node.js is not a runtime dependency of the Composer library.
 
+## Native development environment
+
+Use an installed PHP runtime and Composer 2 for the commands above. The removed
+Docker development wrappers used PHP 7.2 and Xdebug 2.6, below the library's
+declared PHP 7.4 minimum. They wrapped Composer and PHPUnit; they were not a
+supported runtime image for consumers.
+
+For an existing local resolution, install dependencies without enabling plugins
+or scripts, then run the native quality chain:
+
+```sh
+composer install --no-plugins --no-scripts --no-interaction --prefer-dist
+composer --no-plugins check
+```
+
+The [PHP style workflow](.github/workflows/php-style.yml) runs its checks directly
+on PHP 8.4 and does not build a repository Docker image. That workflow checks
+changed PHP files; the broader supported-runtime CI baseline is tracked in
+[issue #11](https://github.com/coisa/error-handler/issues/11). Record the actual
+workflow/SHA and local runtime results; an active workflow name alone does not
+prove a runtime matrix was executed.
+
 ## Production container regression
 
 The public container requires the `psr/container` interface package at runtime;
