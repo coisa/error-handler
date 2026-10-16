@@ -80,10 +80,11 @@ Direct tests retain empty/`"0"` diagnostic fallback and successful unbalanced
 capture: the inner output becomes the body and an outer buffer remains. Passing
 characterization does not endorse these limitations or change runtime policy.
 
-Six instrumentable lines forward a genuinely fatal last error; four stream
-cleanup lines handle protected/failed/non-progressing/throwing output cleanup.
-These are outside ordinary unit measurement. Native process tests prove the
-reachable hazardous operations; synthetic substitutions that made a native
+Six instrumentable lines forward a genuinely fatal last error; three stream
+cleanup lines stop protected, failed or non-progressing cleanup. These remain
+outside ordinary unit measurement. A real throwing native cleanup callback is
+tested directly with removable scopes restored in `finally`. Native process
+tests prove the other reachable hazardous operations; synthetic substitutions that made a native
 function return success without closing a buffer were discarded. No private
 reflection, coverage ignores, source exclusions or child-coverage protocol merging
 is used to claim 100%. Consult the implementation PR for exact reports and SHAs.

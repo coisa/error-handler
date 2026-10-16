@@ -26,7 +26,7 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 /**
  * Verifies captured bytes, exceptional cleanup and primary failure propagation.
  *
- * Dangerous output callbacks remain in the bounded Fire fixtures.
+ * Dangerous output callbacks are verified by PHPUnit Process tests and bounded fixtures.
  *
  * @internal
  *
@@ -288,5 +288,95 @@ final class ThrowableStreamFactoryTest extends TestCase
             self::assertSame($primary, $caught);
             self::assertSame($entry, ob_get_level());
         }
+    }
+
+    /** Verifies a native throwing output handler preserves primary failure and caller-owned scopes. */
+    public function testCleanupCallbackFailurePreservesPrimaryAndCaller(): void
+    {
+        $original = new \Error('incoming report');
+        $primary = new \RuntimeException('primary reporter failure');
+        $secondary = new \LogicException('secondary callback failure');
+        $callbackCalls = 0;
+        $callerCalls = 0;
+        $received = null;
+        $reporter = new CallableThrowableHandler(
+            /**
+             * Opens a removable scope whose native callback fails before reporting fails.
+             *
+             * @param \Throwable $event the original event supplied for reporting
+             *
+             * @throws \RuntimeException the primary reporter failure
+             */
+            static function (\Throwable $event) use ($primary, $secondary, &$callbackCalls, &$received): void {
+                $received = $event;
+                ob_start(
+                    /**
+                     * Throws once from the actual native close, without modifying buffer structure.
+                     *
+                     * @param string $buffer the nested reporter bytes
+                     *
+                     * @return string unchanged bytes on any later invocation
+                     *
+                     * @throws \LogicException the distinct first output-handler failure
+                     */
+                    static function (string $buffer) use ($secondary, &$callbackCalls): string {
+                        if (1 === ++$callbackCalls) {
+                            throw $secondary;
+                        }
+
+                        return $buffer;
+                    },
+                );
+                echo 'discard nested';
+
+                throw $primary;
+            },
+        );
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->expects(self::never())->method('createStream');
+        $entry = ob_get_level();
+        ob_start();
+        echo 'C0:';
+        ob_start(
+            /**
+             * Records premature invocation of a caller-owned scope.
+             *
+             * @param string $buffer the caller's original bytes
+             *
+             * @return string the same caller bytes
+             */
+            static function (string $buffer) use (&$callerCalls): string {
+                ++$callerCalls;
+
+                return $buffer;
+            },
+        );
+        echo 'C1:';
+        $callerLevel = ob_get_level();
+        $caught = null;
+
+        try {
+            try {
+                (new ThrowableStreamFactory($streams, $reporter))->createStreamFromThrowable($original);
+            } catch (\Throwable $failure) {
+                $caught = $failure;
+            }
+            self::assertSame($original, $received);
+            self::assertSame($primary, $caught);
+            self::assertSame(1, $callbackCalls);
+            self::assertSame($callerLevel + 1, ob_get_level());
+            self::assertSame(0, $callerCalls);
+            ob_end_clean();
+            self::assertSame($callerLevel, ob_get_level());
+            self::assertSame('C1:', ob_get_contents());
+            ob_end_flush();
+            self::assertSame('C0:C1:', ob_get_contents());
+            self::assertSame(1, $callerCalls);
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+        self::assertSame($entry, ob_get_level());
     }
 }

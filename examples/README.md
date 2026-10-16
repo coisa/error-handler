@@ -14,7 +14,15 @@ Choose a library release/check-out containing the metadata and PHP 7.4 alias rep
 
 Each implementation resolves to a version compatible with the application's actual PHP. Modern Laminas development dependencies can require newer PHP than the library's runtime; do not bypass platform requirements to test PHP 7.4.
 
-To use the disposable application's dependencies:
+Individual recipes need only their application dependencies. The bounded
+verifier additionally uses Symfony Process as a development tool. Add it in the
+disposable application before selecting that application's autoloader:
+
+```sh
+composer require --dev 'symfony/process:^5.4 || ^6.4 || ^7.4 || ^8.0' --no-plugins --no-scripts --no-interaction
+```
+
+Then use the disposable application's dependencies:
 
 ```sh
 ERROR_HANDLER_AUTOLOAD=/absolute/application/vendor/autoload.php php examples/verify.php

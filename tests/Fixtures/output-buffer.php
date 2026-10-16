@@ -73,7 +73,7 @@ $reporter = new CallableThrowableHandler(static function (Throwable $event) use 
          */
         $identity = static fn(string $buffer): string => $buffer;
         ob_start($identity, 0, PHP_OUTPUT_HANDLER_CLEANABLE | PHP_OUTPUT_HANDLER_FLUSHABLE);
-    } elseif (in_array($case, ['cleanup-throws', 'capture-throws', 'terminates'], true)) {
+    } elseif (in_array($case, ['capture-throws', 'terminates'], true)) {
         ob_start(
             /**
              * Fails once or terminates during real native output cleanup.

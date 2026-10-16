@@ -61,7 +61,7 @@ final class ProcessBehaviorTest extends TestCase
         try {
             $process->run(
                 /**
-                 * Bounds retained fixture output while Symfony owns pipe/child management.
+                 * Rejects excessive fixture output while Symfony owns pipe/child management.
                  *
                  * @param string $type  the standard pipe identifier
                  * @param string $chunk the new fixture bytes
@@ -193,7 +193,6 @@ final class ProcessBehaviorTest extends TestCase
         return [
             'protected caller' => ['protected-caller', 0, 0],
             'protected nested scope' => ['protected-top', 2, 0],
-            'cleanup callback throws' => ['cleanup-throws', 1, 1],
             'capture callback throws' => ['capture-throws', 0, 1],
             'cleanup callback exits' => ['terminates', 0, 0],
         ];
