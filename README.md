@@ -3,9 +3,7 @@
 [![PHP Version][ico-php]][link-packagist]
 [![Latest Version on Packagist][ico-version]][link-packagist]
 [![Software License][ico-license]](LICENSE)
-[![Build Status][ico-build]][link-build]
-[![Coverage Status][ico-scrutinizer]][link-scrutinizer]
-[![Quality Score][ico-code-quality]][link-code-quality]
+[![PHP CI][ico-build]][link-build]
 [![Total Downloads][ico-downloads]][link-downloads]
 
 ## Install
@@ -69,6 +67,10 @@ a real application. Read the guide for your integration:
 - [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),
   retaining source identity when copied into a project; no global installation is required.
 
+The optional [static HTML guide source](https://github.com/coisa/error-handler/blob/master/docs/index.html)
+can be opened locally. Its workflow validates source excerpts in pull requests;
+Pages deployment requires a separate owner-authorized manual run.
+
 The original 2.x runtime metadata and PHP 7.4 alias defects are tracked in
 [#13](https://github.com/coisa/error-handler/issues/13) and
 [#40](https://github.com/coisa/error-handler/issues/40). Use a checkout or published
@@ -113,14 +115,10 @@ Please see [License File](LICENSE) for more information.
 [ico-version]: https://img.shields.io/packagist/v/coisa/error-handler.svg?style=flat-square
 [ico-php]: https://img.shields.io/packagist/php-v/coisa/error-handler.svg?style=flat-square
 [ico-license]: https://img.shields.io/github/license/coisa/error-handler.svg?style=flat-square
-[ico-build]: https://img.shields.io/scrutinizer/build/g/coisa/error-handler/master.svg?style=flat-square
-[ico-scrutinizer]: https://img.shields.io/scrutinizer/coverage/g/coisa/error-handler.svg?style=flat-square
-[ico-code-quality]: https://img.shields.io/scrutinizer/g/coisa/error-handler.svg?style=flat-square
+[ico-build]: https://github.com/coisa/error-handler/actions/workflows/ci.yml/badge.svg?branch=master
 [ico-downloads]: https://img.shields.io/packagist/dt/coisa/error-handler.svg?style=flat-square
 
 [link-packagist]: https://packagist.org/packages/coisa/error-handler
-[link-build]: https://scrutinizer-ci.com/g/coisa/error-handler
-[link-scrutinizer]: https://scrutinizer-ci.com/g/coisa/error-handler/code-structure
-[link-code-quality]: https://scrutinizer-ci.com/g/coisa/error-handler
+[link-build]: https://github.com/coisa/error-handler/actions/workflows/ci.yml
 [link-downloads]: https://packagist.org/packages/coisa/error-handler
 [link-author]: https://github.com/coisa

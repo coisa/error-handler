@@ -46,6 +46,21 @@ The source autoloader takes precedence over fixture dependencies, so both runner
 exercise this checkout's `src` tree. Composer fixture files belong to their
 temporary directory and can be removed after the run.
 
+## Native CI and security-analysis limits
+
+The [PHP CI workflow](https://github.com/coisa/error-handler/actions/workflows/ci.yml)
+runs formatting, PHPCS, PHPUnit and maximum PHPStan analysis over source and
+tests, plus clean production installations across the declared PHP range.
+Its separate coverage jobs collect PHPUnit XML and report the measured lines;
+process/HTTP characterization remains separate evidence from that percentage.
+
+The retired Scrutinizer configuration requested data-flow security analysis in
+addition to style, tests and coverage. Its latest public inspection was from
+September 2019, so its historical badges did not describe the current 2.x tree.
+PHPStan and PHPCS do not establish equivalent security analysis; the native
+workflow does not include that Scrutinizer capability. Removing repository
+configuration and badges does not change the external service's settings.
+
 ## Bounds and cleanup
 
 Each fire child runs with `php -n`, a 16 MiB memory limit, a five-second deadline
@@ -138,6 +153,24 @@ It does not promise a future report-once middleware policy.
 The intentionally invalid `.inc` files belong only to bounded parse/compile
 fixtures and are excluded from ordinary syntax/style assertions with local
 PHPCS directives. Do not execute them in the parent test process.
+
+## Static documentation
+
+From a source checkout, open `docs/index.html` locally to inspect the 2.x reading guide. Run
+`php tests/Documentation/site.php` with PHP 7.4+ and its DOM extension to check
+every displayed source excerpt against its executable example, unique IDs,
+anchor targets and repository source links. Inspect keyboard navigation,
+horizontal code/table scrolling and mobile layout in a browser as separate
+visual/accessibility evidence. The checker does not certify a live website.
+
+The [Documentation Pages workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
+runs only its read-only validation job on pull requests. Artifact upload and
+deployment require `workflow_dispatch` on the repository's default branch.
+Hosting must be configured separately by the owner; the workflow does not enable
+Pages. Its deployment job uses the `github-pages` environment and Pages/OIDC write
+permissions, following [GitHub's custom workflow requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+The first specifically authorized deployment remains a separate live integration
+check. Preparing or merging this workflow does not perform that check.
 
 ## Evidence and limits
 
