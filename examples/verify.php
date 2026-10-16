@@ -24,6 +24,7 @@ $cases = [
     ['handlers.php', [], 0, "callable, aggregate, conversion, suppression and shutdown adapters passed\n"],
     ['php-errors.php', [], 0, "callable PHP errors: four arguments, explicit mask policy and conversion passed\n"],
     ['filtering.php', [], 0, "explicit filtering, severity selection and original-object delivery passed\n"],
+    ['best-effort.php', [], 0, "best-effort order, original cause and all reporter failures passed\n"],
     ['events.php', [], 0, "raw throwable, ErrorEvent, listener providers and PSR-3 logging passed\n"],
     ['container.php', [], 0, "legacy container, cached services, fresh factory and ConfigProvider passed\n"],
     ['process.php', ['warning'], 0, "reported: Process warning\ncontinued\n"],

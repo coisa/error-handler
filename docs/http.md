@@ -47,6 +47,8 @@ On reporter or capture failure, the stream factory attempts to discard removable
 
 ## A safe application response
 
+An explicitly configured `BestEffortThrowableHandlerAggregate` attempts all its reporter slots, then throws if any failed. The existing capture factory propagates that aggregate failure through the cleanup boundary above; it does not produce a successful fallback response. Its fixed summary does not make its original cause, failures or string representation public-safe. See [the terminal policy](api.md#best-effort-reporting) before composing it into an HTTP reporter.
+
 The `safe` mode uses an application implementation of `ThrowableResponseFactoryInterface`. It calls a private, non-output diagnostic reporter once, then creates a fixed 500 response with `Internal Server Error` through the supplied PSR-17 implementation. It does not copy exception messages, stack traces or database codes into the public body or reason phrase.
 
 This is an explicit application adapter. The built-in renderer remains the capture/fallback adapter described above. A proposed future pure renderer, JSON API or content negotiation policy is not an existing 2.x default.
