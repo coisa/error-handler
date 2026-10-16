@@ -15,15 +15,17 @@
             <directory suffix="Test.php">tests/Functional</directory>
         </testsuite>
     </testsuites>
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
+    <coverage processUncoveredFiles="true">
+        <include>
             <directory suffix=".php">src</directory>
-        </whitelist>
-    </filter>
+        </include>
+        <report>
+            <clover outputFile="tests/clover.xml"/>
+            <html outputDirectory="tests/html" lowUpperBound="35" highLowerBound="70"/>
+            <text outputFile="php://stdout"/>
+        </report>
+    </coverage>
     <logging>
-        <log type="coverage-clover" target="tests/clover.xml" lowUpperBound="35" highLowerBound="70"/>
-        <log type="coverage-html" target="tests/html" lowUpperBound="35" highLowerBound="70"/>
-        <log type="coverage-text" target="php://stdout" lowUpperBound="35" highLowerBound="70" />
-        <log type="testdox-html" target="tests/testdox.html" lowUpperBound="35" highLowerBound="70"/>
+        <testdoxHtml outputFile="tests/testdox.html"/>
     </logging>
 </phpunit>
