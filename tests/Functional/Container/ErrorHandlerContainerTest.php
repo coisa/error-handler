@@ -52,6 +52,9 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @internal
  *
  * @coversNothing
+ *
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 final class ErrorHandlerContainerTest extends TestCase
 {

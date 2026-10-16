@@ -27,13 +27,14 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
 
 /**
- * Class ErrorHandlerContainerTest.
+ * Verifies delegated missing-service and internal dependency-failure paths.
  *
  * @package CoiSA\ErrorHandler\Test\Unit\Container
  *
  * @internal
  *
- * @coversNothing
+ * @covers \CoiSA\ErrorHandler\Container\ErrorHandlerContainer
+ * @covers \CoiSA\ErrorHandler\Container\Exception\ContainerException
  */
 final class ErrorHandlerContainerTest extends TestCase
 {

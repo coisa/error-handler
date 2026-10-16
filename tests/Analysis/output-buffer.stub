@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+
+declare(strict_types=1);
+
+/**
+ * Documents the real native output handler's exception propagation for PHPStan.
+ *
+ * Analysis-only: never require this file. Removing the old executable namespace
+ * seam exposed PHPStan1.12's missing throws metadata. The real cleanup-throws
+ * Process case proves propagation without replacing this native function.
+ *
+ * @see https://www.php.net/manual/en/function.ob-end-clean.php
+ * @see https://www.php.net/manual/en/outcontrol.user-level-output-buffers.php
+ * @see https://phpstan.org/user-guide/stub-files
+ *
+ * @return bool whether the active removable scope was closed
+ *
+ * @throws Throwable when an invoked output callback throws
+ */
+function ob_end_clean(): bool {}
