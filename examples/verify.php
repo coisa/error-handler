@@ -27,6 +27,18 @@ $cases = [
     ['best-effort.php', [], 0, "best-effort order, original cause and all reporter failures passed\n"],
     ['events.php', [], 0, "raw throwable, ErrorEvent, listener providers and PSR-3 logging passed\n"],
     ['container.php', [], 0, "legacy container, cached services, fresh factory and ConfigProvider passed\n"],
+    [
+        'http-json.php',
+        ['public'],
+        0,
+        "HTTP JSON public: explicit payload, status preservation and one private report passed\n",
+    ],
+    [
+        'http-json.php',
+        ['debug'],
+        0,
+        "HTTP JSON debug: explicit payload, status preservation and one private report passed\n",
+    ],
     ['process.php', ['warning'], 0, "reported: Process warning\ncontinued\n"],
     ['process.php', ['scope'], 0, "reported: Scoped warning\ncallbacks restored\n"],
     ['process.php', ['uncaught'], 0, "reported: Uncaught fixture\n"],

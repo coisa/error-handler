@@ -152,10 +152,29 @@ Middleware registers/restores its lifecycle handler and delegates caught
 throwables to the response factory. It does not report independently first.
 The default stream factory invokes the reporter while capturing output; empty
 or "0" output falls back to exception text. This can expose diagnostics. Use
-an explicit application response factory that reports privately once and creates
-a fixed public response. Read the matching
+an explicit application response composition that reports privately once and creates
+a controlled public response. For a source/release containing
+Http\Message\JsonThrowableResponseFactory and ReportingThrowableResponseFactory,
+construct the JSON factory with the application's PSR-17 response/stream factories,
+then wrap it with the reporting decorator and a private reporter that does not print.
+The JSON factory preserves integer 400–599 codes, otherwise uses 500, returns
+application/json with {"error":"Request failed"}, and never passes the diagnostic
+message as the HTTP reason phrase. The decorator reports the original once before
+rendering; reporter failure prevents rendering and collaborator failures propagate.
+The JSON factory's optional third bool defaults to false. Enable debug only from
+trusted application configuration. It adds class/message/file/line and metadata-only
+trace, excluding arguments, objects and previous causes, with Cache-Control:no-store.
+Messages and paths can still contain private data; this is not full redaction.
+Invalid UTF-8 is replaced. Debug needs ext-json on PHP 7.4 (included by PHP 8),
+and missing encoder support fails during debug construction; generic rendering
+does not require the encoder. Do not autodetect debug from request headers or globals.
+It does not suppress reporter output. Do not wrap the legacy capture renderer,
+which already reports; do not use this decorator in a report-before-render major
+composition. Existing middleware/default container behavior remains unchanged.
+Read the matching
 [HTTP recipe](https://github.com/coisa/error-handler/blob/master/docs/http.md)
-before wiring this route; do not invent a built-in pure/default JSON renderer.
+and [complete JSON example](https://github.com/coisa/error-handler/blob/master/examples/http-json.php)
+before wiring this route; older releases may not contain these opt-in classes.
 
 For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
 reporter/capture failure triggers best-effort removal of removable buffers above

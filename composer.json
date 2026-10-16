@@ -30,6 +30,9 @@
         "psr/event-dispatcher": "^1.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
+    "suggest": {
+        "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8."
+    },
     "autoload": {
         "psr-4": {
             "CoiSA\\ErrorHandler\\": "src/"

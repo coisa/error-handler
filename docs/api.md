@@ -110,4 +110,6 @@ The [adapter example](https://github.com/coisa/error-handler/blob/master/example
 
 The [complete event/logging example](https://github.com/coisa/error-handler/blob/master/examples/events.php) uses an application-installed Phly dispatcher, both providers and callable listeners, plus an in-memory PSR-3 logger. Raw and wrapped dispatch are separate deliveries; configure both only when both are intended.
 
+For explicit public JSON responses, use the separate [pure JSON renderer and reporting decorator](http.md#opt-in-json-responses-and-explicit-reporting). Diagnostic reporters retain their void contract and private-output responsibility; this opt-in composition changes no process lifecycle or existing middleware/default behavior.
+
 Continue with [container composition](container.md), [HTTP composition](http.md), and the [executable cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md).

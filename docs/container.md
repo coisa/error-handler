@@ -74,4 +74,6 @@ Repeated `get(ErrorHandler::class)` returns the cached handler. Invoking a new `
 
 Invoking `ErrorHandlerMiddlewareFactory` constructs a middleware wrapper but asks the container for its handler. That handler may still be cached. For independent nested scopes, explicitly construct a distinct ErrorHandler and middleware; do not treat a fresh wrapper as proof of a fresh handler. The existing middleware factory does not isolate process and request handlers automatically.
 
+`Http\Message\JsonThrowableResponseFactory` and `ReportingThrowableResponseFactory` are also explicit opt-in services. No default alias, factory or discovery entry selects them. Construct them with application-owned PSR-17 factories and a private, non-output reporter, then construct a distinct middleware scope as shown in the [JSON composition](http.md#opt-in-json-responses-and-explicit-reporting). An application may supply the composed response factory under `ThrowableResponseFactoryInterface`, but that override does not make the cached lifecycle handler a fresh request scope. Keep process and public rendering composition intentional.
+
 Applications decide when a resolved process handler calls `register()`. For HTTP registration/restoration, rendering and emission boundaries, see [HTTP](http.md).

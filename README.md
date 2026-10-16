@@ -66,6 +66,7 @@ a real application. Read the guide for your integration:
 - [Explicit PHP-error callbacks](docs/api.md#callable-php-error-policy) and their [runnable policy example](examples/php-errors.php).
 - [Legacy container, ConfigProvider and application dependencies](docs/container.md).
 - [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
+- [Opt-in JSON responses with one explicit private report](docs/http.md#opt-in-json-responses-and-explicit-reporting) and the [complete JSON recipe](examples/http-json.php); verify the selected source/release contains both response adapters.
 - [Complete 2.x cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
   and [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
 - [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),

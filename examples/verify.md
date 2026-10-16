@@ -25,11 +25,15 @@ supplied. The parent environment remains unchanged. The guarded native-fatal
 case cannot run as an ordinary example. Children use synthetic input and own
 their callbacks/buffers; they do not spawn descendants.
 
-Success prints twenty scenario results and the actual PHP version, then exits 0.
+Success prints twenty-two scenario results and the actual PHP version, then exits 0.
 These include callable PHP-error policy, direct PSR-3 logging's exact
 messages/original context and explicit filtering of synthetic deprecations while
 preserving the general branch. Best-effort reporting retains the original and
 every ordered reporter failure after partial success.
+The separate JSON recipe preserves an HTTP 503 and reports the original privately
+once before pure rendering, both for generic output and explicitly selected debug
+metadata. Debug verifies trace arguments/objects are absent and no-store is set;
+no application output buffer or emitter is involved.
 Unexpected status/output, timeout
 or output threshold causes a nonzero verifier exit after cleanup. Registered
 uncaught delivery currently reports and exits 0; native compile fatal reports at
