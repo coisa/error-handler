@@ -197,7 +197,15 @@ switch ($scenario) {
                 echo '0';
             } elseif ('render-throws' === $scenario || 'render-non-removable' === $scenario) {
                 if ('render-non-removable' === $scenario) {
-                    ob_start(null, 0, PHP_OUTPUT_HANDLER_CLEANABLE | PHP_OUTPUT_HANDLER_FLUSHABLE);
+                    /**
+                     * Preserves bytes while making this nested fixture buffer non-removable.
+                     *
+                     * @param string $buffer the captured fixture output
+                     *
+                     * @return string the unchanged captured output
+                     */
+                    $passthrough = static fn(string $buffer): string => $buffer;
+                    ob_start($passthrough, 0, PHP_OUTPUT_HANDLER_CLEANABLE | PHP_OUTPUT_HANDLER_FLUSHABLE);
                 }
 
                 throw new RuntimeException('synthetic renderer failure');

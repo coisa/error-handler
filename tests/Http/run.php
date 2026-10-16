@@ -19,7 +19,8 @@ use function CoiSA\ErrorHandler\Test\Harness\runProcess;
 require __DIR__ . '/../Support/process.php';
 
 $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-foreach ($argv as $argument) {
+$arguments = $argv ?? [];
+foreach ($arguments as $argument) {
     if (0 === strpos($argument, '--autoload=')) {
         $autoload = substr($argument, strlen('--autoload='));
     }
@@ -34,7 +35,7 @@ $cases = [
     '/client-error' => [404, 'legacy captured: synthetic client failure'],
     '/type-error' => [500, 'legacy captured: synthetic type mismatch'],
 ];
-$checkRetry = in_array('--check-port-retry', $argv, true);
+$checkRetry = in_array('--check-port-retry', $arguments, true);
 $owner = bin2hex(random_bytes(16));
 $completed = false;
 $retried = false;

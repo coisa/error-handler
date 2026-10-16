@@ -40,13 +40,14 @@ $limitations = [
     'exception', 'error', 'type-error', 'parse-error', 'nested-fatal', 'shutdown-repeated', 'reporter-throws',
 ];
 $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-foreach ($argv as $argument) {
+$arguments = $argv ?? [];
+foreach ($arguments as $argument) {
     if (0 === strpos($argument, '--autoload=')) {
         $autoload = substr($argument, strlen('--autoload='));
     }
 }
 
-if (in_array('--with-psr', $argv, true)) {
+if (in_array('--with-psr', $arguments, true)) {
     if (!is_file($autoload)) {
         throw new RuntimeException('Install PSR dependencies or use --autoload=/absolute/path/vendor/autoload.php.');
     }
