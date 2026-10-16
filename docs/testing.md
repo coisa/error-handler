@@ -36,6 +36,9 @@ boundary. Even 100% overall line coverage does not prove every branch or behavio
   callback restoration and successful/failed output capture. Specific `@covers`
   annotations describe the subject. Doubles control application-owned services;
   actual PSR message values and real PHP callbacks are used where relevant.
+  Optional Interop provider cases use the real FastForward development dependency:
+  inert lookup, cached aliases, fresh nested middleware scopes, legacy defaults,
+  JSON/configuration, override precedence, report ordering and failure identity.
 - `tests/Functional`: legacy application/container composition. These tests
   retain `@coversNothing`; direct class tests measure their runtime subjects
   independently. Cases installing native callbacks use explicit PHPUnit
@@ -48,15 +51,19 @@ boundary. Even 100% overall line coverage does not prove every branch or behavio
   application, agent or parent test process.
 - `tests/Production`: committed-archive and clean no-dev consumer checks. They
   prove installed metadata/autoloading across the declared PHP range, which unit
-  tests of a development checkout cannot establish.
+  tests of a development checkout cannot establish. This includes construction
+  of the optional Interop provider objects without FastForward installed; their
+  service maps are only used in the explicit PHP 8.3+ integration.
 
 The old standalone Fire/HTTP runners and custom process helper have been retired.
 Ordinary warnings/capture and the four HTTP response tuples now run directly in
 PHPUnit. No server is needed: the library returns PSR responses and applications
 own emission. Integer 404 stays 404, 503 falls back to 500, ordinary exceptions and
 TypeError produce 500; tests also verify exact captured bodies, original events
-and restored native callbacks. They do not certify an HTTP server or a future
-report-once/redacted-default policy.
+and restored native callbacks. They do not certify an HTTP server or change the
+legacy defaults. The opt-in JSON/provider tests separately assert one private
+report and generic public output; they do not imply the proposed major's default
+rendering policy.
 
 ## Process bounds and known limits
 
@@ -122,6 +129,13 @@ dependencies. The [cookbook](https://github.com/coisa/error-handler/blob/master/
 and [verifier guide](https://github.com/coisa/error-handler/blob/master/examples/verify.md)
 describe its real inputs, expected outputs and separate bounded native-fatal
 example. It uses Symfony Process directly and no test helper framework.
+
+With PHP 8.3+ and `fast-forward/container:^1.9`, run
+`php examples/verify.php --with-fast-forward` to include both provider JSON modes
+in the same bounded runner. The default remains independent of this optional
+runtime. Core production consumers install no library development dependencies;
+Quality PHP 8.3–8.5 runs the provider unit tests and maximum PHPStan with the actual
+FastForward graph. This adds no new runner or alternate analysis stubs.
 
 Run `php tests/Documentation/site.php` with PHP 7.4+ and DOM to verify displayed
 source excerpts, unique IDs, anchors and links in `docs/index.html`. It also checks

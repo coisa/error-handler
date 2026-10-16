@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="The CoiSA Error Handler 2.x API: reporting, process callbacks, legacy container integration and PSR-15 HTTP composition.">
+  <meta name="description" content="The CoiSA Error Handler 2.x API: reporting, process callbacks, legacy and optional Interop providers, and PSR-15 HTTP composition.">
   <title>CoiSA Error Handler — 2.x documentation</title>
   <style>
     :root {
@@ -102,6 +102,7 @@
       <a href="#filtering">Conditional reporting</a>
       <a href="#best-effort">Best-effort reporting</a>
       <a href="#container">Container integration</a>
+      <a href="#interop">Optional Interop providers</a>
       <a href="#http">HTTP composition</a>
       <a href="#examples">Executable recipes</a>
       <a href="#sources">Guides and verification</a>
@@ -255,6 +256,24 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
         <p>The <a href="https://github.com/coisa/error-handler/issues/90">container-cause repair</a> preserves the original throwable through factory/alias wrapper chains. The two public exception factories copy integer codes and use <code>0</code> for string codes, retaining the original SQLSTATE on the cause. Check the selected source/release and the <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container guide</a> before relying on this repair.</p>
       </section>
 
+      <section id="interop" aria-labelledby="interop-title">
+        <h2 id="interop-title">Select an optional JSON provider</h2>
+        <p>For a source/release containing the optional Interop providers, an application using PHP 8.3+ can install <code>fast-forward/container:^1.9</code> as its own runtime dependency. Supply PSR-17 response/stream factories and a private <code>ThrowableHandlerInterface</code> reporter, then choose JSON explicitly:</p>
+        <figure>
+          <figcaption>Public JSON selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · the complete recipe provides application services and imports</figcaption>
+          <pre tabindex="0" aria-label="Interop JSON provider PHP source"><code data-source="examples/provider-json.php">$services = container(JsonErrorHandlerServiceProvider::class, $application);</code></pre>
+        </figure>
+        <p>The JSON profile composes one private report before pure rendering for the existing 2.x middleware. Public JSON is the default. A constructor bool, passed from trusted Config values before container construction, enables development details deliberately; no request header or environment name enables them. Use strict typing and real bool values rather than casting the string <code>"false"</code>.</p>
+        <figure>
+          <figcaption>Fresh scope from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">the same executable recipe</a> · factory service under <code>ServiceProvider\Factory</code></figcaption>
+          <pre tabindex="0" aria-label="Fresh Interop middleware scope PHP source"><code data-source="examples/provider-json.php">$middlewareFactory = $services-&gt;get(ErrorHandlerMiddlewareFactory::class);
+
+$middleware = $middlewareFactory($services);</code></pre>
+        </figure>
+        <p>Each factory invocation creates a distinct core handler and middleware. The process alias and directly resolved middleware remain cached; lookup does not register callbacks. The base <code>ErrorHandlerServiceProvider</code> retains legacy capture defaults and requires the application's reporter. The core still supports PHP 7.4 and the legacy container/ConfigProvider. Fresh objects do not remove PHP's existing shutdown-queue limits.</p>
+        <p>For a required replacement of a library-defined service, merge application definitions last in one <code>AggregateServiceProvider</code>; separate providers prioritize the first successful resolution. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">the provider guide</a> for complete maps, Config, runtime installation and override semantics. Applications own emission and any reporter output.</p>
+      </section>
+
       <section id="http" aria-labelledby="http-title">
         <h2 id="http-title">Separate HTTP responsibilities</h2>
         <p>The PSR-15 middleware registers its lifecycle handler, invokes downstream, delegates caught throwables to a response factory and unregisters in <code>finally</code>. It does not independently report before rendering.</p>
@@ -284,7 +303,7 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
 
       <section id="examples" aria-labelledby="examples-title">
         <h2 id="examples-title">Run the complete recipes</h2>
-        <p>Every excerpt above is checked against its executable source. Read all eleven complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
+        <p>Every excerpt above is checked against its executable source. Read all twelve complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
         <ul class="recipe-list">
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact/empty messages and original exception context.</span></li>
@@ -297,15 +316,16 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">http-json.php</a><span>Generic/development JSON, HTTP error statuses and one explicit private report.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">provider-json.php</a><span>Optional Interop/FastForward JSON profile, explicit Config bool and fresh middleware scope; PHP 8.3+.</span></li>
         </ul>
-        <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
+        <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Add <code>--with-fast-forward</code> on PHP 8.3+ with FastForward installed to include both provider JSON modes. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
       </section>
 
       <section id="sources" aria-labelledby="sources-title">
         <h2 id="sources-title">Continue in the source guides</h2>
         <ul>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Core API and process lifecycle</a></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">Legacy container, ConfigProvider and factories</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">Legacy container, ConfigProvider and optional Interop providers</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP output and application rendering</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Native checks, bounded probes and evidence limits</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md">Portable consumer skill</a></li>

@@ -89,6 +89,27 @@ Using JSON directly in the 2.x middleware omits explicit reporting of that caugh
 
 The [complete JSON example](https://github.com/coisa/error-handler/blob/master/examples/http-json.php) preserves a synthetic 503 and records the original privately once in both `public` and explicitly selected `debug` modes. It uses application-provided PSR-17 factories without application-side buffers or an emitter. The CLI mode represents trusted application configuration, not request input. Run both through the existing bounded verifier.
 
+### JSON through an Interop service provider
+
+For an application using PHP 8.3+ and FastForward Container `^1.9` as a runtime dependency, select `ServiceProvider\JsonErrorHandlerServiceProvider` with the application's PSR-17 and private reporter definitions:
+
+```php
+$services = FastForward\Container\container(
+    CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider::class,
+    $application,
+);
+
+$middlewareFactory = $services->get(
+    CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory::class,
+);
+
+$middleware = $middlewareFactory($services);
+```
+
+The profile selects the reporting decorator automatically for this explicit 2.x composition; the pure concrete remains independently available. Invoking the middleware factory creates a new lifecycle handler rather than reusing the cached process handler. Discovery is inert, public JSON is the default, and a real bool constructor argument enables debug only by trusted application choice. The core and legacy container still support PHP 7.4.
+
+Read the [provider dependencies, Config values and override precedence](container.md#optional-interop-and-fastforward-providers) and the [complete executable provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php). Run the optional provider scenarios with `php examples/verify.php --with-fast-forward` on PHP 8.3+; the existing verifier keeps their callback installation in bounded children. Applications continue to own emission and private reporter output.
+
 Keep emission after response creation in the application's existing PSR-7 emitter/server integration. This library does not call header(), echo a response to a client or select an emitter package. Output captured by the diagnostic adapter is an input to a response body, not HTTP emission.
 
 See [core callback behavior](api.md) and [container dependencies](container.md) before integrating the middleware into a process that already has handlers.

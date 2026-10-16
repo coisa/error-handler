@@ -24,6 +24,7 @@
     },
     "require": {
         "php": "^7.4 || ^8.0",
+        "container-interop/service-provider": "^0.4",
         "psr/container": "^1.1 || ^2.0",
         "psr/http-server-middleware": "^1.0",
         "psr/http-factory": "^1.1",
@@ -31,7 +32,8 @@
         "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
     "suggest": {
-        "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8."
+        "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8.",
+        "fast-forward/container": "^1.9"
     },
     "autoload": {
         "psr-4": {
@@ -48,6 +50,7 @@
     },
     "require-dev": {
         "coisa/php-cs-fixer": "^3.0",
+        "fast-forward/container": "^1.9",
         "jangregor/phpstan-prophecy": "^1.0",
         "laminas/laminas-servicemanager": "^4.3",
         "nyholm/psr7": "^1.8",

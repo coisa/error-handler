@@ -46,6 +46,21 @@ $cases = [
     ['process.php', ['fatal'], 255, null],
 ];
 
+if (in_array('--with-fast-forward', $argv, true)) {
+    if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container')) {
+        throw new RuntimeException('FastForward scenarios require PHP 8.3+ and fast-forward/container:^1.9.');
+    }
+
+    foreach (['public', 'debug'] as $mode) {
+        $cases[] = [
+            'provider-json.php',
+            [$mode],
+            0,
+            'Interop JSON ' . $mode . ": configured profile, fresh scope and one private report passed\n",
+        ];
+    }
+}
+
 foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 'reporter-failure'] as $mode) {
     $cases[] = [
         'http.php',

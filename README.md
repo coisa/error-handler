@@ -73,9 +73,10 @@ a real application. Read the guide for your integration:
 - [Opt-in conditional reporting](docs/api.md#conditional-reporting) and its [runnable filtering example](examples/filtering.php).
 - [Opt-in best-effort reporting](docs/api.md#best-effort-reporting) and its [ordered failure example](examples/best-effort.php); verify that the selected checkout/release contains `BestEffortThrowableHandlerAggregate` and `AggregateReportingException`.
 - [Explicit PHP-error callbacks](docs/api.md#callable-php-error-policy) and their [runnable policy example](examples/php-errors.php).
-- [Legacy container, ConfigProvider and application dependencies](docs/container.md).
+- [Legacy container, ConfigProvider and optional Interop providers](docs/container.md).
 - [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
 - [Opt-in JSON responses with one explicit private report](docs/http.md#opt-in-json-responses-and-explicit-reporting) and the [complete JSON recipe](examples/http-json.php); verify the selected source/release contains both response adapters.
+- [Optional FastForward JSON profile](docs/container.md#optional-interop-and-fastforward-providers) and its [complete provider recipe](examples/provider-json.php): application PHP 8.3+, PSR-17 and a private reporter; core PHP 7.4 and legacy defaults remain supported.
 - [Complete 2.x cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
   and [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
 - [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),
@@ -91,8 +92,9 @@ The original 2.x runtime metadata and PHP 7.4 alias defects are tracked in
 [#13](https://github.com/coisa/error-handler/issues/13) and
 [#40](https://github.com/coisa/error-handler/issues/40). Use a checkout or published
 patch containing both for a clean PHP 7.4 container installation. The proposed
-major's FastForward provider, pure default renderer and changed exit policy are
-not existing 2.x APIs.
+major's required FastForward container, pure default renderer and changed exit
+policy are not existing 2.x APIs. The opt-in Interop providers documented here
+are additive 2.x composition, with reporting before JSON rendering.
 
 ## Development
 

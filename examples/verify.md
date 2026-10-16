@@ -34,6 +34,14 @@ The separate JSON recipe preserves an HTTP 503 and reports the original privatel
 once before pure rendering, both for generic output and explicitly selected debug
 metadata. Debug verifies trace arguments/objects are absent and no-store is set;
 no application output buffer or emitter is involved.
+
+For an application that also installs `fast-forward/container:^1.9` at runtime,
+use PHP 8.3+ and select `php examples/verify.php --with-fast-forward`. It adds two
+Interop JSON profile cases, for twenty-four bounded scenarios in total. They
+resolve the application PSR-17/reporter definitions, use a fresh middleware scope
+and verify public/default or explicitly configured development JSON. Requesting
+the option without its PHP/container prerequisites fails before starting those
+scenarios; the default core run remains available without FastForward on PHP 7.4.
 Unexpected status/output, timeout
 or output threshold causes a nonzero verifier exit after cleanup. Registered
 uncaught delivery currently reports and exits 0; native compile fatal reports at
