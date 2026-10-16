@@ -51,6 +51,8 @@ The `safe` mode uses an application implementation of `ThrowableResponseFactoryI
 
 This is an explicit application adapter. The built-in renderer remains the capture/fallback adapter described above. A proposed future pure renderer, JSON API or content negotiation policy is not an existing 2.x default.
 
+An explicit `FilteringThrowableHandler` may select the private diagnostic branch in this application adapter. Both match and nonmatch still lead to its fixed public response; filtering does not select status, body or reason. Predicate/delegate failure propagates after middleware restores callbacks. Do not use a silent nonmatch as redaction inside the built-in capture adapter: no output still falls back to the original diagnostic text. Filtering starts after PHP-error conversion and preserves the existing reporting mask/suppression rules.
+
 Keep emission after response creation in the application's existing PSR-7 emitter/server integration. This library does not call header(), echo a response to a client or select an emitter package. Output captured by the diagnostic adapter is an input to a response body, not HTTP emission.
 
 See [core callback behavior](api.md) and [container dependencies](container.md) before integrating the middleware into a process that already has handlers.
