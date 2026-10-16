@@ -49,7 +49,7 @@ $completed = false;
 $result = runProcess([
     PHP_BINARY, '-n', '-d', 'display_errors=0', '-d', 'log_errors=0', '-d', 'memory_limit=32M',
     '-S', $address, __DIR__ . '/router.php',
-], 15.0, 262144, static function () use ($address, $cases, $readyDeadline, &$completed): bool {
+], 20.0, 262144, static function () use ($address, $cases, $readyDeadline, &$completed): bool {
     $connection = @stream_socket_client('tcp://' . $address, $errno, $error, 0.05);
     if (!is_resource($connection)) {
         if (microtime(true) >= $readyDeadline) {
@@ -61,27 +61,24 @@ $result = runProcess([
     fclose($connection);
 
     foreach ($cases as $route => [$expectedStatus, $expectedBody]) {
-        $context = stream_context_create(['http' => [
-            'ignore_errors' => true, 'timeout' => 2, 'follow_location' => 0,
-            'max_redirects' => 0, 'header' => 'Connection: close',
-        ]]);
-        $stream = fopen('http://' . $address . $route, 'r', false, $context);
-        if (false === $stream) {
-            throw new RuntimeException('Fixture request failed: ' . $route);
+        $request = runProcess([
+            PHP_BINARY, '-n', '-d', 'memory_limit=16M', __DIR__ . '/request.php',
+            'http://' . $address . $route,
+        ], 2.0, 131072);
+        if ('exit' !== $request['reason'] || 0 !== $request['exitCode'] || !$request['reaped']) {
+            throw new RuntimeException('Fixture request failed or exceeded its deadline: ' . $route);
         }
-
-        try {
-            $body = stream_get_contents($stream, 65537);
-            $metadata = stream_get_meta_data($stream);
-        } finally {
-            fclose($stream);
+        $response = json_decode($request['stdout'], true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($response) || !isset($response['headers'], $response['body'])) {
+            throw new RuntimeException('Fixture request produced invalid observations.');
         }
-        $headers = $metadata['wrapper_data'] ?? [];
+        $headers = $response['headers'];
+        $body = $response['body'];
         if (!is_array($headers) || !isset($headers[0]) || !is_string($headers[0])) {
             throw new RuntimeException('Fixture response did not include HTTP headers.');
         }
         if (
-            !is_string($body) || strlen($body) > 65536 || $metadata['timed_out']
+            !is_string($body) || strlen($body) > 65536
             || false === strpos($headers[0], ' ' . $expectedStatus . ' ')
             || $body !== $expectedBody || !in_array('X-Fixture-Reports: 1', $headers, true)
             || !in_array('X-Fixture-Callbacks-Restored: yes', $headers, true)

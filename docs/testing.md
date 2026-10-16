@@ -54,9 +54,12 @@ php tests/Support/check.php
 
 The HTTP runner reserves a dynamic `127.0.0.1` port and starts an owned PHP fixture
 server. Startup is limited to five seconds, each request to two seconds and
-64 KiB of body, and the overall active server lifetime to 15 seconds. Redirects
+64 KiB of body, and the overall active server lifetime to 20 seconds. Each request
+runs in its own bounded child, so a streaming response cannot bypass its deadline
+by repeatedly resetting an idle timeout. Redirects
 are disabled. Server output is capped at 256 KiB and its memory at 32 MiB. The
-same `finally` cleanup runs on success and on assertion/request failures. No real
+same `finally` cleanup runs on success and on assertion/request failures. Request
+children use 16 MiB of memory and a 128 KiB captured-output cap. No real
 server, application logs, credentials or external domains are used.
 
 ## What passing characterization means
