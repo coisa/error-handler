@@ -64,7 +64,17 @@ for ($attempt = 1; $attempt <= 3; ++$attempt) {
      *
      * @return bool whether every fixture response was verified
      */
-    $tick = static function (string $stdout, string $stderr) use ($address, $cases, $readyDeadline, $owner, &$started, &$completed): bool {
+    $tick = static function (
+        string $stdout,
+        string $stderr
+    ) use (
+        $address,
+        $cases,
+        $readyDeadline,
+        $owner,
+        &$started,
+        &$completed
+    ): bool {
         if (false === strpos($stderr, '(http://' . $address . ') started')) {
             if (microtime(true) >= $readyDeadline) {
                 throw new RuntimeException('Fixture server did not start within five seconds.');
@@ -98,7 +108,9 @@ for ($attempt = 1; $attempt <= 3; ++$attempt) {
                 || !in_array('X-Fixture-Owner: ' . $owner, $headers, true)
                 || !in_array('X-Fixture-Callbacks-Restored: yes', $headers, true)
             ) {
-                throw new RuntimeException('Unexpected legacy response: ' . $route . ' ' . json_encode([$headers, $body]));
+                $observations = json_encode([$headers, $body]);
+
+                throw new RuntimeException('Unexpected legacy response: ' . $route . ' ' . $observations);
             }
             printf("PASS HTTP %-14s status=%d legacy capture, callbacks restored\n", $route, $expectedStatus);
         }
