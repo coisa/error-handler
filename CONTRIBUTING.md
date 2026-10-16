@@ -4,6 +4,7 @@ This library intentionally does not track `composer.lock`. Composer constraints
 in `composer.json` describe its supported dependency contract. Applications that
 consume the library own their application lockfiles.
 
+Use Composer directly for dependency installation and quality checks.
 Resolve development dependencies with the PHP runtime intended for the check:
 
 ```sh
@@ -39,6 +40,10 @@ target follows the Composer minimum, and its remaining rules are retained.
 The opening file header in `.php-cs-fixer.dist.php` is the canonical header
 template, read through the preset's `HeaderExtractor::extractFromFile(__FILE__)`.
 The preset updates the ending copyright year when formatting.
+The superseded PHP-CS-Fixer 2 `.php_cs` configuration is removed. Composer
+commands and CI use `.php-cs-fixer.dist.php`; pass that same path when invoking
+the formatter explicitly. The old configuration called `Config::create()`,
+which the installed PHP-CS-Fixer 3 API does not provide.
 Run each check independently when diagnosing a failure:
 `composer check` stops at the first failed command.
 
