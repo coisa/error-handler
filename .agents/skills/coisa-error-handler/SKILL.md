@@ -119,8 +119,8 @@ optional level (ERROR by default) and context. It logs the exact message once,
 including empty, and keeps the original throwable under exception over caller
 context without coercing other values. Level validity belongs to the logger;
 the identical logger failure propagates. No factory/discovery is added. Prefer
-an explicit process ErrorHandler; a silent or filtered reporter bound globally as the legacy
-ThrowableHandlerInterface renderer can fall back to public diagnostic text.
+an explicit process ErrorHandler; a silent or filtered reporter bound globally
+as the legacy ThrowableHandlerInterface renderer can fall back to public diagnostic text.
 See the [direct logging contract](https://github.com/coisa/error-handler/blob/master/docs/api.md#direct-psr-3-logging)
 and [runnable recipe](https://github.com/coisa/error-handler/blob/master/examples/logging.php).
 
