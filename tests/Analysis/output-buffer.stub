@@ -18,8 +18,8 @@ declare(strict_types=1);
  * Documents the real native output handler's exception propagation for PHPStan.
  *
  * Analysis-only: never require this file. Removing the old executable namespace
- * seam exposed PHPStan1.12's missing throws metadata. The real cleanup-throws
- * Process case proves propagation without replacing this native function.
+ * seam exposed PHPStan1.12's missing throws metadata. The direct cleanup-callback
+ * unit test proves propagation without replacing this native function.
  *
  * @see https://www.php.net/manual/en/function.ob-end-clean.php
  * @see https://www.php.net/manual/en/outcontrol.user-level-output-buffers.php

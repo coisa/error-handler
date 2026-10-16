@@ -2,4 +2,4 @@
 "@coisa/error-handler": patch
 ---
 
-Expand direct PHPUnit behavior coverage and consolidate native termination checks under PHPUnit with bounded Symfony Process children. Retire the custom Fire/HTTP runners after equivalent assertions, while documenting native coverage limits and preserving the existing 2.x runtime behavior.
+Expand direct PHPUnit class coverage with meaningful contract and failure assertions, remove strictly subsumed legacy tests and scope process isolation to native global state. Document measured coverage and native limits without changing the 2.x runtime or coverage policy.
