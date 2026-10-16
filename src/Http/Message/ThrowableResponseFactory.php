@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
@@ -20,7 +20,7 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Class ThrowableResponseFactory
+ * Class ThrowableResponseFactory.
  *
  * Creates PSR-7 HTTP responses from throwable instances.
  * This class SHALL use a ThrowableStreamFactoryInterface and ResponseFactoryInterface
@@ -31,20 +31,20 @@ use Psr\Http\Message\ResponseInterface;
 final class ThrowableResponseFactory implements ThrowableResponseFactoryInterface
 {
     /**
-     * @var ThrowableStreamFactoryInterface The stream factory for throwable content.
+     * @var ThrowableStreamFactoryInterface the stream factory for throwable content
      */
     private ThrowableStreamFactoryInterface $streamFactory;
 
     /**
-     * @var ResponseFactoryInterface The factory for creating HTTP responses.
+     * @var ResponseFactoryInterface the factory for creating HTTP responses
      */
     private ResponseFactoryInterface $responseFactory;
 
     /**
      * Constructs the ThrowableResponseFactory.
      *
-     * @param ThrowableStreamFactoryInterface $streamFactory The factory for throwable content streams.
-     * @param ResponseFactoryInterface $responseFactory The factory for creating HTTP responses.
+     * @param ThrowableStreamFactoryInterface $streamFactory   the factory for throwable content streams
+     * @param ResponseFactoryInterface        $responseFactory the factory for creating HTTP responses
      */
     public function __construct(
         ThrowableStreamFactoryInterface $streamFactory,
@@ -60,9 +60,9 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
      * This method SHALL create a response using the provided throwable's code and message,
      * set the HTTP status code appropriately, and include the throwable details in the body.
      *
-     * @param \Throwable $throwable The throwable to convert into an HTTP response.
+     * @param \Throwable $throwable the throwable to convert into an HTTP response
      *
-     * @return ResponseInterface The generated PSR-7 response.
+     * @return ResponseInterface the generated PSR-7 response
      */
     public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
     {
@@ -80,15 +80,15 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
     /**
      * Determines the HTTP status code based on the throwable code.
      *
-     * This method SHALL return the throwable code if it falls within the 400–500 range.
-     * Otherwise, it SHALL return a default status code of 500.
+     * This method SHALL return an integer throwable code in the 400–500 range.
+     * String codes, including SQLSTATE values, and other integers SHALL use 500.
      *
-     * @param int $code The throwable code.
+     * @param int|string $code the original throwable code, without numeric coercion
      *
-     * @return int The HTTP status code to use in the response.
+     * @return int the HTTP status code to use in the response
      */
-    private function getStatusCode(int $code): int
+    private function getStatusCode($code): int
     {
-        return ($code >= 400 && $code <= 500) ? $code : 500;
+        return (\is_int($code) && $code >= 400 && $code <= 500) ? $code : 500;
     }
 }
