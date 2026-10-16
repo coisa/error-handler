@@ -16,6 +16,19 @@ $ composer require coisa/error-handler
 
 See the [changelog](CHANGELOG.md) for published release history.
 
+## Development
+
+Development tools are installed through Composer's development dependencies and
+are not required to use the library. Dependency resolution produces an ignored
+local lockfile, as described in the contributor guide below.
+
+Pull requests run the [PHP style workflow](.github/workflows/php-style.yml), which
+calls the CoiSA formatter's reusable workflow. It installs development
+dependencies with Composer plugins and scripts disabled, then checks
+only changed PHP files within the existing Finder scope. It does not apply fixes.
+For a full local preview, run `composer --no-plugins cs-check`; the new preset also
+reports existing formatting differences outside the files changed in a PR.
+
 ## Contributing release notes
 
 See [contributor dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for local Composer resolution
