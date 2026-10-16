@@ -63,9 +63,6 @@ jobs:
       - name: Run formatting, PHPCS, PHPUnit and maximum src-plus-tests analysis
         run: composer --no-plugins check
 
-      - name: Verify bounded exceptional output-buffer cleanup
-        run: php tests/Fire/buffers.php
-
   production:
     name: Production / PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
     runs-on: ubuntu-latest

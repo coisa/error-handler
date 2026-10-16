@@ -142,8 +142,8 @@ the checks it ran, without claiming coverage or permission to release.
 The [PHP CI workflow](.github/workflows/ci.yml) has a read-only `coverage` job
 on PHP 8.5/Xdebug and a dependent `coverage-report` job. PHPUnit 9.6 produces
 Clover plus Cobertura through its native `--coverage-cobertura` flag. The complete
-`src/` filter, runtime PHP constraint, public APIs and existing annotations stay
-unchanged. `coverage-report-php` retains both XML files for 14 days.
+`src/` filter, runtime PHP constraint, public APIs and overall regression policy
+remain unchanged. `coverage-report-php` retains both XML files for 14 days.
 
 The comparison action receives Cobertura to measure lines. Its
 [Clover parser](https://github.com/clearlyip/code-coverage-report-action/blob/v7/src/reports/clover/parser/index.ts)
@@ -152,10 +152,13 @@ combines statements, methods and conditionals: the initial 12/254 elements
 101 tests and 199 assertions on PHP 8.5.11. A new listener regression test proves
 the original throwable is returned even when its callback returns a replacement.
 Its specific `@covers` scope raises the suite to **12/191 lines (6.28%)** with
-102 tests and 201 assertions. Four existing test classes retain `@coversNothing`
-and do not contribute to instrumentation; this does not mean their behaviors
-lack tests. Process-termination and HTTP fixtures remain separate behavioral
-evidence.
+102 tests and 201 assertions. Those are historical starting measurements. Direct
+unit tests now measure the individual runtime classes; composition tests retain
+`@coversNothing`. Genuine native termination runs as PHPUnit Process tests, with
+external children outside the parent's measurement. The retired standalone
+Fire/HTTP runners are replaced by direct assertions and the few bounded native
+fixtures described in [testing](docs/testing.md). Read each current report's
+exact SHA and metric rather than treating those historical counts as current.
 
 The action uses its standard templates and fails when overall line coverage drops
 against an available target-branch baseline, including new uncovered source files.
@@ -187,8 +190,8 @@ Each report identifies the event's head SHA, the tested commit (which can be the
 PR merge commit), and the run URL. A failed or cancelled collection skips the
 report job and may leave an older note; read its displayed SHA rather than
 assuming it certifies the current head. The workflow does not make an atomic
-head check when commenting. A first `master` baseline and a subsequent eligible
-PR update still need observation after the workflow is merged.
+head check when commenting. Authentic master baselines and eligible sticky-note
+updates have been observed; each new result still needs its own SHA/run check.
 
 ## Production container regression
 

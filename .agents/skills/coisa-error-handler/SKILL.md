@@ -183,9 +183,12 @@ Library/example checks do not prove delivery to a real logging service.
 
 When using capture, verify caller-buffer bytes/levels and primary failure identity
 with the application's reporter. Exercise protected, throwing or terminating output
-handlers only in bounded children. In a source checkout with its PSR dependencies,
-`php tests/Fire/buffers.php` runs the focused cleanup regressions; a pass does not
-certify arbitrary callback side effects or process termination recovery.
+handlers only in bounded children. In a source checkout with development dependencies,
+`vendor/bin/phpunit --testsuite Unit` exercises capture directly and
+`vendor/bin/phpunit --testsuite Process` checks genuine hazardous native operations
+through bounded Symfony Process children. These checks do not certify arbitrary
+callback side effects or process termination recovery; external child execution
+does not contribute to the parent's unit-coverage measurement.
 
 Return observed package/PHP versions, integration changes, executed checks and
 remaining limits. This procedure does not deploy, publish, install globally or

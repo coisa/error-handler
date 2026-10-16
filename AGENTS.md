@@ -35,7 +35,7 @@ Merging, releasing, tagging, transferring the repository, publishing Pages or de
 - [docs/index.html](docs/index.html): static 2.x reading surface; source excerpts track executable examples and publication remains a separate manual action.
 - [examples/README.md](examples/README.md): runnable recipes for every built-in adapter with explicit application dependencies.
 - [examples/verify.md](examples/verify.md): bounded verifier inputs, outputs, child-process effects and recovery.
-- [docs/testing.md](docs/testing.md): shared process runner, failure/HTTP characterization, native commands and evidence limits; examples reuse its cleanup boundaries.
+- [docs/testing.md](docs/testing.md): direct PHPUnit contracts, isolated native process cases, installed-package checks and honest coverage limits; no custom test runner.
 - [CONTRIBUTING.md](CONTRIBUTING.md): library dependency resolution and clean production-container checks.
 - [.changeset/README.md](.changeset/README.md): pending notes, reviewed version PRs and separate publication authority.
 - [.agents/skills/coisa-error-handler/SKILL.md](.agents/skills/coisa-error-handler/SKILL.md): portable consumer integration procedure; keeps its own package entrypoint and source identity.
