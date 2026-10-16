@@ -1,0 +1,139 @@
+name: PHP CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: php-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSER_PROCESS_TIMEOUT: '600'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  quality:
+    name: Quality / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
+          coverage: none
+          tools: composer:v2
+
+      - name: Resolve the development graph on the actual runtime
+        run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+
+      - name: Record and validate the resolved platform
+        run: |
+          php --version
+          php -r 'echo "error_reporting=" . error_reporting() . PHP_EOL;'
+          composer --version
+          composer validate --strict --no-check-publish
+          composer check-platform-reqs
+          composer show --locked
+
+      - name: Run formatting, PHPCS, PHPUnit and maximum src-plus-tests analysis
+        run: composer --no-plugins check
+
+  production:
+    name: Production / PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        dependencies: [highest]
+        include:
+          - php: '7.4'
+            dependencies: lowest
+          - php: '8.5'
+            dependencies: lowest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Lint all tracked PHP on the actual runtime
+        run: git ls-files -z -- '*.php' | xargs -0 -n1 php -l
+
+      - name: Verify the committed distribution and create a clean consumer
+        run: |
+          mkdir -p "$RUNNER_TEMP/package" "$RUNNER_TEMP/consumer"
+          git archive --format=tar --output="$RUNNER_TEMP/package.tar" HEAD
+          php tests/Production/archive.php "$RUNNER_TEMP/package.tar"
+          tar -xf "$RUNNER_TEMP/package.tar" -C "$RUNNER_TEMP/package"
+          jq -n --arg path "$RUNNER_TEMP/package" '{
+            name: "coisa/production-fixture",
+            repositories: [{
+              type: "path",
+              url: $path,
+              options: {symlink: false, versions: {"coisa/error-handler": "dev-ci"}}
+            }],
+            require: {"coisa/error-handler": "dev-ci"},
+            config: {"allow-plugins": false}
+          }' > "$RUNNER_TEMP/consumer/composer.json"
+
+      - name: Resolve runtime dependencies without development packages
+        env:
+          DEPENDENCIES: ${{ matrix.dependencies }}
+        run: |
+          options=()
+          if [ "$DEPENDENCIES" = lowest ]; then
+            options+=(--prefer-lowest --prefer-stable)
+          fi
+          composer --working-dir="$RUNNER_TEMP/consumer" update \
+            --no-dev --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress \
+            "${options[@]}"
+
+      - name: Record and check the production platform
+        run: |
+          php --version
+          composer --version
+          composer --working-dir="$RUNNER_TEMP/consumer" check-platform-reqs --no-dev
+          composer --working-dir="$RUNNER_TEMP/consumer" show --locked
+
+      - name: Exercise the public container and alias factories
+        run: |
+          php tests/Production/container.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
+          php tests/Production/alias-factory.php "$RUNNER_TEMP/consumer/vendor/autoload.php"

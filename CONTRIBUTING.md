@@ -24,10 +24,11 @@ Do not force-add the local lockfile to a PR.
 Development integrations can have narrower PHP requirements than the library's
 runtime `^7.4 || ^8.0`. Resolve them on a compatible runner and verify the supported
 minimum runtime through a separate consumer without development dependencies.
-Do not bypass platform requirements. PHP 8.4 is the checked development runner;
-the Laminas integration prevents resolving the complete development graph on
-PHP 7.4. A production consumer must resolve only the library's runtime
-dependencies when checking that minimum.
+Do not bypass platform requirements. CI checks the complete development graph
+on PHP 8.3–8.5; the formatter preset requires PHP 8.3, and the Laminas integration
+also prevents resolving the complete development graph on PHP 7.4. A production
+consumer must resolve only the library's runtime dependencies when checking
+that minimum.
 
 ## Quality checks
 
@@ -93,12 +94,42 @@ composer install --no-plugins --no-scripts --no-interaction --prefer-dist
 composer --no-plugins check
 ```
 
-The [PHP style workflow](.github/workflows/php-style.yml) runs its checks directly
-on PHP 8.4 and does not build a repository Docker image. That workflow checks
-changed PHP files; the broader supported-runtime CI baseline is tracked in
-[issue #11](https://github.com/coisa/error-handler/issues/11). Record the actual
-workflow/SHA and local runtime results; an active workflow name alone does not
-prove a runtime matrix was executed.
+The native workflows described below do not build a repository Docker image.
+Record the actual workflow/SHA and local runtime results; an active workflow
+name alone does not prove a runtime matrix was executed.
+
+## Continuous integration
+
+The read-only [PHP CI workflow](.github/workflows/ci.yml) runs on pull requests,
+pushes to `master` and manual dispatches. Each job records the actual PHP,
+Composer and resolved package versions. No Composer lockfile or simulated PHP
+platform is needed.
+
+| Jobs | Actual PHP versions | Dependency resolution and checks |
+| --- | --- | --- |
+| Development quality | 8.3, 8.4, 8.5 | Fresh current development graph; formatting, PHPCS, PHPUnit and maximum PHPStan over `src` and `tests` |
+| Production | 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 | Current runtime graph; tracked PHP syntax, distribution contents, public container and alias factories |
+| Production lower bounds | 7.4, 8.5 | Fresh `--prefer-lowest --prefer-stable` runtime graph; the same production checks |
+
+Production jobs install only the library into a separate consumer from its
+committed `git archive`, with path-package mirroring instead of a source symlink.
+The consumer requires only `coisa/error-handler`, so PSR-11 must be supplied
+transitively. Lower-bound jobs exercise the earliest allowed runtime packages;
+current-resolution jobs exercise the newest compatible packages available to
+each actual PHP version. The recorded graph is the evidence for those bounds,
+not a claim that every possible dependency combination was tested.
+
+Composer 2 installations disable plugins and scripts; quality scripts run only
+in their explicit check step. Quality jobs explicitly use `error_reporting=E_ALL`
+so deprecations can also reach the configured PHP handlers. Jobs have time limits, read-only repository
+permissions and no persisted checkout credential. The workflow uses the verified
+major action refs documented by [Checkout](https://github.com/actions/checkout)
+and [Setup PHP](https://github.com/shivammathur/setup-php). The independent changed
+PHP workflow retains the shared preset's `3.0.1` reusable workflow ref.
+
+The PHP CI jobs disable coverage drivers. Coverage collection and publication
+are separate work; a green quality job proves the checks it ran, without claiming
+coverage or permission to release.
 
 ## Production container regression
 
