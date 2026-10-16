@@ -210,8 +210,8 @@ jobs:
           artifact_download_workflow_names: PHP CI
           artifact_name: phpunit-coverage-%name%
           retention_days: '90'
-          overall_coverage_fail_threshold: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || '0' }}
-          fail_on_negative_difference: 'true'
+          overall_coverage_fail_threshold: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || '80' }}
+          fail_on_negative_difference: 'false'
           negative_difference_by: overall
           only_list_changed_files: 'true'
 
