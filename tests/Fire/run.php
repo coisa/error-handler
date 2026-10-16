@@ -61,10 +61,10 @@ if (in_array('--with-psr', $arguments, true)) {
         [0 => ['captured' => false, 'diagnosticFallback' => true, 'remainingBuffers' => 0]]];
     $cases['render-zero'] = $cases['render-empty'];
     $cases['render-throws'] = [0, ['renderer-failure'], RuntimeException::class, null,
-        [0 => ['message' => 'synthetic renderer failure', 'remainingBuffers' => 1]]];
+        [0 => ['message' => 'synthetic renderer failure', 'remainingBuffers' => 0]]];
     $cases['render-non-removable'] = [0, ['renderer-failure'], RuntimeException::class, null,
         [0 => ['message' => 'synthetic renderer failure', 'remainingBuffers' => 2]]];
-    $limitations = array_merge($limitations, ['render-empty', 'render-zero', 'render-throws', 'render-non-removable']);
+    $limitations = array_merge($limitations, ['render-empty', 'render-zero', 'render-non-removable']);
 }
 
 $failed = 0;
