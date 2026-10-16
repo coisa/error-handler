@@ -1,7 +1,7 @@
 # Testing and 2.x characterization
 
 The library declares PHP `^7.4 || ^8.0`. Resolve development dependencies for the
-runtime used to execute them; see [contributor setup](../CONTRIBUTING.md). Existing
+runtime used to execute them; see [contributor setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md). Existing
 quality-toolchain work is tracked in [issue #10](https://github.com/coisa/error-handler/issues/10).
 
 ```sh
@@ -17,7 +17,7 @@ php tests/Http/run.php --check-port-retry
 For runnable consumer integrations, use the [2.x cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
 and its [bounded example verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
 That verifier reuses the shared process runner below with explicit application
-dependencies; it does not require Make or a container runtime.
+dependencies. Run the commands directly with PHP CLI.
 
 The first fire command requires PHP only and runs 16 core scenarios. `--with-psr`
 adds five legacy response-capture scenarios and requires a compatible Composer
