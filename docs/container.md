@@ -38,6 +38,8 @@ HTTP composition additionally requires application `ResponseFactoryInterface` an
 
 ## Factory map and scopes
 
+`FilteringThrowableHandler` requires an application predicate and is not discovered or attached to the default aggregate automatically. Construct it explicitly, then provide it through the application parent's `ThrowableHandlerInterface` service or attach it to an application-composed aggregate. Merely registering a service under `FilteringThrowableHandler::class` does not select it for reporting. There is no library filtering factory or implicit allow-all predicate.
+
 All factory names below are in `CoiSA\ErrorHandler\Container\Factory`.
 
 | Service | Factory |
