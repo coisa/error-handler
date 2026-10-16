@@ -14,7 +14,7 @@ Run [the direct example](https://github.com/coisa/error-handler/blob/master/exam
 
 ## Direct PSR-3 logging
 
-`Handler\LogThrowableHandler` is an opt-in minor addition under development. Use a matching checkout or release containing the class; a pending Changeset does not make it part of an older installed version. Its constructor accepts an application `LoggerInterface`, a string level defaulting to `LogLevel::ERROR`, and `array<array-key, mixed>` context.
+`Handler\LogThrowableHandler` is an opt-in 2.x adapter. Use a matching checkout or release containing the class; older installed versions may not provide it. Its constructor accepts an application `LoggerInterface`, a string level defaulting to `LogLevel::ERROR`, and `array<array-key, mixed>` context.
 
 Each `handleThrowable()` call invokes the logger's `log()` once with exactly `getMessage()`, including an empty message. The original throwable always occupies `context['exception']`, overriding a caller entry without mutating the caller's array. Other context values retain their identity and types; context-key order is not a contract. The level is forwarded unchanged, with no inference from exception codes, PHP severity or HTTP status. The logger decides whether a level is supported. Its identical failure propagates without retry or output from this adapter.
 
@@ -88,7 +88,7 @@ The 2.x registered exception callback is the same `handleThrowable()` method use
 | --- | --- |
 | `CallableThrowableHandler` | Calls one configured reporter with the throwable. |
 | `CallablePhpErrorHandler` | Calls an explicit four-argument PHP-error callback once, ignoring its result; mask/conversion policy belongs to the callback. |
-| `LogThrowableHandler` | Explicit PSR-3 adapter in the pending minor: logs the exact message and original exception once; logger failures propagate. |
+| `LogThrowableHandler` | Explicit PSR-3 adapter: logs the exact message and original exception once; logger failures propagate. |
 | `FilteringThrowableHandler` | Evaluates an explicit boolean predicate once; matches forward the same throwable once, nonmatches skip its delegate, failures propagate. |
 | `ThrowableHandlerAggregate` | Calls constructor reporters, then attached reporters, in order. An exception stops later deliveries and propagates. There is no best-effort/retry contract. |
 | `BestEffortThrowableHandlerAggregate` | Opt-in fixed reporter list: attempts every slot, then throws one AggregateReportingException containing the original and all ordered reporter failures. Zero/all-success passes return normally. |

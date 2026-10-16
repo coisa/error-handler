@@ -38,7 +38,7 @@ HTTP composition additionally requires application `ResponseFactoryInterface` an
 
 ## Explicit process logging
 
-The pending minor's `Handler\LogThrowableHandler` is constructed explicitly; it has no library factory, alias or automatic aggregate membership. Providing `LoggerInterface` alone leaves the existing default aggregate unchanged. With an application logger, construct the process handler directly:
+`Handler\LogThrowableHandler` is constructed explicitly; it has no library factory, alias or automatic aggregate membership. Providing `LoggerInterface` alone leaves the existing default aggregate unchanged. With an application logger, construct the process handler directly:
 
 ```php
 $reporter = new CoiSA\ErrorHandler\Handler\LogThrowableHandler($logger);
