@@ -16,6 +16,17 @@ $ composer require coisa/error-handler
 
 See the [changelog](CHANGELOG.md) for published release history.
 
+## Throwable response codes
+
+`ThrowableResponseFactory` uses integer exception codes from 400 through 500
+inclusive as HTTP status codes. Other integers and string codes, including PDO
+SQLSTATE values and numeric-looking strings, fall back to status 500. SQLSTATE
+values are not interpreted as HTTP statuses.
+
+The response retains the exception message as its reason phrase. Its body comes
+from the configured `ThrowableStreamFactoryInterface`, which receives the same
+throwable instance. Applications control the content produced by that factory.
+
 ## Development
 
 Development tools are installed through Composer's development dependencies and
