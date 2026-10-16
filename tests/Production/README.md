@@ -6,10 +6,11 @@ PHP. It verifies exact delegated values, object identity, exception propagation,
 legacy container aliases and core handler construction. It does not install PHP
 callbacks. Tests are excluded from Composer distribution archives.
 
-Until the separate PSR-11 runtime metadata correction in
-[issue #13](https://github.com/coisa/error-handler/issues/13) is merged, the
-test application must explicitly require a supported `psr/container` interface
-package (`^1.1 || ^2.0`) as well as the library. That explicit fixture dependency
-does not prove the library installs PSR-11 transitively. Both fixes are needed for
-a complete clean PHP 7.4 production consumer. Use Composer 2 with
-`--no-plugins --no-scripts` and no library development dependencies.
+The consumer must require only `coisa/error-handler`; its runtime metadata must
+install `psr/container` transitively. Use Composer 2 with
+`--no-plugins --no-scripts` and no library development dependencies. The
+[PHP CI workflow](../../.github/workflows/ci.yml) runs this fixture together with
+`container.php` and the distribution check in `archive.php`, using current
+runtime dependency resolutions on PHP 7.4 and 8.0–8.5 and lowest resolutions on
+PHP 7.4 and 8.5. See [contributor checks](../../CONTRIBUTING.md) for local commands
+and the distinction between production and development runners.
