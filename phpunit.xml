@@ -4,7 +4,6 @@
          bootstrap="vendor/autoload.php"
          stopOnError="true"
          stopOnFailure="true"
-         processIsolation="true"
          colors="true"
          verbose="true">
     <testsuites>
@@ -13,6 +12,9 @@
         </testsuite>
         <testsuite name="Functional">
             <directory suffix="Test.php">tests/Functional</directory>
+        </testsuite>
+        <testsuite name="Process">
+            <directory suffix="Test.php">tests/Process</directory>
         </testsuite>
     </testsuites>
     <coverage processUncoveredFiles="true">

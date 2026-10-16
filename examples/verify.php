@@ -14,9 +14,9 @@
 
 declare(strict_types=1);
 
-use function CoiSA\ErrorHandler\Test\Harness\runProcess;
+use Symfony\Component\Process\Process;
 
-require dirname(__DIR__) . '/tests/Support/process.php';
+require getenv('ERROR_HANDLER_AUTOLOAD') ?: dirname(__DIR__) . '/vendor/autoload.php';
 
 $cases = [
     ['direct.php', [], 0, "reported: Example failure\ncontinued\n"],
@@ -43,7 +43,12 @@ foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 're
     ];
 }
 
-$environment = ['ERROR_HANDLER_BOUNDED_FIXTURE' => '1'];
+$inherited = getenv();
+if (!is_array($inherited)) {
+    throw new RuntimeException('Could not inspect inherited environment variable names.');
+}
+$environment = array_fill_keys(array_keys(array_merge($_SERVER, $_ENV, $inherited)), false);
+$environment['ERROR_HANDLER_BOUNDED_FIXTURE'] = '1';
 $autoload = getenv('ERROR_HANDLER_AUTOLOAD');
 
 if (false !== $autoload) {
@@ -59,17 +64,36 @@ foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput]) {
         '-d', 'log_errors=0',
         __DIR__ . '/' . $file,
     ], $arguments);
-    $result = runProcess($command, 5.0, 16384, null, $environment);
+    $process = new Process($command, null, $environment, null, 5.0);
+    $bytes = 0;
+    $limited = false;
 
-    if ('exit' !== $result['reason'] || !$result['reaped']) {
-        throw new RuntimeException(
-            $file . ' exceeded its process bounds or was not reaped: ' . $result['reason'],
+    try {
+        $process->run(
+            /**
+             * Interrupts excessive example output without relaunching an error during cleanup.
+             *
+             * @param string $type  the standard pipe identifier
+             * @param string $chunk the new example bytes
+             *
+             * @throws LengthException when combined output exceeds16KiB
+             */
+            static function (string $type, string $chunk) use (&$bytes, &$limited): void {
+                $bytes += strlen($chunk);
+                if ($bytes > 16384 && !$limited) {
+                    $limited = true;
+
+                    throw new LengthException('Example output exceeded16KiB.');
+                }
+            },
         );
+    } finally {
+        $process->stop(0);
     }
 
-    $exit = $result['exitCode'];
-    $output = $result['stdout'];
-    $errors = $result['stderr'];
+    $exit = $process->getExitCode();
+    $output = $process->getOutput();
+    $errors = $process->getErrorOutput();
 
     if ($exit !== $expectedExit || (null !== $expectedOutput && ($output !== $expectedOutput || '' !== $errors))) {
         throw new RuntimeException(

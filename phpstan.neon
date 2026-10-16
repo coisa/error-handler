@@ -2,6 +2,8 @@ includes:
   - vendor/jangregor/phpstan-prophecy/extension.neon
 
 parameters:
+  stubFiles:
+    - tests/Analysis/output-buffer.stub
   ignoreErrors:
     # PHP accepts void/null as handled; only strict false delegates to its native handler.
     - message: '/^Parameter \#1 \$(?:callback|error_handler) of function set_error_handler expects/'
