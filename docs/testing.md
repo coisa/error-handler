@@ -44,6 +44,21 @@ The source autoloader takes precedence over fixture dependencies, so both runner
 exercise this checkout's `src` tree. Composer fixture files belong to their
 temporary directory and can be removed after the run.
 
+## Native CI and security-analysis limits
+
+The [PHP CI workflow](https://github.com/coisa/error-handler/actions/workflows/ci.yml)
+runs formatting, PHPCS, PHPUnit and maximum PHPStan analysis over source and
+tests, plus clean production installations across the declared PHP range.
+Its separate coverage jobs collect PHPUnit XML and report the measured lines;
+process/HTTP characterization remains separate evidence from that percentage.
+
+The retired Scrutinizer configuration requested data-flow security analysis in
+addition to style, tests and coverage. Its latest public inspection was from
+September 2019, so its historical badges did not describe the current 2.x tree.
+PHPStan and PHPCS do not establish equivalent security analysis; the native
+workflow does not include that Scrutinizer capability. Removing repository
+configuration and badges does not change the external service's settings.
+
 ## Bounds and cleanup
 
 Each fire child runs with `php -n`, a 16 MiB memory limit, a five-second deadline
