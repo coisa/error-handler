@@ -54,9 +54,16 @@ $shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): vo
 });
 
 $application = new ArrayServiceProvider([
-    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(static function (Throwable $error): void {
-        error_log($error->getMessage());
-    }),
+    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
+        /**
+         * Routes diagnostics to the application's private sink.
+         *
+         * @param Throwable $error the original diagnostic
+         */
+        static function (Throwable $error): void {
+            error_log($error->getMessage());
+        },
+    ),
     PhpErrorHandlerInterface::class => static fn(): PhpErrorHandlerInterface => $phpErrors,
     ShutdownHandlerInterface::class => static fn(): ShutdownHandlerInterface => $shutdown,
 ]);

@@ -141,6 +141,20 @@ templates. Pass a separate public renderer there, never a diagnostic reporter
 middleware already called. Only this adapter converts output into the body.
 Its renderers must balance removable buffers and never close caller-owned buffers.
 
+## Best-effort delivery
+
+Use Handler\BestEffortThrowableHandlerAggregate only when the application explicitly
+wants all fixed reporter slots attempted. It preserves order and original identity;
+duplicate slots remain separate attempts. Any failures produce one
+Exception\AggregateReportingException after all attempts, even with partial success.
+Catch it to retain getOriginalThrowable(), getPrevious() and the ordered getFailures().
+Zero/all-success passes return. The original aggregate/defaults remain fail-fast.
+
+No discovery, retry, reentry guard, durable delivery or public redaction is supplied.
+The original and reporter failures remain private; middleware propagates a failed
+aggregate before response rendering. Native termination can stop remaining slots.
+See the matching checkout's examples/best-effort.php and docs/api.md#best-effort-reporting.
+
 ## Verify the integration
 
 Exercise a reported warning, an uncaught throwable in a bounded child process,

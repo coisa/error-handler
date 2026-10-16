@@ -42,7 +42,9 @@ $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
      *
      * @param StreamFactoryInterface $streams creates public response body streams
      */
-    public function __construct(private StreamFactoryInterface $streams) {}
+    public function __construct(private StreamFactoryInterface $streams)
+    {
+    }
 
     /**
      * Returns controlled JSON directly, independently of diagnostic reporting.

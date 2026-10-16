@@ -77,7 +77,9 @@ $next = new class ($inner, $downstream) implements RequestHandlerInterface {
      * @param MiddlewareInterface     $inner      the inner error middleware
      * @param RequestHandlerInterface $downstream the application request handler
      */
-    public function __construct(private MiddlewareInterface $inner, private RequestHandlerInterface $downstream) {}
+    public function __construct(private MiddlewareInterface $inner, private RequestHandlerInterface $downstream)
+    {
+    }
 
     /**
      * Enters the inner scope while the outer scope remains registered.

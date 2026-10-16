@@ -174,34 +174,43 @@ try {
     $streams = $services->get(ThrowableStreamFactoryInterface::class);
     $responses = $services->get(ThrowableResponseFactoryInterface::class);
 
-    if (!$handler instanceof ErrorHandler || !$aggregate instanceof ThrowableHandlerAggregate
-        || !$streams instanceof GenericThrowableStreamFactory || !$responses instanceof ThrowableResponseFactory) {
+    if (
+        !$handler instanceof ErrorHandler || !$aggregate instanceof ThrowableHandlerAggregate
+        || !$streams instanceof GenericThrowableStreamFactory || !$responses instanceof ThrowableResponseFactory
+    ) {
         throw new RuntimeException('The Interop provider must resolve its actual default classes.');
     }
 
-    if ($services->get(ErrorHandler::class) !== $handler
+    if (
+        $services->get(ErrorHandler::class) !== $handler
         || $services->get(ThrowableHandlerAggregate::class) !== $aggregate
         || $services->get(GenericThrowableStreamFactory::class) !== $streams
-        || $services->get(ThrowableResponseFactory::class) !== $responses) {
+        || $services->get(ThrowableResponseFactory::class) !== $responses
+    ) {
         throw new RuntimeException('Provider aliases must preserve the cached concrete service identities.');
     }
 
     $handlerFactory = $services->get(ErrorHandlerFactory::class);
     $middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
-    if (!$handlerFactory instanceof ErrorHandlerFactory || !$middlewareFactory instanceof ErrorHandlerMiddlewareFactory) {
+    if (
+        !$handlerFactory instanceof ErrorHandlerFactory
+        || !$middlewareFactory instanceof ErrorHandlerMiddlewareFactory
+    ) {
         throw new RuntimeException('Fresh-scope factory services must be available in the production graph.');
     }
 
     $first = $handlerFactory($services);
     $second = $handlerFactory($services);
     if ($first === $handler || $second === $handler || $first === $second) {
-        throw new RuntimeException('Explicit handler factories must produce distinct scopes from the cached process handler.');
+        throw new RuntimeException('Handler factories must produce scopes distinct from the cached process handler.');
     }
 
     $cachedMiddleware = $services->get(ErrorHandlerMiddleware::class);
-    if (!$cachedMiddleware instanceof ErrorHandlerMiddleware
+    if (
+        !$cachedMiddleware instanceof ErrorHandlerMiddleware
         || $services->get(ErrorHandlerMiddleware::class) !== $cachedMiddleware
-        || $middlewareFactory($services) === $middlewareFactory($services)) {
+        || $middlewareFactory($services) === $middlewareFactory($services)
+    ) {
         throw new RuntimeException('Middleware lookup must cache while explicit factories return fresh wrappers.');
     }
 

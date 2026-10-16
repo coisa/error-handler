@@ -20,7 +20,10 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,9 +32,10 @@ use PHPUnit\Framework\TestCase;
  * @package CoiSA\ErrorHandler\Test\Unit\Http\Message
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(ThrowableResponseFactory::class)]
+#[UsesClass(ThrowableStreamFactory::class)]
+#[UsesClass(CallableThrowableHandler::class)]
 final class ThrowableResponseFactoryTest extends TestCase
 {
     /**
@@ -66,27 +70,52 @@ final class ThrowableResponseFactoryTest extends TestCase
     public static function provideMapsHttpErrorCodesAndDoesNotDiscloseExceptionDetailsCases(): iterable
     {
         return [[0, 500], [200, 500], [399, 500], [400, 400], [404, 404], [500, 500],
-            [503, 503], [599, 599], [600, 500]];
+            [501, 501], [503, 503], [599, 599], [600, 500], [PHP_INT_MAX, 500]];
     }
 
     /**
-     * Verifies a string PDO SQLSTATE produces HTTP 500 without a secondary type error.
+     * Verifies actual and numeric-looking string SQLSTATEs remain HTTP 500.
+     *
+     * @param string $sqlState the original synthetic PDO code
      */
-    public function testStringSqlStateFallsBackTo500(): void
+    #[DataProvider('provideStringSqlStateFallsBackTo500Cases')]
+    public function testStringSqlStateFallsBackTo500(string $sqlState): void
     {
-        $error = new class extends \PDOException {
+        $error = new class ($sqlState) extends \PDOException {
             /**
-             * Stores synthetic collaborators or failures for this test fixture.
+             * Supplies PDO's string code without using a database.
+             *
+             * @param string $sqlState the original synthetic SQLSTATE
              */
-            public function __construct()
+            public function __construct(string $sqlState)
             {
-                $this->code = 'HY000';
+                $this->code = $sqlState;
             }
         };
         $factory = new Psr17Factory();
-        $reporter = new CallableThrowableHandler(static function (): void {});
-        $responses = new ThrowableResponseFactory(new ThrowableStreamFactory($factory, $reporter), $factory);
-        self::assertSame(500, $responses->createResponseFromThrowable($error)->getStatusCode());
+        $body = $factory->createStream('public response');
+        $streams = $this->createMock(ThrowableStreamFactoryInterface::class);
+        $streams->expects(self::once())->method('createStreamFromThrowable')
+            ->with(self::identicalTo($error))->willReturn($body)
+        ;
+        $response = (new ThrowableResponseFactory($streams, $factory))->createResponseFromThrowable($error);
+
+        self::assertSame(500, $response->getStatusCode());
+        self::assertSame('Internal Server Error', $response->getReasonPhrase());
+        self::assertSame($body, $response->getBody());
+        self::assertSame($sqlState, $error->getCode());
+    }
+
+    /** @return array<string, array{string}> true SQLSTATEs and HTTP-looking string codes */
+    public static function provideStringSqlStateFallsBackTo500Cases(): iterable
+    {
+        return [
+            'general error' => ['HY000'],
+            'integrity constraint' => ['23000'],
+            'HTTP-looking not found' => ['404'],
+            'HTTP-looking lower bound' => ['400'],
+            'HTTP-looking server error' => ['500'],
+        ];
     }
 
     /**

@@ -32,9 +32,16 @@ $application = new class implements ServiceProviderInterface {
     public function getFactories(): array
     {
         return [
-            CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(static function (Throwable $error): void {
-                printf("Reported: %s\n", $error->getMessage());
-            }),
+            CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
+                /**
+                 * Prints only this CLI recipe's synthetic diagnostic.
+                 *
+                 * @param Throwable $error the converted warning supplied for reporting
+                 */
+                static function (Throwable $error): void {
+                    printf("Reported: %s\n", $error->getMessage());
+                },
+            ),
         ];
     }
 

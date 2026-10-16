@@ -21,6 +21,7 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,9 +33,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @package CoiSA\ErrorHandler\Test\Functional\Http\Middleware
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ErrorHandlerCleanupTest extends TestCase
 {
     /**
@@ -43,7 +43,8 @@ final class ErrorHandlerCleanupTest extends TestCase
     public function testRestoresHandlersEvenWhenTheResponseFactoryThrows(): void
     {
         $previousError = static fn(): bool => true;
-        $previousException = static function (\Throwable $error): void {};
+        $previousException = static function (\Throwable $error): void {
+        };
         set_error_handler($previousError, E_USER_NOTICE);
         set_exception_handler($previousException);
         $failure = new \RuntimeException('response factory failed');
@@ -53,7 +54,9 @@ final class ErrorHandlerCleanupTest extends TestCase
              *
              * @param \Throwable $failure the synthetic failure to propagate
              */
-            public function __construct(private \Throwable $failure) {}
+            public function __construct(private \Throwable $failure)
+            {
+            }
 
             /**
              * Throws the configured rendering failure to exercise callback restoration.
@@ -80,7 +83,8 @@ final class ErrorHandlerCleanupTest extends TestCase
                 throw new \TypeError('request failed');
             }
         };
-        $reporter = new CallableThrowableHandler(static function (): void {});
+        $reporter = new CallableThrowableHandler(static function (): void {
+        });
         $middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
 
         try {
@@ -90,7 +94,8 @@ final class ErrorHandlerCleanupTest extends TestCase
             self::assertSame($failure, $actual);
             $activeError = set_error_handler(static fn(): bool => true);
             restore_error_handler();
-            $activeException = set_exception_handler(static function (\Throwable $error): void {});
+            $activeException = set_exception_handler(static function (\Throwable $error): void {
+            });
             restore_exception_handler();
             self::assertSame($previousError, $activeError);
             self::assertSame($previousException, $activeException);

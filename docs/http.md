@@ -24,3 +24,8 @@ buffers and callback exit/die/fatal side effects remain native limitations.
 See [API](api.md), [provider composition](fast-forward.md), [cookbook](examples.md)
 and [tests](testing.md). Applications own HTTP emission and content negotiation;
 JSON/dev-HTML adapters remain separate proposals.
+
+Best-effort reporting attempts all its slots and throws if any failed. Middleware
+propagates that aggregate failure before invoking its renderer; it does not create
+a fallback response. The aggregate's summary, original and failures are not a
+redaction policy. Applications own terminal handling and private sinks.

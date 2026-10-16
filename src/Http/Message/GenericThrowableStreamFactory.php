@@ -29,7 +29,9 @@ final class GenericThrowableStreamFactory implements ThrowableStreamFactoryInter
      *
      * @param StreamFactoryInterface $streams creates response body streams
      */
-    public function __construct(private StreamFactoryInterface $streams) {}
+    public function __construct(private StreamFactoryInterface $streams)
+    {
+    }
 
     /**
      * Creates the generic response body without disclosing throwable diagnostics.

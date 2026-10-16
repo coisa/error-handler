@@ -71,9 +71,9 @@ Dependabot is configured to propose Composer, npm release-tooling and GitHub Act
 ## Complete usage recipes
 
 The [usage cookbook](docs/examples.md) and [documentation site](docs/index.html#examples)
-show all built-in adapters with twelve runnable examples: process bootstrap,
+show all built-in adapters with thirteen runnable examples: process bootstrap,
 Interop provider, ordered reporters, PSR-14 events with PSR-3 logging, HTTP
-middleware, safe JSON rendering, custom PHP/shutdown handlers, nested scopes, explicit public output capture, direct PSR-3 logging, filtering and callable PHP-error conversion.
+middleware, safe JSON rendering, custom PHP/shutdown handlers, nested scopes, explicit public output capture, direct PSR-3 logging, filtering, callable PHP-error conversion and best-effort reporting.
 Reporters keep their void contract; HTTP middleware reports once, then uses a
 pure renderer. JSON examples return streams directly without echo or buffering.
 CI executes every recipe and verifies that the displayed code matches its source.

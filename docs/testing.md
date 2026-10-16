@@ -62,7 +62,7 @@ must resolve transitively. See [production checks](../tests/Production/README.md
 FastForward may normalize construction failures and retry autowiring: failed
 required construction is asserted without promising one attempt or original cause.
 
-`php examples/verify.php` checks the twelve major recipes, including the three
+`php examples/verify.php` checks the thirteen major recipes, including the four
 adapters already delivered in 2.x. The existing Symfony Process verifier uses
 five-second/64 MiB children and aborts above 16 KiB of observed output. It clears
 inherited environment variables except the selected autoloader/fixture marker.
@@ -80,10 +80,10 @@ No runtime exclusions, merged child coverage or artificial coverage ignores are
 introduced by this reconciliation. PHPStan's output-buffer stub supplies analysis
 metadata only and is never loaded by the runtime/autoloader/test suite.
 
-The first reconciled local snapshot passed 183 tests/686 assertions on macOS
-arm64, PHP 8.4.26, PHPUnit 13.4.2 and FastForward 1.8.0. This is an observed local
-resolution, not proof of PHP 8.3/8.5 or every permitted dependency combination.
-The final PR evidence records later checks and actual hosted SHAs separately.
+The reconciled local graph uses PHP 8.4.26, PHPUnit 13.4.2 and FastForward 1.8.0
+on macOS arm64. Coverage is measured separately with PHP 8.5.11 and Xdebug 3.5.3.
+These observations do not prove PHP 8.3 or every permitted dependency combination.
+The PR evidence records test totals, native uncovered lines and hosted SHAs.
 Earlier PR #3 results using 75 tests, custom runners or PSR-12-only formatting are
 historical; the current checkout uses the merged CoiSA 3.x preset and PHPUnit suites.
 

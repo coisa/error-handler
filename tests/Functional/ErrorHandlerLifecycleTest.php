@@ -23,6 +23,7 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\WithoutErrorHandler;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -32,9 +33,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * Covers independent direct deliveries and reporter failure within a middleware scope.
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ErrorHandlerLifecycleTest extends TestCase
 {
     /**
@@ -104,7 +104,8 @@ final class ErrorHandlerLifecycleTest extends TestCase
     {
         $previousError = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        $previousException = set_exception_handler(static function (): void {});
+        $previousException = set_exception_handler(static function (): void {
+        });
         restore_exception_handler();
         $calls = 0;
         $failure = new \RuntimeException('Reporter failed');
@@ -147,7 +148,8 @@ final class ErrorHandlerLifecycleTest extends TestCase
         self::assertSame(1, $calls);
         $activeError = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        $activeException = set_exception_handler(static function (): void {});
+        $activeException = set_exception_handler(static function (): void {
+        });
         restore_exception_handler();
         self::assertSame($previousError, $activeError);
         self::assertSame($previousException, $activeException);

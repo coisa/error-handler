@@ -2,8 +2,9 @@
 
 This is the unreleased PHP 8.3+ development line. The checkout includes Nyholm PSR-7 and Phly EventDispatcher for examples; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](../examples/README.md).
 
-Run `php examples/verify.php` to verify all recipes in bounded children. The CLI recipe deliberately exits 1. The same sources are displayed on the [static site](index.html#examples). Tests verify source parity; examples do not prove delivery to real transports.
+Run `php examples/verify.php` to verify all thirteen recipes in bounded children. The CLI recipe deliberately exits 1. The same sources appear on the [static site](index.html#examples). Source parity is checked; examples do not prove delivery to real transports.
 
+<a id="cli"></a>
 ## Process bootstrap
 
 Report a warning and an uncaught exception, then exit 1. [Source](../examples/cli.php).
@@ -19,7 +20,7 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 require __DIR__ . '/bootstrap.php';
 
 $reporter = new CallableThrowableHandler(static function (Throwable $error): void {
-    fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . PHP_EOL);
+    fwrite(STDERR, $error::class . ': ' . $error->getMessage() . PHP_EOL);
 });
 
 $handler = new ErrorHandler($reporter);
@@ -31,6 +32,7 @@ trigger_error('Example warning; execution continues.', E_USER_WARNING);
 throw new RuntimeException('Example uncaught exception; exit status is 1.');
 ```
 
+<a id="fast-forward"></a>
 ## Interop service provider
 
 Resolve real FastForward definitions without installing callbacks during lookup. [Source](../examples/fast-forward.php).
@@ -49,26 +51,32 @@ use function FastForward\Container\container;
 
 require __DIR__ . '/bootstrap.php';
 
-$application = new class () implements ServiceProviderInterface {
+$application = new class implements ServiceProviderInterface {
     /**
      * Supplies application service definitions for the integration fixture.
      *
-     * @return array<class-string, callable> Application service factories.
+     * @return array<class-string, callable> application service factories
      */
     public function getFactories(): array
     {
         return [
-            CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
-                new CallableThrowableHandler(static function (Throwable $error): void {
+            CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
+                /**
+                 * Prints only this CLI recipe's synthetic diagnostic.
+                 *
+                 * @param Throwable $error the converted warning supplied for reporting
+                 */
+                static function (Throwable $error): void {
                     printf("Reported: %s\n", $error->getMessage());
-                }),
+                },
+            ),
         ];
     }
 
     /**
      * Declares no application service extensions.
      *
-     * @return array<string, callable> An empty extension map.
+     * @return array<string, callable> an empty extension map
      */
     public function getExtensions(): array
     {
@@ -92,9 +100,10 @@ try {
 }
 ```
 
+<a id="reporters"></a>
 ## Callable reporters and ordered composition
 
-Deliver the same throwable to reporters in order; the existing aggregate remains fail-fast. [Source](../examples/reporters.php).
+Deliver the same throwable in order; the existing aggregate remains fail-fast. [Source](../examples/reporters.php).
 
 ```php
 <?php
@@ -111,13 +120,13 @@ $deliveries = [];
 $reporters = new ThrowableHandlerAggregate(
     new CallableThrowableHandler(static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'first: ' . $error->getMessage();
-    })
+    }),
 );
 
 $reporters->attach(new CallableThrowableHandler(
     static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'second: ' . $error->getMessage();
-    }
+    },
 ));
 
 $errors = new ErrorHandler($reporters);
@@ -128,9 +137,10 @@ $errors->handleThrowable(new RuntimeException('Synthetic failure'));
 echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 ```
 
+<a id="events"></a>
 ## PSR-14 dispatch and PSR-3 event logging
 
-Exercise the original throwable and ErrorEvent notification paths. [Source](../examples/event-dispatcher.php).
+Exercise original Throwable and ErrorEvent notification paths. [Source](../examples/event-dispatcher.php).
 
 ```php
 <?php
@@ -158,9 +168,9 @@ require __DIR__ . '/bootstrap.php';
 
 $deliveries = [];
 
-$logger = new class () extends AbstractLogger {
+$logger = new class extends AbstractLogger {
     /**
-     * @var list<string> Synthetic private log records; replace with an application logger.
+     * @var list<string> synthetic private log records; replace with an application logger
      */
     public array $records = [];
 
@@ -169,9 +179,9 @@ $logger = new class () extends AbstractLogger {
      *
      * Untyped parameters also support applications using psr/log 1.x.
      *
-     * @param mixed $level The PSR-3 log level.
-     * @param mixed $message The diagnostic message.
-     * @param array<string, mixed> $context The application log context.
+     * @param mixed                $level   the PSR-3 log level
+     * @param mixed                $message the diagnostic message
+     * @param array<string, mixed> $context the application log context
      */
     public function log($level, $message, array $context = []): void
     {
@@ -182,19 +192,19 @@ $logger = new class () extends AbstractLogger {
 $throwables = new ThrowableListenerProvider(
     new ThrowableCallableListener(static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'throwable: ' . $error->getMessage();
-    })
+    }),
 );
 $events = new ErrorEventListenerProvider(
     new ErrorEventCallableListener(static function (ErrorEventInterface $event) use (&$deliveries): void {
         $deliveries[] = 'event: ' . $event->getThrowable()->getMessage();
-    })
+    }),
 );
 $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
 
 $dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
 
 $application = new ArrayServiceProvider([
-    EventDispatcherInterface::class => static fn (): EventDispatcherInterface => $dispatcher,
+    EventDispatcherInterface::class => static fn(): EventDispatcherInterface => $dispatcher,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);
@@ -213,6 +223,7 @@ echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 printf("Private log records: %d\n", count($logger->records));
 ```
 
+<a id="http-middleware"></a>
 ## PSR-15 middleware with the provider
 
 Report once, render a generic response and restore the process handler. [Source](../examples/http-middleware.php).
@@ -247,9 +258,9 @@ $reporter = new CallableThrowableHandler(static function (Throwable $error) use 
 });
 
 $application = new ArrayServiceProvider([
-    CallableThrowableHandler::class => static fn (): CallableThrowableHandler => $reporter,
-    ResponseFactoryInterface::class => static fn (): ResponseFactoryInterface => $psr17,
-    StreamFactoryInterface::class => static fn (): StreamFactoryInterface => $psr17,
+    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => $reporter,
+    ResponseFactoryInterface::class => static fn(): ResponseFactoryInterface => $psr17,
+    StreamFactoryInterface::class => static fn(): StreamFactoryInterface => $psr17,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);
@@ -257,12 +268,13 @@ $services = container(ErrorHandlerServiceProvider::class, $application);
 $process = $services->get(ErrorHandlerInterface::class);
 $middleware = $services->get(ErrorHandlerMiddleware::class);
 
-$downstream = new class () implements RequestHandlerInterface {
+$downstream = new class implements RequestHandlerInterface {
     /**
      * Simulates an application failure with an HTTP error status.
      *
-     * @param ServerRequestInterface $request The incoming request.
-     * @return ResponseInterface A response supplied by the error middleware.
+     * @param ServerRequestInterface $request the incoming request
+     *
+     * @return ResponseInterface a response supplied by the error middleware
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -287,9 +299,10 @@ printf("Reported: %d\n", count($reported));
 // Your HTTP framework/emitter sends the response; this example only inspects it.
 ```
 
+<a id="http-rendering"></a>
 ## Explicit JSON streams
 
-Return an application-owned JSON stream without echo or buffering. [Source](../examples/http-rendering.php).
+Return application-owned JSON without echo or buffering. [Source](../examples/http-rendering.php).
 
 ```php
 <?php
@@ -314,7 +327,7 @@ $privateDiagnostics = [];
 $reporter = new CallableThrowableHandler(
     static function (Throwable $error) use (&$privateDiagnostics): void {
         $privateDiagnostics[] = $error; // Replace with a private logger; emit no response body.
-    }
+    },
 );
 
 $psr17 = new Psr17Factory();
@@ -322,7 +335,7 @@ $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
     /**
      * Stores the application's PSR-17 factory.
      *
-     * @param StreamFactoryInterface $streams Creates public response body streams.
+     * @param StreamFactoryInterface $streams creates public response body streams
      */
     public function __construct(private StreamFactoryInterface $streams)
     {
@@ -331,14 +344,14 @@ $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
     /**
      * Returns controlled JSON directly, independently of diagnostic reporting.
      *
-     * @param Throwable $throwable The private failure whose details stay undisclosed.
+     * @param Throwable $throwable the private failure whose details stay undisclosed
      *
-     * @return StreamInterface A public JSON body without echo or output buffering.
+     * @return StreamInterface a public JSON body without echo or output buffering
      */
     public function createStreamFromThrowable(Throwable $throwable): StreamInterface
     {
         return $this->streams->createStream(
-            json_encode(['error' => 'Service unavailable'], JSON_THROW_ON_ERROR)
+            json_encode(['error' => 'Service unavailable'], JSON_THROW_ON_ERROR),
         );
     }
 };
@@ -346,13 +359,13 @@ $streams = new class ($psr17) implements ThrowableStreamFactoryInterface {
 $responses = new ThrowableResponseFactory($streams, $psr17);
 $middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
 
-$downstream = new class () implements RequestHandlerInterface {
+$downstream = new class implements RequestHandlerInterface {
     /**
      * Simulates a private application failure with an HTTP error code.
      *
-     * @param ServerRequestInterface $request The incoming request.
+     * @param ServerRequestInterface $request the incoming request
      *
-     * @return ResponseInterface The error response produced by middleware.
+     * @return ResponseInterface the error response produced by middleware
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -361,13 +374,15 @@ $downstream = new class () implements RequestHandlerInterface {
 };
 
 $response = $middleware->process($psr17->createServerRequest('GET', '/'), $downstream)
-    ->withHeader('Content-Type', 'application/json');
+    ->withHeader('Content-Type', 'application/json')
+;
 
 printf("HTTP %d | %s\n", $response->getStatusCode(), $response->getHeaderLine('Content-Type'));
 echo (string) $response->getBody() . PHP_EOL;
 printf("Private reports: %d\n", count($privateDiagnostics));
 ```
 
+<a id="custom-handlers"></a>
 ## Application PHP-error and shutdown handlers
 
 Supply explicit interface implementations and a shutdown callback. [Source](../examples/custom-handlers.php).
@@ -389,19 +404,19 @@ use function FastForward\Container\container;
 
 require __DIR__ . '/bootstrap.php';
 
-$phpErrors = new class () implements PhpErrorHandlerInterface {
+$phpErrors = new class implements PhpErrorHandlerInterface {
     /**
-     * @var list<string> Reportable PHP messages received by this application handler.
+     * @var list<string> reportable PHP messages received by this application handler
      */
     public array $messages = [];
 
     /**
      * Records reportable PHP errors without converting them to exceptions.
      *
-     * @param int $code The PHP severity.
-     * @param string $message The PHP message.
-     * @param string $filename The source filename.
-     * @param int $line The source line.
+     * @param int    $code     the PHP severity
+     * @param string $message  the PHP message
+     * @param string $filename the source filename
+     * @param int    $line     the source line
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
@@ -417,12 +432,18 @@ $shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): vo
 });
 
 $application = new ArrayServiceProvider([
-    CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
-        new CallableThrowableHandler(static function (Throwable $error): void {
+    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
+        /**
+         * Routes diagnostics to the application's private sink.
+         *
+         * @param Throwable $error the original diagnostic
+         */
+        static function (Throwable $error): void {
             error_log($error->getMessage());
-        }),
-    PhpErrorHandlerInterface::class => static fn (): PhpErrorHandlerInterface => $phpErrors,
-    ShutdownHandlerInterface::class => static fn (): ShutdownHandlerInterface => $shutdown,
+        },
+    ),
+    PhpErrorHandlerInterface::class => static fn(): PhpErrorHandlerInterface => $phpErrors,
+    ShutdownHandlerInterface::class => static fn(): ShutdownHandlerInterface => $shutdown,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);
@@ -441,9 +462,10 @@ try {
 printf("PHP errors: %d | Shutdown notifications: %d\n", count($phpErrors->messages), $shutdowns);
 ```
 
+<a id="scopes"></a>
 ## Fresh handlers and nested middleware
 
-Use factory services when a new scope is required; ordinary lookups stay cached. [Source](../examples/scopes.php).
+Use factory services for a new scope; ordinary lookups remain cached. [Source](../examples/scopes.php).
 
 ```php
 <?php
@@ -477,9 +499,9 @@ $reporter = new CallableThrowableHandler(static function () use (&$reported): vo
 });
 
 $application = new ArrayServiceProvider([
-    CallableThrowableHandler::class => static fn (): CallableThrowableHandler => $reporter,
-    ResponseFactoryInterface::class => static fn (): ResponseFactoryInterface => $psr17,
-    StreamFactoryInterface::class => static fn (): StreamFactoryInterface => $psr17,
+    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => $reporter,
+    ResponseFactoryInterface::class => static fn(): ResponseFactoryInterface => $psr17,
+    StreamFactoryInterface::class => static fn(): StreamFactoryInterface => $psr17,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);
@@ -492,12 +514,13 @@ $makeMiddleware = $services->get(ErrorHandlerMiddlewareFactory::class);
 $outer = $makeMiddleware($services);
 $inner = $makeMiddleware($services);
 
-$downstream = new class () implements RequestHandlerInterface {
+$downstream = new class implements RequestHandlerInterface {
     /**
      * Throws a synthetic downstream failure for the inner scope.
      *
-     * @param ServerRequestInterface $request The synthetic request.
-     * @return ResponseInterface The response produced by the inner middleware.
+     * @param ServerRequestInterface $request the synthetic request
+     *
+     * @return ResponseInterface the response produced by the inner middleware
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -509,8 +532,8 @@ $next = new class ($inner, $downstream) implements RequestHandlerInterface {
     /**
      * Stores the independently constructed inner middleware and application handler.
      *
-     * @param MiddlewareInterface $inner The inner error middleware.
-     * @param RequestHandlerInterface $downstream The application request handler.
+     * @param MiddlewareInterface     $inner      the inner error middleware
+     * @param RequestHandlerInterface $downstream the application request handler
      */
     public function __construct(private MiddlewareInterface $inner, private RequestHandlerInterface $downstream)
     {
@@ -519,8 +542,9 @@ $next = new class ($inner, $downstream) implements RequestHandlerInterface {
     /**
      * Enters the inner scope while the outer scope remains registered.
      *
-     * @param ServerRequestInterface $request The incoming request.
-     * @return ResponseInterface The inner response.
+     * @param ServerRequestInterface $request the incoming request
+     *
+     * @return ResponseInterface the inner response
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -542,14 +566,15 @@ try {
 printf(
     "Fresh handlers: %s | Fresh middleware: %s\n",
     $first !== $second ? 'yes' : 'no',
-    $outer !== $inner ? 'yes' : 'no'
+    $outer !== $inner ? 'yes' : 'no',
 );
 printf("HTTP %d | Reports: %d\n", $response->getStatusCode(), $reported);
 ```
 
+<a id="output-capture"></a>
 ## Explicit public output capture
 
-Capture only a separate public renderer, preserving the string zero. [Source](../examples/output-capture.php).
+Capture a separate public renderer, preserving the string zero. [Source](../examples/output-capture.php).
 
 ```php
 <?php
@@ -575,9 +600,10 @@ $body = $streams->createStreamFromThrowable(new RuntimeException('Private diagno
 printf("Captured body: %s\n", (string) $body);
 ```
 
+<a id="logging"></a>
 ## Direct PSR-3 logging
 
-Use the existing explicit logger adapter with exact message and original exception context. [Source](../examples/logging.php).
+Log exact messages with the original exception context. [Source](../examples/logging.php).
 
 ```php
 <?php
@@ -632,9 +658,10 @@ exampleCheck($empty === $logger->records[1]['context']['exception'], 'The second
 echo 'direct PSR-3 logging, exact messages and original context passed' . PHP_EOL;
 ```
 
+<a id="filtering"></a>
 ## Filtering
 
-Select per invocation without changing the original event or default routing. [Source](../examples/filtering.php).
+Select per invocation without changing the event or defaults. [Source](../examples/filtering.php).
 
 ```php
 <?php
@@ -679,7 +706,8 @@ $filtered = new FilteringThrowableHandler(
      *
      * @return bool true forwards this event to the deprecation branch
      */
-    static fn(Throwable $error): bool => $error instanceof ErrorException && E_USER_DEPRECATED === $error->getSeverity(),
+    static fn(Throwable $error): bool => $error instanceof ErrorException
+        && E_USER_DEPRECATED === $error->getSeverity(),
 );
 $routes = new ThrowableHandlerAggregate($allReports, $filtered);
 $deprecation = new ErrorException('Synthetic deprecation', 0, E_USER_DEPRECATED);
@@ -694,9 +722,10 @@ exampleCheck([$deprecation] === $deprecations, 'Exception codes were mistaken fo
 echo 'explicit filtering, severity selection and original-object delivery passed' . PHP_EOL;
 ```
 
+<a id="php-errors"></a>
 ## Callable PHP-error conversion
 
-Use the explicit adapter with four unchanged arguments and application-owned mask policy. [Source](../examples/php-errors.php).
+Keep four original arguments and application-owned mask policy. [Source](../examples/php-errors.php).
 
 ```php
 <?php
@@ -756,16 +785,107 @@ exampleCheck([
     [E_USER_WARNING, 'Synthetic enabled input', __FILE__, 42],
     [E_USER_WARNING, 'Synthetic disabled input', __FILE__, 43],
 ] === $calls, 'The callback did not receive the four original arguments.');
-exampleCheck(1 === count($reports) && $reports[0] instanceof ErrorException, 'Explicit mask/conversion policy changed.');
+exampleCheck(
+    1 === count($reports) && $reports[0] instanceof ErrorException,
+    'Explicit mask/conversion policy changed.',
+);
 exampleCheck('Synthetic enabled input' === $reports[0]->getMessage(), 'Converted diagnostic metadata was lost.');
 
 echo 'callable PHP errors: four arguments, explicit mask policy and conversion passed' . PHP_EOL;
 ```
 
-## Lifetime and failure boundaries
+<a id="best-effort"></a>
+## Best-effort reporting
 
-Middleware requires one scoped object implementing lifecycle and reporting contracts. It reports downstream failures once before invoking a separate renderer. A failing reporter propagates without rendering. Generic output does not inspect reporter bytes; use private diagnostic sinks.
+Attempt every fixed slot in order, then retain the original and all reporter failures. [Source](../examples/best-effort.php).
 
-Unregister in reverse order and use distinct nested handler instances. Failed-reporter suppression applies only within a registered lifecycle; independent direct calls remain usable. Arbitrary exit/die, engine fatals, callback side effects and concurrent PHP callback scopes cannot be recovered by this library. The [provider guide](fast-forward.md), [API](api.md), [migration](migration.md) and [testing guide](testing.md) describe the exact boundaries.
+```php
+<?php
 
-A ready JSON adapter and developer HTML/request-aware rendering remain separate proposals (#7/#8). Native callable constructor unions remain planned in #70; these recipes use the existing explicit adapters/interfaces.
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\Exception\AggregateReportingException;
+use CoiSA\ErrorHandler\Handler\BestEffortThrowableHandlerAggregate;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+
+require __DIR__ . '/bootstrap.php';
+
+$original = new RuntimeException('Synthetic operation failure');
+$auditFailure = new RuntimeException('Synthetic audit failure');
+$backupFailure = new Error('Synthetic backup failure');
+$attempts = [];
+
+$audit = new CallableThrowableHandler(
+    /**
+     * Record the first attempt and fail with a distinct synthetic exception.
+     *
+     * @param Throwable $event the original diagnostic to report
+     *
+     * @throws RuntimeException the exact synthetic audit failure
+     */
+    static function (Throwable $event) use (&$attempts, $auditFailure): void {
+        $attempts[] = ['audit', $event];
+
+        throw $auditFailure;
+    },
+);
+
+$archive = new CallableThrowableHandler(
+    /**
+     * Record the successful middle attempt without an external transport.
+     *
+     * @param Throwable $event the unchanged original diagnostic
+     */
+    static function (Throwable $event) use (&$attempts): void {
+        $attempts[] = ['archive', $event];
+    },
+);
+
+$backup = new CallableThrowableHandler(
+    /**
+     * Record the final attempt and fail with a distinct synthetic Error.
+     *
+     * @param Throwable $event the unchanged original diagnostic
+     *
+     * @throws Error the exact synthetic backup failure
+     */
+    static function (Throwable $event) use (&$attempts, $backupFailure): void {
+        $attempts[] = ['backup', $event];
+
+        throw $backupFailure;
+    },
+);
+
+$reporter = new BestEffortThrowableHandlerAggregate($audit, $archive, $backup);
+$recordedFailure = null;
+
+try {
+    $reporter->handleThrowable($original);
+} catch (AggregateReportingException $failure) {
+    $recordedFailure = [
+        'original' => $failure->getOriginalThrowable(),
+        'failures' => $failure->getFailures(),
+    ];
+}
+
+exampleCheck([
+    ['audit', $original],
+    ['archive', $original],
+    ['backup', $original],
+] === $attempts, 'Every reporter must receive the same original once, in order.');
+
+exampleCheck([
+    'original' => $original,
+    'failures' => [$auditFailure, $backupFailure],
+] === $recordedFailure, 'Partial success must preserve the original and every reporter failure.');
+
+echo 'best-effort order, original cause and all reporter failures passed' . PHP_EOL;
+```
+
+## Failure and lifetime boundaries
+
+Middleware requires lifecycle and reporting on one scoped object. It reports once before a separate pure renderer; reporter failure propagates without rendering. Generic output ignores reporter bytes, so diagnostics must use private sinks.
+
+Unregister in reverse order and use distinct nested instances. Failed-reporter suppression applies within a registered lifecycle; independent direct calls remain usable. Arbitrary exit/die, engine fatals, callback side effects and concurrent native callback scopes are not recovered. See [provider](fast-forward.md), [API](api.md), [migration](migration.md) and [testing](testing.md).
+
+The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. JSON/developer-HTML adapters remain separate proposals (#7/#8); native callable constructor unions remain planned in #70.

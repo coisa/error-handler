@@ -49,7 +49,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      */
     public function __construct(
         StreamFactoryInterface $streamFactory,
-        ThrowableHandlerInterface $throwableHandler
+        ThrowableHandlerInterface $throwableHandler,
     ) {
         $this->streamFactory = $streamFactory;
         $this->throwableHandler = $throwableHandler;

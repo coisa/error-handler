@@ -12,7 +12,13 @@ composer show --locked
 composer --no-plugins check
 ```
 
-The CoiSA 3.x formatter preset and its existing rules remain active. Review its
+The CoiSA 3.x formatter preset remains the base. A documented local
+`single_line_empty_body: false` exception and conservative anonymous-class brace
+option keep empty bodies multiline so the complete PSR12 sniff still checks
+namespace braces. PER3 sections 4/4.4 make concise
+bodies a SHOULD recommendation; no mandatory rule or PHPCS diagnostic is removed.
+The former PHP7.4 trailing-comma restriction is removed: the PHP8.3 floor supports
+the preset's parameter and match contexts. Review the formatter's
 diff as executable code; the migration target must remain the Composer minimum.
 Do not format vendor files or introduce a newer PHP syntax than the runtime floor.
 PHPUnit uses its 12.5/13.x attribute API, maximum PHPStan includes `src` and `tests`,

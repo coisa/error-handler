@@ -23,6 +23,7 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -34,9 +35,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * Verifies reporting and public HTTP rendering remain separate operations.
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
     /**
@@ -61,7 +61,9 @@ final class ErrorHandlerMiddlewareTest extends TestCase
              * @param StreamFactoryInterface    $streams creates public body streams
              * @param \ArrayObject<int, string> $events  receives ordered fixture operations
              */
-            public function __construct(private StreamFactoryInterface $streams, private \ArrayObject $events) {}
+            public function __construct(private StreamFactoryInterface $streams, private \ArrayObject $events)
+            {
+            }
 
             /**
              * Returns a JSON stream directly without invoking a reporter or writing output.
@@ -118,7 +120,9 @@ final class ErrorHandlerMiddlewareTest extends TestCase
              *
              * @param ResponseInterface $response the response that must pass through unchanged
              */
-            public function __construct(private ResponseInterface $response) {}
+            public function __construct(private ResponseInterface $response)
+            {
+            }
 
             /**
              * Returns the application's successful response.
@@ -162,7 +166,9 @@ final class ErrorHandlerMiddlewareTest extends TestCase
              *
              * @param \Throwable $failure the exact throwable to propagate
              */
-            public function __construct(private \Throwable $failure) {}
+            public function __construct(private \Throwable $failure)
+            {
+            }
 
             /**
              * Throws the private failure for the middleware to handle.

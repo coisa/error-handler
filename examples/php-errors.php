@@ -67,7 +67,10 @@ exampleCheck([
     [E_USER_WARNING, 'Synthetic enabled input', __FILE__, 42],
     [E_USER_WARNING, 'Synthetic disabled input', __FILE__, 43],
 ] === $calls, 'The callback did not receive the four original arguments.');
-exampleCheck(1 === count($reports) && $reports[0] instanceof ErrorException, 'Explicit mask/conversion policy changed.');
+exampleCheck(
+    1 === count($reports) && $reports[0] instanceof ErrorException,
+    'Explicit mask/conversion policy changed.',
+);
 exampleCheck('Synthetic enabled input' === $reports[0]->getMessage(), 'Converted diagnostic metadata was lost.');
 
 echo 'callable PHP errors: four arguments, explicit mask policy and conversion passed' . PHP_EOL;

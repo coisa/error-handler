@@ -48,7 +48,7 @@ final class ProcessBehaviorTest extends TestCase
         array $events,
         ?string $class = null,
         ?int $severity = null,
-        bool $native = false
+        bool $native = false,
     ): void {
         $process = new Process([
             PHP_BINARY, '-n', '-d', 'memory_limit=16M', '-d', 'display_errors=stderr',

@@ -46,7 +46,9 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $messages = new Psr17Factory();
         $request = $messages->createServerRequest('GET', 'http://localhost');
         $response = $messages->createResponse(204);
-        $scope = $this->createMockForIntersectionOfInterfaces([ErrorHandlerInterface::class, ThrowableHandlerInterface::class]);
+        $scope = $this->createMockForIntersectionOfInterfaces([
+            ErrorHandlerInterface::class, ThrowableHandlerInterface::class,
+        ]);
         self::assertInstanceOf(ErrorHandlerInterface::class, $scope);
         self::assertInstanceOf(ThrowableHandlerInterface::class, $scope);
         $scope->expects(self::never())->method('handleThrowable');
@@ -64,7 +66,9 @@ final class ErrorHandlerMiddlewareTest extends TestCase
     {
         $original = new \Error('downstream');
         $primary = new \RuntimeException('response factory');
-        $scope = $this->createMockForIntersectionOfInterfaces([ErrorHandlerInterface::class, ThrowableHandlerInterface::class]);
+        $scope = $this->createMockForIntersectionOfInterfaces([
+            ErrorHandlerInterface::class, ThrowableHandlerInterface::class,
+        ]);
         self::assertInstanceOf(ErrorHandlerInterface::class, $scope);
         self::assertInstanceOf(ThrowableHandlerInterface::class, $scope);
         $scope->expects(self::once())->method('handleThrowable')->with(self::identicalTo($original));
@@ -90,7 +94,9 @@ final class ErrorHandlerMiddlewareTest extends TestCase
     public function testRegistrationFailureDoesNotEnterTheRequestScope(): void
     {
         $primary = new \RuntimeException('registration');
-        $scope = $this->createMockForIntersectionOfInterfaces([ErrorHandlerInterface::class, ThrowableHandlerInterface::class]);
+        $scope = $this->createMockForIntersectionOfInterfaces([
+            ErrorHandlerInterface::class, ThrowableHandlerInterface::class,
+        ]);
         self::assertInstanceOf(ErrorHandlerInterface::class, $scope);
         self::assertInstanceOf(ThrowableHandlerInterface::class, $scope);
         $scope->expects(self::never())->method('handleThrowable');
@@ -126,7 +132,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         string $class,
         string $message,
         int $code,
-        int $status
+        int $status,
     ): void {
         $original = new $class($message, $code);
         $reports = [];

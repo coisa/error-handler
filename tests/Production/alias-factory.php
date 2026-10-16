@@ -48,8 +48,10 @@ $application = new ArrayServiceProvider([
 $services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
 $handler = $services->get(ErrorHandlerInterface::class);
 
-if (!$handler instanceof ErrorHandler || $services->get(ErrorHandler::class) !== $handler
-    || $services->get(ThrowableHandlerInterface::class) !== $reporter) {
+if (
+    !$handler instanceof ErrorHandler || $services->get(ErrorHandler::class) !== $handler
+    || $services->get(ThrowableHandlerInterface::class) !== $reporter
+) {
     throw new RuntimeException('Merged application definitions must win without replacing service identities.');
 }
 
@@ -85,11 +87,15 @@ try {
 }
 
 if ($attempts < 1 || null === $caught) {
-    throw new RuntimeException('Failed required construction must be reached and must not silently yield a default handler.');
+    throw new RuntimeException('Required construction must fail instead of silently yielding a default handler.');
 }
 
 if ($caught !== $failure && !$caught instanceof ContainerExceptionInterface) {
-    throw new RuntimeException('FastForward must expose the original or its PSR-11-normalized construction failure.', 0, $caught);
+    throw new RuntimeException(
+        'FastForward must expose the original or its PSR-11-normalized construction failure.',
+        0,
+        $caught,
+    );
 }
 
 echo 'Production provider aliases and required overrides passed on PHP ' . PHP_VERSION . PHP_EOL;

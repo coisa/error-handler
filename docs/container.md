@@ -10,3 +10,8 @@ services when a fresh handler/middleware scope is required. Discovery does not
 install native PHP callbacks; applications choose when to register the process
 handler. Merge application overrides after library definitions in one aggregate
 provider. See the [complete example](../examples/fast-forward.php).
+
+The best-effort aggregate is also explicit: construct it with application reporters
+and bind the required reporting interface in the merged map. No factory, alias or
+automatic membership selects it. The default aggregate remains fail-fast; see
+[best-effort reporting](api.md#best-effort-reporting).

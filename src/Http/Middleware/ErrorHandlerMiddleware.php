@@ -53,12 +53,12 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
     /**
      * Constructs the ErrorHandlerMiddleware.
      *
-     * @param ErrorHandlerInterface&ThrowableHandlerInterface $errorHandler             The scoped lifecycle and reporter
-     * @param ThrowableResponseFactoryInterface               $throwableResponseFactory factory for creating throwable responses
+     * @param ErrorHandlerInterface&ThrowableHandlerInterface $errorHandler             scoped handler
+     * @param ThrowableResponseFactoryInterface               $throwableResponseFactory response factory
      */
     public function __construct(
         ErrorHandlerInterface&ThrowableHandlerInterface $errorHandler,
-        ThrowableResponseFactoryInterface $throwableResponseFactory
+        ThrowableResponseFactoryInterface $throwableResponseFactory,
     ) {
         $this->errorHandler = $errorHandler;
         $this->throwableResponseFactory = $throwableResponseFactory;
@@ -80,7 +80,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
      */
     public function process(
         ServerRequestInterface $request,
-        RequestHandlerInterface $handler
+        RequestHandlerInterface $handler,
     ): ResponseInterface {
         $this->errorHandler->register();
 

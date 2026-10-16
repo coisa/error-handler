@@ -44,6 +44,8 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   scoped handler. Report once, then invoke a pure response renderer. Keep the generic
   stream as the provider default and output capture as an explicit public-renderer
   adapter; never invoke the diagnostic reporter again during rendering.
+- Explicit Log/Filtering/CallablePHP/BestEffort adapters remain opt-in; the default
+  reporter aggregate stays fail-fast and adds no implicit discovery for them.
 - Reporters own diagnostic output; HTTP fallback bodies must not leak exception
   details. A shutdown callback reports a fatal error and does not recover it.
 

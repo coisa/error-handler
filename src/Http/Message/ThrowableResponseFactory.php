@@ -48,7 +48,7 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
      */
     public function __construct(
         ThrowableStreamFactoryInterface $streamFactory,
-        ResponseFactoryInterface $responseFactory
+        ResponseFactoryInterface $responseFactory,
     ) {
         $this->streamFactory = $streamFactory;
         $this->responseFactory = $responseFactory;

@@ -40,6 +40,7 @@ use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Interop\Container\ServiceProviderInterface;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -61,9 +62,8 @@ use function FastForward\Container\container;
  * @package CoiSA\ErrorHandler\Test\Functional\ServiceProvider
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ErrorHandlerServiceProviderTest extends TestCase
 {
     /**
@@ -147,7 +147,7 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     #[DataProvider('provideRequiredRendererFailurePreventsMiddlewareConstructionCases')]
     public function testRequiredRendererFailurePreventsMiddlewareConstruction(
         string $service,
-        \Throwable $failure
+        \Throwable $failure,
     ): void {
         self::assertRequiredServiceFails(ErrorHandlerMiddleware::class, $service, $failure);
     }
@@ -160,7 +160,8 @@ final class ErrorHandlerServiceProviderTest extends TestCase
      */
     public static function provideRequiredRendererFailurePreventsMiddlewareConstructionCases(): iterable
     {
-        foreach (self::requiredReporterFailures() as $label => [$service, $failure]) {
+        $cases = self::provideRequiredReporterFailureCannotFallBackToASilentDefaultCases();
+        foreach ($cases as $label => [$service, $failure]) {
             if (ErrorHandlerInterface::class !== $service) {
                 continue;
             }
@@ -216,7 +217,7 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     #[DataProvider('provideRequiredReporterFailureCannotFallBackToASilentDefaultCases')]
     public function testRequiredReporterFailureCannotFallBackToASilentDefault(
         string $service,
-        \Throwable $failure
+        \Throwable $failure,
     ): void {
         self::assertRequiredServiceFails($service, ThrowableHandlerInterface::class, $failure);
     }
@@ -231,10 +232,12 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     {
         $failures = [
             'PSR construction failure' => [
-                new class ('Reporter failed') extends \RuntimeException implements ContainerExceptionInterface {},
+                new class ('Reporter failed') extends \RuntimeException implements ContainerExceptionInterface {
+                },
             ],
             'PSR missing dependency' => [
-                new class ('Missing dependency') extends \RuntimeException implements NotFoundExceptionInterface {},
+                new class ('Missing dependency') extends \RuntimeException implements NotFoundExceptionInterface {
+                },
             ],
             'application failure' => [new \LogicException('Reporter failed')],
         ];
@@ -268,13 +271,13 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     }
 
     /**
-     * Verifies autowired dispatch adapters deliver both supported event forms.
+     * Verifies optional callable, raw throwable and wrapped event delivery in order.
      */
     public function testOptionalPsr14DispatcherReceivesTheThrowableAndErrorEvent(): void
     {
         $dispatcher = new class implements EventDispatcherInterface {
             /**
-             * @var list<object> events received by the recording dispatcher
+             * @var list<array{string, object}> route and original event for each reporter delivery
              */
             public array $events = [];
 
@@ -287,12 +290,27 @@ final class ErrorHandlerServiceProviderTest extends TestCase
              */
             public function dispatch(object $event): object
             {
-                $this->events[] = $event;
+                $this->events[] = ['dispatch', $event];
 
                 return $event;
             }
         };
-        $container = self::services([EventDispatcherInterface::class => $dispatcher]);
+        $callable = new CallableThrowableHandler(
+            /**
+             * Records the optional callable's position before the two dispatch adapters.
+             *
+             * @param \Throwable $event the unchanged diagnostic supplied by the aggregate
+             *
+             * @return void
+             */
+            static function (\Throwable $event) use ($dispatcher): void {
+                $dispatcher->events[] = ['callable', $event];
+            },
+        );
+        $container = self::services([
+            CallableThrowableHandler::class => $callable,
+            EventDispatcherInterface::class => $dispatcher,
+        ]);
         $error = new \RuntimeException('Dispatched');
 
         self::assertInstanceOf(DispatchThrowableHandler::class, $container->get(DispatchThrowableHandler::class));
@@ -305,10 +323,12 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         self::assertInstanceOf(ErrorHandler::class, $handler);
         $handler->handleThrowable($error);
 
-        self::assertCount(2, $dispatcher->events);
-        self::assertSame($error, $dispatcher->events[0]);
-        self::assertInstanceOf(ErrorEvent::class, $dispatcher->events[1]);
-        self::assertSame($error, $dispatcher->events[1]->getThrowable());
+        self::assertCount(3, $dispatcher->events);
+        self::assertSame(['callable', $error], $dispatcher->events[0]);
+        self::assertSame(['dispatch', $error], $dispatcher->events[1]);
+        self::assertSame('dispatch', $dispatcher->events[2][0]);
+        self::assertInstanceOf(ErrorEvent::class, $dispatcher->events[2][1]);
+        self::assertSame($error, $dispatcher->events[2][1]->getThrowable());
     }
 
     /**
@@ -436,8 +456,9 @@ final class ErrorHandlerServiceProviderTest extends TestCase
              */
             public function __construct(
                 private ErrorHandlerMiddleware $inner,
-                private RequestHandlerInterface $downstream
-            ) {}
+                private RequestHandlerInterface $downstream,
+            ) {
+            }
 
             /**
              * Executes the synthetic downstream behavior for the requested test route.
@@ -481,7 +502,9 @@ final class ErrorHandlerServiceProviderTest extends TestCase
              *
              * @param \Throwable $failure the synthetic failure to propagate
              */
-            public function __construct(private \Throwable $failure) {}
+            public function __construct(private \Throwable $failure)
+            {
+            }
 
             /**
              * Throws the configured rendering failure to exercise callback restoration.
@@ -529,7 +552,7 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     private static function assertRequiredServiceFails(
         string $requestedService,
         string $failedService,
-        \Throwable $failure
+        \Throwable $failure,
     ): void {
         $attempts = 0;
         $application = new ArrayServiceProvider([
@@ -573,7 +596,9 @@ final class ErrorHandlerServiceProviderTest extends TestCase
              *
              * @param array<class-string, object> $services application service instances
              */
-            public function __construct(private array $services) {}
+            public function __construct(private array $services)
+            {
+            }
 
             /**
              * Supplies application service definitions for the integration fixture.
@@ -582,7 +607,10 @@ final class ErrorHandlerServiceProviderTest extends TestCase
              */
             public function getFactories(): array
             {
-                return array_map(static fn(object $service): \Closure => static fn(): object => $service, $this->services);
+                return array_map(
+                    static fn(object $service): \Closure => static fn(): object => $service,
+                    $this->services,
+                );
             }
 
             /**
@@ -658,7 +686,9 @@ final class ErrorHandlerServiceProviderTest extends TestCase
              *
              * @param \Throwable $failure the synthetic failure to propagate
              */
-            public function __construct(private \Throwable $failure) {}
+            public function __construct(private \Throwable $failure)
+            {
+            }
 
             /**
              * Executes the synthetic downstream behavior for the requested test route.
@@ -683,7 +713,8 @@ final class ErrorHandlerServiceProviderTest extends TestCase
     {
         $error = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        $exception = set_exception_handler(static function (\Throwable $error): void {});
+        $exception = set_exception_handler(static function (\Throwable $error): void {
+        });
         restore_exception_handler();
 
         return [$error, $exception];

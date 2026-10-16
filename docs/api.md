@@ -170,7 +170,7 @@ stream; a JSON callback would need to echo JSON. It is not the provider default.
 
 Pass a separate public renderer, not the diagnostic reporter middleware already
 called. Empty captured output becomes `Internal Server Error`; `0` remains valid.
-The adapter cleans reachable removable buffers after failure and preserves a
+The adapter cleans reachable removable buffers after success and failure and preserves a
 renderer failure over cleanup failure. Cleanup stops at a non-removable buffer
 or lack of progress. Renderers must balance their own removable buffers and never
 close caller-owned buffers. See [the capture recipe](examples.md#output-capture).
@@ -192,3 +192,23 @@ reporter aggregate discovers optional callable/PSR-14 reporters and is silent wh
 none are configured. The default HTTP stream alias resolves GenericThrowableStreamFactory.
 Applications supply PSR-14, PSR-17 and logger implementations. See [provider wiring](fast-forward.md)
 and [migration](migration.md).
+
+## Best-effort reporting
+
+`Handler\BestEffortThrowableHandlerAggregate` is an explicit alternative to the
+existing fail-fast aggregate. Its fixed constructor list is inert. Each invocation
+attempts every slot once, in order, with the identical original Throwable; duplicate
+slots are deliberate separate attempts. Zero/all-success passes return normally.
+If any reporter throws, including partial success, one
+`Exception\AggregateReportingException` escapes after all attempts.
+
+`getOriginalThrowable()` and `getPrevious()` retain the original; `getFailures()`
+returns the nonempty ordered list of identical reporter failures. Its constructor
+requires the original, one failure and optional remaining failures. The summary is
+fixed, but stored causes/failures and exception strings remain private diagnostics.
+Use the [complete recipe](../examples/best-effort.php) for explicit terminal handling.
+
+No retry, deduplication, reentry guard or durable transport is added. Native
+termination can prevent later attempts. Default provider composition stays
+fail-fast; no factory/discovery selects this adapter. In middleware, an aggregate
+reporting failure propagates before rendering and does not become a public body.

@@ -235,7 +235,8 @@ final class ErrorHandlerTest extends TestCase
                  *
                  * @param \Throwable $error the unused probe input
                  */
-                static function (\Throwable $error): void {},
+                static function (\Throwable $error): void {
+                },
             );
             restore_exception_handler();
             self::assertInstanceOf(\Closure::class, $callback);
@@ -401,7 +402,8 @@ final class ErrorHandlerTest extends TestCase
              *
              * @param \Throwable $error the unused probe input
              */
-            static function (\Throwable $error): void {},
+            static function (\Throwable $error): void {
+            },
         );
         restore_exception_handler();
 

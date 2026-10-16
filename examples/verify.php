@@ -19,17 +19,28 @@ use Symfony\Component\Process\Process;
 require getenv('ERROR_HANDLER_AUTOLOAD') ?: dirname(__DIR__) . '/vendor/autoload.php';
 
 $cases = [
-    ['cli.php', [], 1, '', "CoiSA\\ErrorHandler\\Exception\\ErrorException: Example warning; execution continues.\nRuntimeException: Example uncaught exception; exit status is 1.\n"],
+    [
+        'cli.php', [], 1, '',
+        "CoiSA\\ErrorHandler\\Exception\\ErrorException: Example warning; execution continues.\n"
+            . "RuntimeException: Example uncaught exception; exit status is 1.\n",
+    ],
     ['fast-forward.php', [], 0, "Reported: FastForward provider warning\n", ''],
     ['reporters.php', [], 0, "first: Synthetic failure\nsecond: Synthetic failure\n", ''],
-    ['event-dispatcher.php', [], 0, "throwable: Synthetic warning\nevent: Synthetic warning\nPrivate log records: 1\n", ''],
+    [
+        'event-dispatcher.php', [], 0,
+        "throwable: Synthetic warning\nevent: Synthetic warning\nPrivate log records: 1\n", '',
+    ],
     ['http-middleware.php', [], 0, "HTTP 503 | Internal Server Error\nReported: 2\n", ''],
-    ['http-rendering.php', [], 0, "HTTP 503 | application/json\n{\"error\":\"Service unavailable\"}\nPrivate reports: 1\n", ''],
+    [
+        'http-rendering.php', [], 0,
+        "HTTP 503 | application/json\n{\"error\":\"Service unavailable\"}\nPrivate reports: 1\n", '',
+    ],
     ['custom-handlers.php', [], 0, "PHP errors: 1 | Shutdown notifications: 1\n", ''],
     ['scopes.php', [], 0, "Fresh handlers: yes | Fresh middleware: yes\nHTTP 500 | Reports: 2\n", ''],
     ['output-capture.php', [], 0, "Captured body: Public failure page\n", ''],
     ['logging.php', [], 0, "direct PSR-3 logging, exact messages and original context passed\n", ''],
     ['filtering.php', [], 0, "explicit filtering, severity selection and original-object delivery passed\n", ''],
+    ['best-effort.php', [], 0, "best-effort order, original cause and all reporter failures passed\n", ''],
     ['php-errors.php', [], 0, "callable PHP errors: four arguments, explicit mask policy and conversion passed\n", ''],
 ];
 

@@ -431,7 +431,8 @@ final class ErrorHandlerCompositionTest extends TestCase
              *
              * @param \Throwable $error the unused probe input
              */
-            static function (\Throwable $error): void {},
+            static function (\Throwable $error): void {
+            },
         );
         restore_exception_handler();
 

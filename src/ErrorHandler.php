@@ -98,7 +98,7 @@ final class ErrorHandler implements
     public function __construct(
         ThrowableHandlerInterface $throwableHandler,
         ?PhpErrorHandlerInterface $phpErrorHandler = null,
-        ?ShutdownHandlerInterface $shutdownHandler = null
+        ?ShutdownHandlerInterface $shutdownHandler = null,
     ) {
         $this->throwableHandler = $throwableHandler;
         $this->phpErrorHandler = $phpErrorHandler ?? new ThrowErrorExceptionPhpErrorHandler();
@@ -253,7 +253,8 @@ final class ErrorHandler implements
         // Probe without changing the existing stacks or their error-level masks.
         $currentErrorHandler = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        $currentExceptionHandler = set_exception_handler(static function (\Throwable $error): void {});
+        $currentExceptionHandler = set_exception_handler(static function (\Throwable $error): void {
+        });
         restore_exception_handler();
 
         // PHP clears the exception callback while invoking it. exit() keeps that
