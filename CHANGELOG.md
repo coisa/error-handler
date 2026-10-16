@@ -10,6 +10,20 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.6
+
+### Patch Changes
+
+- [#43](https://github.com/coisa/error-handler/pull/43) [`642ee2a`](https://github.com/coisa/error-handler/commit/642ee2a8c51a2d06772b2a0dcb018bdeca554ba4) - Add bounded child-process and loopback HTTP characterization for the existing 2.x behavior, including explicit known limitations and harness timeout/output-cap cleanup checks. Runtime code and public contracts are unchanged.
+
+- [#55](https://github.com/coisa/error-handler/pull/55) [`b4e6ccb`](https://github.com/coisa/error-handler/commit/b4e6ccb1fc665d2341f26b953f8911beeae264df) - Align the internal functional middleware test namespace with its PSR-4 path so Composer's strict optimized autoloader includes it. Test assertions and runtime behavior are unchanged.
+
+- [#47](https://github.com/coisa/error-handler/pull/47) [`bfd7005`](https://github.com/coisa/error-handler/commit/bfd700501e426e8b8278cabec00e88a12e976a84) - Remove the obsolete PHP 7.2/Xdebug 2.6 development Docker wrappers and document the native Composer/PHP checks. The library's PHP requirements, public API and runtime dependencies are unchanged.
+
+- [#51](https://github.com/coisa/error-handler/pull/51) [`3655296`](https://github.com/coisa/error-handler/commit/36552960b7deb3c794e9dd7d16d7fa6963a21c2b) - Remove the unused PHP-CS-Fixer 2 configuration and its distribution exclusion. The tested PHP-CS-Fixer 3 configuration remains the formatter entrypoint.
+
+- [#52](https://github.com/coisa/error-handler/pull/52) [`010dd85`](https://github.com/coisa/error-handler/commit/010dd856957cc4b37e178e27210f236c221fdcab) - Remove the Makefile and its privileged Composer bootstrap. Use the documented native Composer commands for dependency installation and quality checks.
+
 ## 2.0.5
 
 ### Patch Changes
