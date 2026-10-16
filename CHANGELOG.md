@@ -10,6 +10,14 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.4
+
+### Patch Changes
+
+- [#45](https://github.com/coisa/error-handler/pull/45) [`7584519`](https://github.com/coisa/error-handler/commit/758451907ca2bb61d5afa32475b896bd0e91aa00) - Exclude the development-only formatter configuration and Docker ignore file from Composer distribution archives while preserving all runtime source and useful consumer metadata.
+
+- [#44](https://github.com/coisa/error-handler/pull/44) [`7a3e867`](https://github.com/coisa/error-handler/commit/7a3e867782b29dedb5ebd03314d6daca992339df) - Complete legacy service and fixture PHPDoc, correct file headers, and apply the shared coding-style preset while preserving PHP 7.4 support and the public runtime API.
+
 ## 2.0.3
 
 ### Patch Changes
