@@ -10,6 +10,18 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.3
+
+### Patch Changes
+
+- [#37](https://github.com/coisa/error-handler/pull/37) [`8846d6f`](https://github.com/coisa/error-handler/commit/8846d6fe75b6b60556f1d0c6a4d8c682c730dc41) - Declare `psr/container` as a runtime dependency so the existing container and its factories load in production installations. Require `^1.1 || ^2.0`, matching the existing typed identifiers without changing public APIs or the supported PHP range.
+
+- [#42](https://github.com/coisa/error-handler/pull/42) [`8a101be`](https://github.com/coisa/error-handler/commit/8a101bed2c9997e5e8eee5589f67d8cda817fbd6) - Fix alias resolution on the declared PHP 7.4 runtime by retaining AliasFactory's unrestricted return contract in PHPDoc instead of a PHP 8 native `mixed` declaration. Preserve exact delegated values, object identity, exceptions and modern PHP behavior.
+
+- [#39](https://github.com/coisa/error-handler/pull/39) [`83bd9a0`](https://github.com/coisa/error-handler/commit/83bd9a04d9ac0eb1fa958938d07b8faa4367f732) - Restore the development-only Prophecy integrations, update PHPUnit 9 configuration, separate ordinary tests from optional coverage reporting, use the fixer's own file header as its template, and limit multiline trailing commas to PHP 7.4-compatible locations.
+
+- [#38](https://github.com/coisa/error-handler/pull/38) [`63986d0`](https://github.com/coisa/error-handler/commit/63986d072fe25a34eac4563dcdbac39475ba4539) - Handle string exception codes such as PDO SQLSTATE values without a secondary TypeError when creating an HTTP response. Preserve the 2.x integer 400–500 mapping, original reason phrase and throwable stream delegation; string codes fall back to status 500.
+
 ## 2.0.2
 
 ### Patch Changes
