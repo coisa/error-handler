@@ -136,7 +136,7 @@ for providers/listeners, aggregate ordering and the logging adapter's string
 message behavior.
 
 For direct PSR-3 reporting, first verify the selected checkout/release contains
-Handler\LogThrowableHandler; it is a pending additive minor, not an API promised
+Handler\LogThrowableHandler; it is an opt-in 2.x adapter, not an API promised
 by every ^2.0 installation. Construct it explicitly with the application logger,
 optional level (ERROR by default) and context. It logs the exact message once,
 including empty, and keeps the original throwable under exception over caller

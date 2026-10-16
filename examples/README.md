@@ -14,7 +14,7 @@ Choose a library release/check-out containing the metadata and PHP 7.4 alias rep
 
 Each implementation resolves to a version compatible with the application's actual PHP. Modern Laminas development dependencies can require newer PHP than the library's runtime; do not bypass platform requirements to test PHP 7.4.
 
-The direct logging recipe requires a checkout or release containing `LogThrowableHandler`. It is an additive minor change under development; the pending Changeset does not make that API available in an older installed release. Its recording logger needs no transport or extra package beyond the library's existing PSR-3 dependency.
+The direct logging recipe requires a checkout or release containing `LogThrowableHandler`; older installed releases may not provide this opt-in adapter. Its recording logger needs no transport or extra package beyond the library's existing PSR-3 dependency.
 
 Individual recipes need only their application dependencies. The bounded
 verifier additionally uses Symfony Process as a development tool. Add it in the
@@ -42,7 +42,7 @@ Without that variable, bootstrap uses the source checkout's `vendor/autoload.php
 | [handlers.php](handlers.php) | Callable adapters, aggregate attach/order/failure propagation, ThrowErrorExceptionPhpErrorHandler, suppression and PhpLastErrorShutdownHandler's no-fatal path. |
 | [php-errors.php](php-errors.php) | Explicit CallablePhpErrorHandler injection; four unchanged arguments and application-owned mask/conversion policy without native registration. |
 | [filtering.php](filtering.php) | Opt-in FilteringThrowableHandler composition; PHP severity selection, nonmatch routing and original-object identity alongside a general diagnostic branch. |
-| [best-effort.php](best-effort.php) | Opt-in ordered reporting through partial success; one aggregate exception retains the original and all reporter failures after every attempt. Requires a source version containing this pending additive minor. |
+| [best-effort.php](best-effort.php) | Opt-in ordered reporting through partial success; one aggregate exception retains the original and all reporter failures after every attempt. Requires a source version containing BestEffortThrowableHandlerAggregate and AggregateReportingException. |
 | [events.php](events.php) | DispatchThrowableHandler, DispatchErrorEventThrowableHandler, ErrorEvent, both callable listeners/providers and LogErrorEventListener with an application PSR-3 logger. |
 | [container.php](container.php) | Legacy ErrorHandlerContainer, ConfigProvider/Laminas maps, an application reporter, cached services and fresh ErrorHandlerFactory invocation. |
 | [http.php](http.php) | PSR-15/PSR-17 response composition, actual output capture/empty/zero fallback, an explicit safe application renderer and callback restoration after failure. |
