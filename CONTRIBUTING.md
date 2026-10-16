@@ -4,6 +4,7 @@ This library intentionally does not track `composer.lock`. Composer constraints
 in `composer.json` describe its supported dependency contract. Applications that
 consume the library own their application lockfiles.
 
+Use Composer directly for dependency installation and quality checks.
 Resolve development dependencies with the PHP runtime intended for the check:
 
 ```sh
@@ -31,32 +32,6 @@ consumer must resolve only the library's runtime dependencies when checking
 that minimum.
 
 ## Quality checks
-
-### Makefile entrypoints
-
-Install Composer 2 independently before using the Makefile. It never downloads
-Composer or requests elevated privileges. `make` and `make install` run the
-`vendor` target; `make vendor` repeats dependency installation even when the
-directory already exists. Configure an existing binary with
-`make COMPOSER_BIN=/absolute/path/composer install`, or export `COMPOSER_BIN`.
-The existing command-line form `make COMPOSER_BIN='php /path/composer.phar' install`
-also works. The variable is expanded as a shell command, as before; use a wrapper
-at a path without spaces if the underlying command needs shell quoting.
-The default install flags disable plugins and scripts and no longer include
-Composer's obsolete `--no-suggest` option.
-
-`make clean` and its `uninstall` alias remove the local `vendor` directory.
-`make reinstall` completes cleanup before installation, including when Make's
-parallel mode is enabled. Test those destructive targets only in a disposable
-fixture; do not use an existing working vendor tree as an experiment.
-
-Scrutinizer configuration and badges remain until their useful checks and
-coverage have validated replacements. The native baseline is tracked in
-[issue #11](https://github.com/coisa/error-handler/issues/11), and coverage in
-[issue #14](https://github.com/coisa/error-handler/issues/14). PHPStan is not
-evidence that Scrutinizer's separate security analysis has been reproduced.
-
-### Native quality chain
 
 The `coisa/php-cs-fixer:^3.0` preset supplies the formatter policy. A local override
 limits multiline trailing commas to arguments, destructuring and arrays;
