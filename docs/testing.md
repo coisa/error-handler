@@ -105,6 +105,13 @@ assertions measure failure propagation and remaining buffer levels, not every
 output-handler phase or callback implementation. Other buffer callbacks require
 their own focused regression cases.
 
+Process-terminating callbacks are a separate limit: cleanup invokes native output
+handlers, so an `exit()`/`die()` inside one can end the process before the primary
+failure reaches the caller. Bounded probes on PHP 7.4/8.4/8.5 confirmed the chosen
+callback exit status and no caller catch; PHP 7.4 also emitted a native diagnostic.
+These observations do not promise particular shutdown output across PHP versions
+or recovery from terminating/engine-fatal callbacks.
+
 | Scenarios | Observed contract or known limitation |
 | --- | --- |
 | User/native warnings and suppression | Reported severities produce one event and execution continues; masks and `@` suppression are honored |

@@ -63,6 +63,8 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * On capture failure, removable buffers above the entry level are discarded
      * best-effort. Cleanup stops on failure or lack of progress and never replaces
      * the primary throwable. Output-handler side effects cannot be undone.
+     * An output callback that terminates the process or triggers an engine fatal
+     * can prevent control from returning and the primary failure from being rethrown.
      *
      * @param \Throwable $throwable the throwable instance to process
      *
@@ -78,7 +80,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
     /**
      * Captures reporter output using the existing empty and false-like fallback.
      *
-     * Exceptional cleanup preserves the primary reporter or capture failure.
+     * When cleanup returns, the primary reporter or capture failure is rethrown.
      * Successful capture retains its existing nested-buffer behavior.
      *
      * @param \Throwable $throwable the throwable passed unchanged to the reporter
@@ -109,7 +111,8 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * Cleanup does not attempt to close buffers at or below the entry level.
      * It stops on a protected buffer, failed close, absent progress or callback
      * failure. Callback side effects cannot be undone; cleanup failures must
-     * not replace the primary failure.
+     * not replace the primary failure. Process termination or an engine fatal
+     * inside an output callback can prevent cleanup from returning.
      *
      * @param int $entryLevel the output-buffer depth before capture started
      */
