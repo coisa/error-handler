@@ -137,3 +137,80 @@ jobs:
         run: |
           php tests/Production/container.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
           php tests/Production/alias-factory.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
+
+  coverage:
+    name: PHPUnit coverage / PHP 8.5
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Check the trusted publisher with isolated fixtures
+        run: node --test tests/Coverage/publisher.test.mjs
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Resolve and record the actual coverage toolchain
+        run: |
+          composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+          php --version
+          composer --version
+          composer check-platform-reqs
+          composer show --locked
+
+      - name: Run PHPUnit with Clover instrumentation
+        env:
+          XDEBUG_MODE: coverage
+        run: composer --no-plugins test-coverage
+
+      - name: Upload the raw PHPUnit coverage
+        if: ${{ !cancelled() && hashFiles('tests/clover.xml') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report-php
+          path: tests/clover.xml
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+      - name: Create the baseline or compare coverage informatively
+        id: coverage-diff
+        if: ${{ !cancelled() && hashFiles('tests/clover.xml') != '' }}
+        uses: clearlyip/code-coverage-report-action@v7
+        with:
+          filename: tests/clover.xml
+          artifact_download_workflow_names: PHP CI
+          artifact_name: phpunit-coverage-%name%
+          retention_days: '90'
+          overall_coverage_fail_threshold: '0'
+          fail_on_negative_difference: 'false'
+          only_list_changed_files: 'true'
+          without_base_coverage_template: .github/coverage-templates/without-base-coverage.hbs
+          with_base_coverage_template: .github/coverage-templates/with-base-coverage.hbs
+
+      - name: Export available Markdown even when an earlier step fails
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-pr-comment
+          path: ${{ steps.coverage-diff.outputs.file }}
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true

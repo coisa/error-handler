@@ -1,0 +1,150 @@
+name: PR coverage comment
+
+on:
+  workflow_run:
+    workflows: [PHP CI]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: coverage-comment-${{ github.event.workflow_run.head_repository.id }}-${{ github.event.workflow_run.head_branch }}
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  comment:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # No checkout or PR scripts: this code is loaded from the default branch.
+      - name: Find the current PR and triggering report
+        id: report
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const repository = context.repo.owner + '/' + context.repo.repo;
+            if (!Number.isSafeInteger(run.id) || run.id <= 0 ||
+                !Number.isSafeInteger(run.run_attempt) || run.run_attempt <= 0 ||
+                !/^[a-f0-9]{40}$/.test(run.head_sha) || run.event !== 'pull_request' ||
+                run.status !== 'completed' || run.conclusion === 'cancelled' ||
+                run.name !== 'PHP CI' || run.path !== '.github/workflows/ci.yml' ||
+                run.repository?.id !== context.payload.repository.id ||
+                run.repository?.full_name !== repository ||
+                !Number.isSafeInteger(run.head_repository?.id) || run.head_repository.id <= 0) {
+              throw new Error('Unexpected coverage workflow identity.');
+            }
+            const { data: current } = await github.rest.actions.getWorkflowRun({
+              ...context.repo, run_id: run.id,
+            });
+            if (current.run_attempt !== run.run_attempt || current.status !== 'completed') {
+              core.info('The triggering attempt has been superseded; skipping.');
+              return;
+            }
+            if (current.id !== run.id || current.workflow_id !== run.workflow_id ||
+                current.path !== run.path || current.head_sha !== run.head_sha ||
+                current.repository?.id !== run.repository.id ||
+                current.head_repository?.id !== run.head_repository.id) {
+              throw new Error('Coverage run metadata does not match its trigger.');
+            }
+            const candidates = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+              ...context.repo, commit_sha: run.head_sha, per_page: 100,
+            });
+            const matches = candidates.filter(pr =>
+              pr.state === 'open' && pr.head.sha === run.head_sha &&
+              pr.base.repo.full_name === repository &&
+              pr.head.repo?.id === run.head_repository.id
+            );
+            if (matches.length !== 1) {
+              core.info('No unique open PR at this SHA; skipping stale or closed run.');
+              return;
+            }
+            const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+              ...context.repo, run_id: run.id, per_page: 100,
+            });
+            const reports = artifacts.filter(item => item.name === 'coverage-pr-comment');
+            if (reports.length === 0) {
+              core.info('No Markdown artifact; the producer may have failed before generating coverage.');
+              return;
+            }
+            if (reports.length !== 1) throw new Error('Ambiguous coverage Markdown artifacts.');
+            const artifact = reports[0];
+            if (artifact.expired || !Number.isSafeInteger(artifact.id) || artifact.id <= 0 ||
+                !Number.isSafeInteger(artifact.size_in_bytes) ||
+                artifact.size_in_bytes <= 0 || artifact.size_in_bytes > 1000000 ||
+                artifact.workflow_run?.id !== run.id ||
+                artifact.workflow_run?.head_sha !== run.head_sha ||
+                artifact.workflow_run?.repository_id !== run.repository.id ||
+                artifact.workflow_run?.head_repository_id !== run.head_repository.id) {
+              throw new Error('Invalid coverage Markdown artifact identity or size.');
+            }
+            core.setOutput('number', matches[0].number);
+            core.setOutput('artifact', artifact.id);
+
+      - name: Download data only from the triggering run
+        if: steps.report.outputs.artifact != ''
+        uses: actions/download-artifact@v8
+        with:
+          artifact-ids: ${{ steps.report.outputs.artifact }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/coverage-comment
+
+      - name: Validate Markdown and recheck the current head
+        id: current
+        if: steps.report.outputs.artifact != ''
+        uses: actions/github-script@v9
+        env:
+          PR_NUMBER: ${{ steps.report.outputs.number }}
+          REPORT_ROOT: ${{ runner.temp }}/coverage-comment
+          COMMENT_PATH: ${{ runner.temp }}/coverage-comment.md
+        with:
+          script: |
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const run = context.payload.workflow_run;
+            const number = Number(process.env.PR_NUMBER);
+            if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid PR number.');
+            const root = process.env.REPORT_ROOT;
+            if (!fs.lstatSync(root).isDirectory()) throw new Error('Invalid report directory.');
+            const file = path.join(root, 'code-coverage-results.md');
+            const stat = fs.lstatSync(file);
+            if (!stat.isFile() || stat.size === 0 || stat.size > 60000 ||
+                fs.realpathSync(file) !== path.join(fs.realpathSync(root), 'code-coverage-results.md')) {
+              throw new Error('Invalid coverage Markdown file.');
+            }
+            const report = new TextDecoder('utf-8', { fatal: true }).decode(fs.readFileSync(file));
+            if (report.includes('\0')) throw new Error('Invalid coverage Markdown content.');
+            const { data: current } = await github.rest.actions.getWorkflowRun({
+              ...context.repo, run_id: run.id,
+            });
+            const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+            if (current.run_attempt !== run.run_attempt || current.status !== 'completed' ||
+                pr.state !== 'open' || pr.head.sha !== run.head_sha ||
+                pr.base.repo.full_name !== context.repo.owner + '/' + context.repo.repo ||
+                pr.head.repo?.id !== run.head_repository.id) {
+              core.info('PR head or workflow attempt changed; skipping.');
+              return;
+            }
+            const runUrl = 'https://github.com/' + context.repo.owner + '/' + context.repo.repo +
+              '/actions/runs/' + run.id + '/attempts/' + run.run_attempt;
+            fs.writeFileSync(process.env.COMMENT_PATH, report +
+              '\n\nTested commit: `' + run.head_sha + '`. [PHP CI run](' + runUrl +
+              ') — **' + current.conclusion + '**.\n');
+            core.setOutput('number', number);
+
+      - name: Update the single coverage note
+        if: steps.current.outputs.number != ''
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: phpunit-coverage
+          number: ${{ steps.current.outputs.number }}
+          path: ${{ runner.temp }}/coverage-comment.md

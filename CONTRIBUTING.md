@@ -110,6 +110,7 @@ platform is needed.
 | Development quality | 8.3, 8.4, 8.5 | Fresh current development graph; formatting, PHPCS, PHPUnit and maximum PHPStan over `src` and `tests` |
 | Production | 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 | Current runtime graph; tracked PHP syntax, distribution contents, public container and alias factories |
 | Production lower bounds | 7.4, 8.5 | Fresh `--prefer-lowest --prefer-stable` runtime graph; the same production checks |
+| PHPUnit coverage | 8.5 with Xdebug | Fresh development graph; Clover, baseline comparison, Markdown and publisher fixture tests |
 
 Production jobs install only the library into a separate consumer from its
 committed `git archive`, with path-package mirroring instead of a source symlink.
@@ -127,9 +128,71 @@ major action refs documented by [Checkout](https://github.com/actions/checkout)
 and [Setup PHP](https://github.com/shivammathur/setup-php). The independent changed
 PHP workflow retains the shared preset's `3.0.1` reusable workflow ref.
 
-The PHP CI jobs disable coverage drivers. Coverage collection and publication
-are separate work; a green quality job proves the checks it ran, without claiming
-coverage or permission to release.
+Quality and production jobs disable coverage drivers. A green quality job proves
+the checks it ran, without claiming coverage or permission to release.
+
+## PHPUnit coverage and PR notes
+
+The separate coverage job keeps PHP 8.5, Xdebug, PHPUnit 9.6 and the complete
+`src/` coverage filter stable. It records the actual resolved tool versions and
+uploads `coverage-report-php` (Clover XML) and `coverage-pr-comment` (Markdown),
+retained for 14 days. No Composer runtime constraint or public API changes.
+
+The measured 2.x baseline at `27ff64ec6395646d630b3d451f1fdd48f1515305`
+is **4.71% of lines (9/191)** with 101 tests and 199 assertions on PHP 8.5.11;
+both Xdebug 3.5.3 and PCOV 1.0.12 produced that result. Four test classes explicitly
+declare `@coversNothing` and do not contribute to instrumentation. This low
+measurement does not imply those behaviors are untested. These annotations stay
+intact. Coverage percentages and differences are **informational**: no numerical
+floor or regression gate is enforced. A future policy requires a separate review
+of the intended instrumentation scope and measured baseline. Neither the
+next-major branch's percentage nor its threshold is used.
+
+The report action stores `phpunit-coverage-master` on a push or manual dispatch
+of `PHP CI` on `master`; baseline retention is 90 days. PRs compare with the
+available target-branch artifact. Before the first baseline exists, or after it
+expires, the report says that comparison is unavailable. A manual `PHP CI` run
+on `master` refreshes an expired baseline.
+No periodic run or external coverage service is required.
+
+When Clover exists, raw coverage is exported even if tests fail. Markdown is
+exported when report generation produces it. Execution, invalid-report and
+artifact errors still fail the job; the measured percentage itself does not.
+A failure before coverage is written has no report artifact. The report covers
+only instrumented PHPUnit execution;
+process-termination and HTTP child fixtures remain separate behavioral evidence.
+
+The [PR note publisher](.github/workflows/coverage-comment.yml) runs from the
+default branch after `PHP CI`, with no checkout and no execution of PR code.
+Same-repository, fork and Dependabot PRs all follow this data-only path. It
+validates the workflow path, run and attempt, artifact repository/SHA identity,
+archive size, and a nonempty regular UTF-8 Markdown file of at most 60,000 bytes.
+It then rechecks the open PR's current head and adds the tested SHA, run link and
+conclusion itself before updating one sticky note.
+
+Publisher runs are serialized by source repository and branch, with pending
+runs queued rather than replaced. An older publisher therefore cannot pause
+after its head check and overwrite a concurrently published newer note. The
+head check and comment request are still separate operations: a head can move
+between them, so the displayed SHA is always the authority for the note.
+
+Stale or closed PRs, superseded attempts and missing reports are logged and
+skipped. Ambiguous, expired, mismatched or malformed reports fail the publisher
+without replacing the note. Any retained note identifies its tested SHA and
+must not be read as proof for a newer head. Reports from failed runs carry the
+failure conclusion, and cancelled runs do not publish.
+
+Run the isolated publisher checks locally with:
+
+```sh
+node --test tests/Coverage/publisher.test.mjs
+```
+
+These execute the actual inline scripts with minimal API-shaped fixtures and
+real temporary files, including stale/closed/missing/failure and invalid-data
+cases. They do not send comments. The first default-branch baseline and live
+sticky creation/update still require observing actual hosted runs after this
+workflow is merged; local fixtures and pre-merge artifacts do not prove activation.
 
 ## Production container regression
 
