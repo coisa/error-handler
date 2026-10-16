@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.3.0
+
+### Minor Changes
+
+- [#73](https://github.com/coisa/error-handler/pull/73) [`018edbf`](https://github.com/coisa/error-handler/commit/018edbf30c845d2c0b78020af7c3a4f7120e82c9) - Add the explicit CallablePhpErrorHandler adapter for four-argument application callbacks. Preserve the void boundary, ignored callback returns, application-owned mask policy and unchanged typed ErrorHandler constructor.
+
 ## 2.2.0
 
 ### Minor Changes
