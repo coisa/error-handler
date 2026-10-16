@@ -4,7 +4,6 @@
 
 Prepare the unreleased PHP 8.3+ major while retaining the package
 `coisa/error-handler` and namespace `CoiSA\ErrorHandler`.
-
 - Require PHP `^8.3`, with a tested CI matrix of PHP 8.3–8.5.
 - Require FastForward Container and expose the Interop service provider as the
   container entrypoint. Remove the standalone Container/ConfigProvider APIs,
@@ -26,7 +25,6 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   distribution checks and organized PHPUnit Unit/Functional/Process coverage.
   Preserve the existing regression gate; retire the prototype Fire/HTTP/Python
   parents and custom release publisher instead of duplicating master tooling.
-
 The current 2.x manifest version and published changelog remain unchanged. Native
 callable constructor unions and ready JSON/developer-HTML adapters remain separate
 work; this note does not claim their implementation or perform a release.
