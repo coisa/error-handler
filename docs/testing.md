@@ -116,6 +116,24 @@ The intentionally invalid `.inc` files belong only to bounded parse/compile
 fixtures and are excluded from ordinary syntax/style assertions with local
 PHPCS directives. Do not execute them in the parent test process.
 
+## Static documentation
+
+From a source checkout, open `docs/index.html` locally to inspect the 2.x reading guide. Run
+`php tests/Documentation/site.php` with PHP 7.4+ and its DOM extension to check
+every displayed source excerpt against its executable example, unique IDs,
+anchor targets and repository source links. Inspect keyboard navigation,
+horizontal code/table scrolling and mobile layout in a browser as separate
+visual/accessibility evidence. The checker does not certify a live website.
+
+The [Documentation Pages workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
+runs only its read-only validation job on pull requests. Artifact upload and
+deployment require `workflow_dispatch` on the repository's default branch.
+Hosting must be configured separately by the owner; the workflow does not enable
+Pages. Its deployment job uses the `github-pages` environment and Pages/OIDC write
+permissions, following [GitHub's custom workflow requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+The first specifically authorized deployment remains a separate live integration
+check. Preparing or merging this workflow does not perform that check.
+
 ## Evidence and limits
 
 This test-only change leaves runtime code untouched. The process handlers and

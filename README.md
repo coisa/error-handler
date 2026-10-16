@@ -69,6 +69,10 @@ a real application. Read the guide for your integration:
 - [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),
   retaining source identity when copied into a project; no global installation is required.
 
+The optional [static HTML guide source](https://github.com/coisa/error-handler/blob/master/docs/index.html)
+can be opened locally. Its workflow validates source excerpts in pull requests;
+Pages deployment requires a separate owner-authorized manual run.
+
 The original 2.x runtime metadata and PHP 7.4 alias defects are tracked in
 [#13](https://github.com/coisa/error-handler/issues/13) and
 [#40](https://github.com/coisa/error-handler/issues/40). Use a checkout or published
