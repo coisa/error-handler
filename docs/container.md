@@ -50,6 +50,8 @@ An application may bind that process object under `ErrorHandler::class` in its p
 
 ## Factory map and scopes
 
+`CallablePhpErrorHandler` has no automatic factory/discovery. Construct it explicitly and pass it as the second ErrorHandler argument, or provide the instance under `PhpErrorHandlerInterface` in the application parent. The default PHP-error adapter remains unchanged when no override is supplied. Its callback owns mask/conversion policy and its return value is ignored; see [the API contract](api.md#callable-php-error-policy).
+
 `FilteringThrowableHandler` requires an application predicate and is not discovered or attached to the default aggregate automatically. Construct it explicitly, then provide it through the application parent's `ThrowableHandlerInterface` service or attach it to an application-composed aggregate. That global service also affects legacy HTTP rendering as explained above; for process-only composition, bind the application `ErrorHandler::class` explicitly. Merely registering a service under `FilteringThrowableHandler::class` does not select it for reporting. There is no library filtering factory or implicit allow-all predicate.
 
 All factory names below are in `CoiSA\ErrorHandler\Container\Factory`.

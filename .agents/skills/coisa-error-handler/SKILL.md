@@ -84,6 +84,16 @@ it does not recover execution.
 
 ## Conditional composition
 
+For an explicit PHP-error callback, first verify the selected source contains
+Handler\CallablePhpErrorHandler. Wrap the callable and inject that interface
+instance as ErrorHandler's second argument. It receives four unchanged arguments
+(code, message, filename, line), once. Return values, including false/null, are
+ignored by the void contract; this is not native false/fall-through. The callback
+owns mask/conversion policy and its failure propagates. It installs no callbacks
+or default factory. Keep the 2.x constructor typed; bare-callable constructor inputs
+are major-only. Follow the [PHP-error recipe](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php)
+and verify explicit suppression policy before replacing the default adapter.
+
 For selected diagnostic delivery, explicitly construct
 Handler\FilteringThrowableHandler($reporter, $predicate). The required predicate
 accepts the original Throwable and returns bool: true forwards once, false skips
