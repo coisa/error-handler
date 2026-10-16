@@ -157,6 +157,17 @@ a fixed public response. Read the matching
 [HTTP recipe](https://github.com/coisa/error-handler/blob/master/docs/http.md)
 before wiring this route; do not invent a built-in pure/default JSON renderer.
 
+For a source/release containing the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89),
+the built-in response factory preserves valid exception messages byte-for-byte
+as reason phrases, including horizontal tabs and opaque high bytes. Forbidden
+controls such as CR, LF, NUL and DEL omit the reason argument to select the
+application's PSR-17 default. Empty messages are still passed explicitly,
+preserving the selected implementation's existing behavior. Status mapping remains
+integer 400–500, with 500 for other integers or string codes. The original
+throwable still reaches stream/reporting once; body capture and diagnostic
+fallback are unchanged. Valid messages can still reveal details in the reason,
+so this repair does not replace an explicit public-safe application renderer.
+
 For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
 reporter/capture failure triggers best-effort removal of removable buffers above
 the entry level. Cleanup stops at a protected buffer, failed close or absent progress;

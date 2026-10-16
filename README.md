@@ -21,9 +21,18 @@ inclusive as HTTP status codes. Other integers and string codes, including PDO
 SQLSTATE values and numeric-looking strings, fall back to status 500. SQLSTATE
 values are not interpreted as HTTP statuses.
 
-The response retains the exception message as its reason phrase. Its body comes
-from the configured `ThrowableStreamFactoryInterface`, which receives the same
-throwable instance. Applications control the content produced by that factory.
+The response retains a valid exception message unchanged as its reason phrase,
+including horizontal tabs and opaque high bytes. With the
+[reason-phrase repair](https://github.com/coisa/error-handler/issues/89), messages
+containing CR, LF, NUL, DEL or another forbidden control byte omit the reason
+argument so the application's PSR-17 factory can select its default. Empty
+messages are still passed explicitly, preserving existing implementation-specific
+behavior. See the [HTTP contract](docs/http.md#existing-response-and-output-capture)
+and verify that the selected checkout/release contains this repair.
+
+The body comes from the configured `ThrowableStreamFactoryInterface`, which
+receives the same throwable instance. Applications control the content produced
+by that factory; reason validation does not redact diagnostic body content.
 
 ## Use the 2.x API
 
