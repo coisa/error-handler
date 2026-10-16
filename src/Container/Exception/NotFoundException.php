@@ -33,6 +33,8 @@ final class NotFoundException extends ContainerException implements NotFoundExce
      *
      * This factory method SHALL wrap a throwable into a NotFoundException
      * to provide more context about the missing entry.
+     * Integer codes are preserved; other code types use zero on this wrapper.
+     * The original code remains available on the exact previous throwable.
      *
      * @param \Throwable $throwable the original throwable to wrap
      *
@@ -40,9 +42,11 @@ final class NotFoundException extends ContainerException implements NotFoundExce
      */
     public static function createFromThrowable(\Throwable $throwable): self
     {
+        $code = $throwable->getCode();
+
         return new self(
             $throwable->getMessage(),
-            $throwable->getCode(),
+            \is_int($code) ? $code : 0,
             $throwable,
         );
     }

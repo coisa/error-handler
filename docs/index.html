@@ -252,6 +252,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
         </figure>
         <p><code>ConfigProvider</code> retains aliases, factories and Laminas discovery metadata. ServiceManager is an optional application integration, with a version compatible with that application's PHP.</p>
         <p>Services are cached. Calling <code>ErrorHandlerFactory</code> explicitly creates a new core handler; a fresh middleware wrapper can still resolve the cached handler. Discovery and construction do not call <code>register()</code>.</p>
+        <p>The <a href="https://github.com/coisa/error-handler/issues/90">container-cause repair</a> preserves the original throwable through factory/alias wrapper chains. The two public exception factories copy integer codes and use <code>0</code> for string codes, retaining the original SQLSTATE on the cause. Check the selected source/release and the <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container guide</a> before relying on this repair.</p>
       </section>
 
       <section id="http" aria-labelledby="http-title">
