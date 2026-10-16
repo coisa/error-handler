@@ -156,8 +156,17 @@ the stale-run guard and the generated validation branch.
 
 Merging the generated version PR is the release decision. When no pending notes
 remain and the private package has an unpublished tag, the official
-`select-mode` action selects `publish`. The publication job checks out the
-event's commit and calls the official `changesets/action/publish` action.
+`select-mode` action selects `publish`. Before checkout or tooling installation,
+the publication job reads the pull requests associated with the event's commit.
+Exactly one must be merged at that SHA, target the default branch, come from this
+repository's `changeset-release/<default-branch>` and be authored by the built-in
+GitHub Actions bot (account 41898282). The title is not used as provenance. API
+errors, missing metadata or a nonmatching PR stop publication. An ordinary merge
+that changes the private package version does not satisfy this check.
+See GitHub's [commit-to-PR endpoint](https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit).
+
+After that check, the publication job checks out the event's commit and calls
+the official `changesets/action/publish` action.
 There is no custom release script.
 
 Concurrency uses `queue: max` with cancellation disabled, retaining up to 100
@@ -187,9 +196,15 @@ after creating a tag but before creating its GitHub release, inspect that tag
 and finish the missing release with the matching changelog entry; this minimal
 workflow does not add a separate recovery implementation.
 
-The first live version PR and release must still be observed after an
-owner-authorized merge. Review prerelease needs separately before adding a
-prerelease policy to this stable 2.x flow.
+Version PRs and native tag/release publication have already operated in this
+repository. The provenance guard verifies the event SHA, so a queued release run
+still qualifies after the default branch advances. It does not check stable
+version ordering, verify an existing tag's target or fix the official action's
+tag-creation error handling; those remaining decisions are tracked in
+[issue #25](https://github.com/coisa/error-handler/issues/25). A matching-tag rerun
+still follows the native publication plan and is not automatic release recovery.
+Review prerelease needs separately before adding a prerelease policy to this
+stable 2.x flow.
 
 ## Maintain the changelog introduction and history
 
