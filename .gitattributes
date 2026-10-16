@@ -15,4 +15,3 @@ tests/                      export-ignore
 phpcs.xml                   export-ignore
 phpstan.neon                export-ignore
 phpunit.xml                 export-ignore
-Makefile                    export-ignore

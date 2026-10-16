@@ -4,6 +4,7 @@ This library intentionally does not track `composer.lock`. Composer constraints
 in `composer.json` describe its supported dependency contract. Applications that
 consume the library own their application lockfiles.
 
+Use Composer directly for dependency installation and quality checks.
 Resolve development dependencies with the PHP runtime intended for the check:
 
 ```sh
