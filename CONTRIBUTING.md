@@ -31,11 +31,11 @@ dependencies when checking that minimum.
 
 ## Quality checks
 
-The `coisa/php-cs-fixer:^3.0` preset supplies the formatter policy, with local
-overrides that disable risky rules and visibility rewriting. Multiline trailing
-commas are limited to arguments, destructuring and arrays; parameter and `match`
-commas require PHP 8.0. The preset's automatic PHP migration target follows the
-Composer minimum. Run each check independently when diagnosing a failure:
+The `coisa/php-cs-fixer:^3.0` preset supplies the formatter policy. A local override
+limits multiline trailing commas to arguments, destructuring and arrays;
+parameter and `match` commas require PHP 8.0. The preset's automatic PHP migration
+target follows the Composer minimum, and its remaining rules are retained.
+Run each check independently when diagnosing a failure:
 `composer check` stops at the first failed command.
 
 ```sh

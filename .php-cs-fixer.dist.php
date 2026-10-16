@@ -24,12 +24,8 @@ $paths = [
 $header = file_get_contents(__DIR__ . '/.docheader');
 
 return PhpCsFixer::create($paths, $header, [
-    '@PhpCsFixer:risky'       => false,
-    '@autoPHPMigration:risky' => false,
-    'date_time_immutable'     => false,
-    'protected_to_private'    => false,
     'trailing_comma_in_multiline' => [
         'after_heredoc' => true,
         'elements'     => ['arguments', 'array_destructuring', 'arrays'],
     ],
-])->setRiskyAllowed(false);
+]);
