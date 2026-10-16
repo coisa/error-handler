@@ -27,6 +27,8 @@ throwable instance. Applications control the content produced by that factory.
 
 ## Use the 2.x API
 
+For explicit development HTML, see the [optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [complete recipe](examples/http-whoops.php). Verify that the selected checkout/release contains this additive API; a pending Changeset is not a published release. Applications own trusted debug activation and format selection.
+
 The library declares PHP `^7.4 || ^8.0`. Applications own reporters, PSR
 implementations, HTTP emission and when native PHP callbacks are installed.
 These guides describe the existing 2.x API; a pending Changeset is not a published

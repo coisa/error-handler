@@ -40,8 +40,11 @@ Without that variable, bootstrap uses the source checkout's `vendor/autoload.php
 
 ## Recipes
 
+The optional development HTML recipe requires `composer require --dev 'filp/whoops:^2.18' --no-plugins --no-scripts` in the application. Its public mode selects generic JSON without constructing Whoops; development mode is an explicit trusted configuration for an HTML pipeline, not Accept negotiation. The library's own development dependencies include Whoops for verification.
+
 | Recipe | What it executes |
 | --- | --- |
+| [http-whoops.php](http-whoops.php) | Explicit public/development selection, fresh Whoops pages, generic fallback, HTTP 503 and one private report; no emission or negotiation. |
 | [direct.php](direct.php) | Explicit ErrorHandler construction and CallableThrowableHandler reporting; execution continues. |
 | [logging.php](logging.php) | Explicit LogThrowableHandler composition, exact/empty messages, configured level and original exception context; no transport or callback registration. |
 | [process.php](process.php) | Warning handling, scoped restoration, registered uncaught behavior and CallableShutdownHandler. The fatal mode is verifier-only. |

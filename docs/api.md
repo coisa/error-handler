@@ -113,3 +113,7 @@ The [complete event/logging example](https://github.com/coisa/error-handler/blob
 For explicit public JSON responses, use the separate [pure JSON renderer and reporting decorator](http.md#opt-in-json-responses-and-explicit-reporting). Diagnostic reporters retain their void contract and private-output responsibility; this opt-in composition changes no process lifecycle or existing middleware/default behavior.
 
 Continue with [container composition](container.md), [HTTP composition](http.md), and the [executable cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+
+## Optional development HTML
+
+For a checkout/release containing `WhoopsThrowableResponseFactory`, use it only as an explicitly selected development renderer, with `ReportingThrowableResponseFactory` supplying private reporting in 2.x. It is not a Throwable reporter, lifecycle handler or Accept negotiator. Whoops remains optional; fresh page configuration and development authorization belong to the application. Read [the HTTP contract](http.md#opt-in-development-html-with-whoops) and [complete recipe](../examples/http-whoops.php). The proposed major uses the pure renderer after its own report; [issue 95](https://github.com/coisa/error-handler/issues/95) tracks that separate adaptation.

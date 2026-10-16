@@ -277,12 +277,22 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
         </figure>
         <p>For a source/release containing these additive classes, the pure JSON factory returns <code>application/json</code> with <code>{"error":"Request failed"}</code>, preserves integer codes <code>400–599</code> and otherwise uses <code>500</code>. It does not report or capture output. The explicit decorator reports the original once before rendering; reporter failure prevents rendering, and failures propagate after middleware restores callbacks. Use a private reporter that does not print. Defaults remain unchanged.</p>
         <p>The optional third boolean defaults to <code>false</code>. An explicit trusted development configuration can enable class/message/file/line and trace metadata, without arguments or objects; debug sets <code>Cache-Control: no-store</code> and replaces invalid UTF-8. Messages and paths still contain diagnostic details. No environment/request autodetection enables it, and the recipe uses a private reporter without output. PHP 7.4 debug use needs the optional JSON extension, included by PHP 8.</p>
+        <figure>
+          <figcaption>Shared reporting composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">examples/http-whoops.php</a> · a trusted development choice selects the pure HTML renderer earlier</figcaption>
+          <pre tabindex="0" aria-label="Explicit development HTML reporting PHP source"><code data-source="examples/http-whoops.php">$responses = new ReportingThrowableResponseFactory($reporter, $renderer);
+
+$errors = new ErrorHandler($reporter);
+
+$middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
+        </figure>
+        <p>The optional <code>WhoopsThrowableResponseFactory</code> takes two PSR-17 factories and a callable creating a fresh configured <code>PrettyPageHandler</code>. Install <code>filp/whoops:^2.18</code> only where development HTML is used. Each render owns a new, unregistered Run, returns HTML without emission/exit and sets <code>text/html; charset=UTF-8</code> plus <code>no-store</code>. It preserves integer codes 400–599 and delegates the reason to PSR-17. Core/container defaults remain unchanged.</p>
+        <p>Applications select this renderer through trusted development configuration and keep the private reporting decorator for 2.x. Default Whoops diagnostic pages can expose sensitive globals; hiding selected keys does not redact messages, traces, source or every secret. No request/Accept negotiation or automatic debug activation is supplied. Verify the selected checkout/release contains this additive API.</p>
         <p>See <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">the HTTP guide</a> for success/failure restoration, capture limitations and the complete application composition.</p>
       </section>
 
       <section id="examples" aria-labelledby="examples-title">
         <h2 id="examples-title">Run the complete recipes</h2>
-        <p>Every excerpt above is checked against its executable source. Read all eleven complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
+        <p>Every excerpt above is checked against its executable source. Read all twelve complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
         <ul class="recipe-list">
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact/empty messages and original exception context.</span></li>
@@ -295,6 +305,7 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">http-json.php</a><span>Generic/development JSON, HTTP error statuses and one explicit private report.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">http-whoops.php</a><span>Trusted development HTML, fresh configured Whoops pages and a generic public path.</span></li>
         </ul>
         <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
       </section>

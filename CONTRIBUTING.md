@@ -247,3 +247,7 @@ php tests/Production/archive.php /absolute/temporary/package.tar
 
 This checks archive paths and bytes against the selected source, including every
 runtime file. Then run the clean consumer and production container smoke above.
+
+## Optional development HTML dependency
+
+The development graph includes `filp/whoops:^2.18` to verify the opt-in HTML adapter. Consumer runtime requirements remain unchanged: applications install Whoops only when selecting development HTML, and ordinary no-dev core/container installations need none of it. Record actual lower/current Whoops resolutions and PHP versions when verifying the bridge. The [HTML guide](docs/http.md#opt-in-development-html-with-whoops) describes explicit activation, fresh page configuration and diagnostic disclosure limits.

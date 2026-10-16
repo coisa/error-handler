@@ -39,6 +39,18 @@ $cases = [
         0,
         "HTTP JSON debug: explicit payload, status preservation and one private report passed\n",
     ],
+    [
+        'http-whoops.php',
+        ['public'],
+        0,
+        "HTTP Whoops public: explicit renderer selection and one private report passed\n",
+    ],
+    [
+        'http-whoops.php',
+        ['development'],
+        0,
+        "HTTP Whoops development: explicit renderer selection and one private report passed\n",
+    ],
     ['process.php', ['warning'], 0, "reported: Process warning\ncontinued\n"],
     ['process.php', ['scope'], 0, "reported: Scoped warning\ncallbacks restored\n"],
     ['process.php', ['uncaught'], 0, "reported: Uncaught fixture\n"],
