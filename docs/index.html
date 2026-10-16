@@ -97,6 +97,7 @@
       <a href="#reporting">Direct reporting</a>
       <a href="#lifecycle">Process lifecycle</a>
       <a href="#adapters">Adapters and events</a>
+<a href="#filtering">Conditional reporting</a>
       <a href="#container">Container integration</a>
       <a href="#http">HTTP composition</a>
       <a href="#examples">Executable recipes</a>
@@ -175,6 +176,16 @@ echo 'continued' . PHP_EOL;</code></pre>
         <p>Both listener providers and callable listeners are demonstrated in <a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">the event example</a>. <code>LogErrorEventListener</code> passes the event string to an application PSR-3 logger, at ERROR by default. Configuring raw and wrapped routes creates separate deliveries.</p>
       </section>
 
+      <section id="filtering" aria-labelledby="filtering-title">
+        <h2 id="filtering-title">Select diagnostic branches explicitly</h2>
+        <p><code>FilteringThrowableHandler($reporter, $predicate)</code> evaluates a required boolean predicate once. A match forwards the original throwable once; a nonmatch skips only that delegate. Predicate/delegate failures propagate without retry; non-boolean results raise <code>TypeError</code>. Invert policy in the application's predicate.</p>
+        <figure>
+          <figcaption>Severity selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">examples/filtering.php</a> · the example also retains a general diagnostic branch</figcaption>
+          <pre tabindex="0" aria-label="Application filtering predicate PHP source"><code data-source="examples/filtering.php">    static fn(Throwable $error): bool =&gt; $error instanceof ErrorException &amp;&amp; E_USER_DEPRECATED === $error-&gt;getSeverity(),</code></pre>
+        </figure>
+        <p>This opt-in adapter requires a source version containing the additive API; a pending Changeset is not a published release. It adds no discovery, output, callback registration, recursion guard or response policy. A nonmatch is not recovery or redaction: built-in empty capture still falls back to diagnostic text. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the API guide</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP composition</a>.</p>
+      </section>
+
       <section id="container" aria-labelledby="container-title">
         <h2 id="container-title">Keep the existing container boundary</h2>
         <p><code>ErrorHandlerContainer</code> accepts an optional application PSR-11 parent. The parent's known services take priority; otherwise library aliases and factories resolve services. The default reporter aggregate is empty and silent, so supply a reporter explicitly.</p>
@@ -211,6 +222,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">process.php</a><span>Warnings, scoped restoration, uncaught behavior and custom shutdown.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/handlers.php">handlers.php</a><span>Callable/aggregate order, failure propagation, conversion and suppression.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">filtering.php</a><span>Explicit severity selection with the same original throwable and a general diagnostic branch.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">events.php</a><span>Raw and wrapped dispatch, providers/listeners and PSR-3 logging.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>

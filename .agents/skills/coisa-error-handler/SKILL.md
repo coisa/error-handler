@@ -84,6 +84,16 @@ it does not recover execution.
 
 ## Conditional composition
 
+For selected diagnostic delivery, explicitly construct
+Handler\FilteringThrowableHandler($reporter, $predicate). The required predicate
+accepts the original Throwable and returns bool: true forwards once, false skips
+only that delegate. Non-boolean results raise TypeError; predicate/reporter
+failures propagate without retry. Use getSeverity() on ErrorException for PHP
+severity, not arbitrary exception codes. It changes no PHP suppression, callback
+or HTTP response policy. No container/default aggregate discovers it. Verify
+that the selected source version contains this additive API, then follow the
+[filtering recipe](https://github.com/coisa/error-handler/blob/master/examples/filtering.php).
+
 For the existing container, construct
 CoiSA\ErrorHandler\Container\ErrorHandlerContainer($application) with an optional
 application PSR-11 parent, then resolve ErrorHandler::class. Provide a reporter:

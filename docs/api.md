@@ -12,6 +12,14 @@ The declared runtime is PHP `^7.4 || ^8.0`. This is a dependency contract, not e
 
 Run [the direct example](https://github.com/coisa/error-handler/blob/master/examples/direct.php) for explicit reporting without global registration. Its synthetic reporter prints a message so the verifier can observe it; use an appropriate private sink in a real application.
 
+## Conditional reporting
+
+`new FilteringThrowableHandler($throwableHandler, $predicate)` wraps an explicitly supplied `ThrowableHandlerInterface` reporter. The required `callable(Throwable): bool` predicate runs once per invocation. `true` forwards the exact original object once; `false` skips only that delegate. Repeated calls with the same object remain separate deliveries. The adapter adds no output, callback registration, recursion guard or default filtering policy.
+
+The predicate must return a boolean: truthy/false-like non-booleans raise `TypeError`. Predicate and delegate failures propagate unchanged, without retry. To invert a condition, supply a predicate that returns its boolean negation. A skipped branch does not recover an operation, change PHP suppression or imply a successful HTTP response; a failure still stops later aggregate reporters.
+
+The [filtering example](https://github.com/coisa/error-handler/blob/master/examples/filtering.php) routes synthetic PHP deprecations to a selected branch while keeping the general branch. Inspect `ErrorException::getSeverity()` for PHP severity; arbitrary exception codes do not carry that meaning. Use a callable directly for one-off application logic, and the decorator when wrapping an existing reporter or aggregate. This is an additive, opt-in 2.x API: use a source version containing it; a pending minor Changeset is not a published release.
+
 ## Native callbacks
 
 `ErrorHandlerInterface` defines only `register()` and `unregister()`. `ErrorHandler` also implements throwable, PHP-error and shutdown handling.
@@ -39,6 +47,7 @@ The 2.x registered exception callback is the same `handleThrowable()` method use
 | Adapter | Existing behavior |
 | --- | --- |
 | `CallableThrowableHandler` | Calls one configured reporter with the throwable. |
+| `FilteringThrowableHandler` | Evaluates an explicit boolean predicate once; matches forward the same throwable once, nonmatches skip its delegate, failures propagate. |
 | `ThrowableHandlerAggregate` | Calls constructor reporters, then attached reporters, in order. An exception stops later deliveries and propagates. There is no best-effort/retry contract. |
 | `ThrowErrorExceptionPhpErrorHandler` | Converts enabled PHP errors to the library ErrorException. |
 | `CallableShutdownHandler` | Calls a configured zero-argument callback. |
