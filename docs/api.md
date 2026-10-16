@@ -12,6 +12,26 @@ The declared runtime is PHP `^7.4 || ^8.0`. This is a dependency contract, not e
 
 Run [the direct example](https://github.com/coisa/error-handler/blob/master/examples/direct.php) for explicit reporting without global registration. Its synthetic reporter prints a message so the verifier can observe it; use an appropriate private sink in a real application.
 
+## Direct PSR-3 logging
+
+`Handler\LogThrowableHandler` is an opt-in minor addition under development. Use a matching checkout or release containing the class; a pending Changeset does not make it part of an older installed version. Its constructor accepts an application `LoggerInterface`, a string level defaulting to `LogLevel::ERROR`, and `array<array-key, mixed>` context.
+
+Each `handleThrowable()` call invokes the logger's `log()` once with exactly `getMessage()`, including an empty message. The original throwable always occupies `context['exception']`, overriding a caller entry without mutating the caller's array. Other context values retain their identity and types; context-key order is not a contract. The level is forwarded unchanged, with no inference from exception codes, PHP severity or HTTP status. The logger decides whether a level is supported. Its identical failure propagates without retry or output from this adapter.
+
+Construct the reporter and process handler explicitly with the application's logger:
+
+```php
+$reporter = new CoiSA\ErrorHandler\Handler\LogThrowableHandler($logger);
+
+$process = new CoiSA\ErrorHandler\ErrorHandler($reporter);
+
+$process->handleThrowable($failure);
+```
+
+This does not install callbacks, add a factory or change aggregate discovery. A logger alone in the legacy parent container does not attach this reporter. Read [explicit process composition](container.md#explicit-process-logging) before using container bindings. A private logger is not a public HTTP body renderer; retain the separate [application HTTP response boundary](http.md).
+
+The [complete logging example](https://github.com/coisa/error-handler/blob/master/examples/logging.php) uses an in-memory recording sink. It verifies the message, level and reserved context policy without a real transport. The existing `LogErrorEventListener` retains its separate event-string behavior below.
+
 ## Conditional reporting
 
 `new FilteringThrowableHandler($throwableHandler, $predicate)` wraps an explicitly supplied `ThrowableHandlerInterface` reporter. The required `callable(Throwable): bool` predicate runs once per invocation. `true` forwards the exact original object once; `false` skips only that delegate. Repeated calls with the same object remain separate deliveries. The adapter adds no output, callback registration, recursion guard or default filtering policy.
@@ -47,6 +67,7 @@ The 2.x registered exception callback is the same `handleThrowable()` method use
 | Adapter | Existing behavior |
 | --- | --- |
 | `CallableThrowableHandler` | Calls one configured reporter with the throwable. |
+| `LogThrowableHandler` | Explicit PSR-3 adapter in the pending minor: logs the exact message and original exception once; logger failures propagate. |
 | `FilteringThrowableHandler` | Evaluates an explicit boolean predicate once; matches forward the same throwable once, nonmatches skip its delegate, failures propagate. |
 | `ThrowableHandlerAggregate` | Calls constructor reporters, then attached reporters, in order. An exception stops later deliveries and propagates. There is no best-effort/retry contract. |
 | `ThrowErrorExceptionPhpErrorHandler` | Converts enabled PHP errors to the library ErrorException. |

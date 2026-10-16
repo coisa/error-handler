@@ -61,6 +61,20 @@ PHPStan and PHPCS do not establish equivalent security analysis; the native
 workflow does not include that Scrutinizer capability. Removing repository
 configuration and badges does not change the external service's settings.
 
+## Direct logging compatibility
+
+The pending minor's `LogThrowableHandler` consumes the existing `psr/log`
+`^1.1 || ^2.0 || ^3.0` interface without supplying a logger implementation.
+Verify each major explicitly: an ordinary highest/lowest dependency matrix can
+omit 2.x. Resolve an isolated application on its actual PHP, select the PSR-3
+major there, then run the focused `LogThrowableHandlerTest` PHPUnit cases and
+[logging recipe](https://github.com/coisa/error-handler/blob/master/examples/logging.php).
+PHP 7.4 needs a compatible 1.x resolution; modern fixtures can exercise 2.x/3.x.
+Do not bypass platform requirements or change the library's dependency range.
+Recording-log tests establish calls, messages, context and failure propagation,
+not delivery to a real backend. Consult the implementation PR for the exact
+runtimes, resolved versions and measured coverage.
+
 ## Bounds and cleanup
 
 Each fire child runs with `php -n`, a 16 MiB memory limit, a five-second deadline
