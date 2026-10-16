@@ -81,6 +81,7 @@ restore_exception_handler();
 http_response_code($response->getStatusCode());
 header('Content-Type: text/plain; charset=utf-8');
 header('X-Fixture-Reports: ' . $reports);
+header('X-Fixture-Owner: ' . getenv('ERROR_HANDLER_TEST_OWNER'));
 $restored = $restoredError === $previousError && $restoredException === $previousException;
 header('X-Fixture-Callbacks-Restored: ' . ($restored ? 'yes' : 'no'));
 echo $response->getBody();

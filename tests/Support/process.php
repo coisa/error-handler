@@ -70,11 +70,11 @@ function readOutput(array $pipes, string &$stdout, string &$stderr, int $limit):
 /**
  * Runs an owned fixture child and always closes its pipes and process handle.
  *
- * @param list<string>          $command     an argument vector, never a shell command
- * @param float                 $timeout     maximum active lifetime in seconds
- * @param int                   $limit       maximum combined captured output bytes
- * @param null|callable(): bool $tick        optional bounded loopback work; true stops the fixture
- * @param array<string, string> $environment the child's explicit environment
+ * @param list<string>                        $command     an argument vector, never a shell command
+ * @param float                               $timeout     maximum active lifetime in seconds
+ * @param int                                 $limit       maximum combined captured output bytes
+ * @param null|callable(string, string): bool $tick        receives bounded stdout/stderr; true stops the fixture
+ * @param array<string, string>               $environment the child's explicit environment
  *
  * @return array{exitCode: int, stdout: string, stderr: string, reason: string, reaped: bool, elapsed: float}
  */
@@ -126,7 +126,7 @@ function runProcess(
 
                 break;
             }
-            if (null !== $tick && $tick()) {
+            if (null !== $tick && $tick($stdout, $stderr)) {
                 $reason = 'completed';
 
                 break;

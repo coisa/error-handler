@@ -11,6 +11,7 @@ composer --no-plugins check
 php tests/Fire/run.php
 php tests/Fire/run.php --with-psr
 php tests/Http/run.php
+php tests/Http/run.php --check-port-retry
 ```
 
 The first fire command requires PHP only and runs 16 core scenarios. `--with-psr`
@@ -53,8 +54,14 @@ php tests/Support/check.php
 ```
 
 The HTTP runner reserves a dynamic `127.0.0.1` port and starts an owned PHP fixture
-server. Startup is limited to five seconds, each request to two seconds and
-64 KiB of body, and the overall active server lifetime to 20 seconds. Each request
+server. The reservation must be released before `php -S` binds; if that child
+exits before confirming startup, the runner reaps it and tries a fresh port, up
+to three attempts. Requests begin only after the owned child's startup banner
+and must return a random per-run ownership header. `--check-port-retry` holds the
+first reservation deliberately and verifies exactly one rejected bind, reaping
+and retry before the four routes pass; no request is sent to the reserved port.
+Startup is limited to five seconds per attempt, each request to two seconds and
+64 KiB of body, and each active server lifetime to 20 seconds. Each request
 runs in its own bounded child, so a streaming response cannot bypass its deadline
 by repeatedly resetting an idle timeout. Redirects
 are disabled. Server output is capped at 256 KiB and its memory at 32 MiB. The
