@@ -25,9 +25,10 @@ supplied. The parent environment remains unchanged. The guarded native-fatal
 case cannot run as an ordinary example. Children use synthetic input and own
 their callbacks/buffers; they do not spawn descendants.
 
-Success prints seventeen scenario results and the actual PHP version, then exits 0.
-This includes explicit filtering of synthetic deprecations while preserving the
-general reporting branch and original objects. Unexpected status/output, timeout
+Success prints eighteen scenario results and the actual PHP version, then exits 0.
+These include direct PSR-3 logging's exact messages/original context and explicit
+filtering of synthetic deprecations while preserving the general branch.
+Unexpected status/output, timeout
 or output threshold causes a nonzero verifier exit after cleanup. Registered
 uncaught delivery currently reports and exits 0; native compile fatal reports at
 shutdown and exits 255. Neither is a general recovery guarantee.

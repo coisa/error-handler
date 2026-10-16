@@ -91,6 +91,22 @@ is used to claim 100%. Consult the implementation PR for exact reports and SHAs.
 
 ## Consumer examples and documentation
 
+### Direct logging compatibility
+
+The opt-in `LogThrowableHandler` consumes the existing `psr/log`
+`^1.1 || ^2.0 || ^3.0` interface without supplying a logger implementation.
+Verify each major explicitly: an ordinary highest/lowest dependency matrix can
+omit 2.x. Resolve an isolated application on its actual PHP, select the PSR-3
+major there, then run the focused `LogThrowableHandlerTest` PHPUnit cases and
+[logging recipe](https://github.com/coisa/error-handler/blob/master/examples/logging.php).
+PHP 7.4 needs a compatible 1.x resolution; modern fixtures can exercise 2.x/3.x.
+Do not bypass platform requirements or change the library's dependency range.
+Recording-log tests establish calls, messages, context and failure propagation,
+not delivery to a real backend. Consult the implementation PR for the exact
+runtimes, resolved versions and measured coverage.
+
+### Cookbook and site
+
 Run `php examples/verify.php` after installing the development/application
 dependencies. The [cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
 and [verifier guide](https://github.com/coisa/error-handler/blob/master/examples/verify.md)
