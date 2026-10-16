@@ -40,6 +40,18 @@ The predicate must return a boolean: truthy/false-like non-booleans raise `TypeE
 
 The [filtering example](https://github.com/coisa/error-handler/blob/master/examples/filtering.php) routes synthetic PHP deprecations to a selected branch while keeping the general branch. Inspect `ErrorException::getSeverity()` for PHP severity; arbitrary exception codes do not carry that meaning. Use a callable directly for one-off application logic, and the decorator when wrapping an existing reporter or aggregate. This is an additive, opt-in 2.x API: use a source version containing it; a pending minor Changeset is not a published release.
 
+## Best-effort reporting
+
+`new Handler\BestEffortThrowableHandlerAggregate($first, $second, ...)` is an explicit alternative to the existing fail-fast `ThrowableHandlerAggregate`. It takes a fixed constructor list of `ThrowableHandlerInterface` reporters. Construction invokes nothing and installs no callbacks. Use a checkout/release containing these new classes; a pending minor Changeset does not make them available in older 2.x installations.
+
+Each `handleThrowable($original)` invocation attempts every constructor slot once, in order, with the identical original object. A reporter's `Throwable` failure is retained while later slots run. Duplicate slots remain deliberate separate attempts. Zero reporters and all-success passes return normally. If any reporter fails, including partial success, one `Exception\AggregateReportingException` escapes after all attempts.
+
+The exception's `getOriginalThrowable()` and inherited `getPrevious()` return the original diagnostic. `getFailures()` returns a nonempty, ordered array of the identical reporter failure objects, including repeated objects. Its constructor requires the original, one failure and optional remaining failures. The summary message is fixed; the stored failures, previous cause and exception string still contain private diagnostics. They are not a safe public HTTP body.
+
+The [complete synthetic example](https://github.com/coisa/error-handler/blob/master/examples/best-effort.php) catches that exception and records both the original and all failures in memory. An application must choose its own terminal handling and durable sink. This adapter does not retry, deduplicate, add a reentry guard or suppress reporter failures. Application-created recursion remains application-owned. Process termination or an uncatchable engine failure can prevent later attempts; it cannot be collected as an ordinary Throwable.
+
+The original aggregate, default container composition, `ErrorHandler` constructor and native lifecycle are unchanged. In particular, registered exception/shutdown behavior gains no new delivery or exit guarantee. With the legacy HTTP capture factory, aggregate failure propagates through its existing cleanup path; best-effort reporting does not create a fallback response or redaction policy. See [explicit container composition](container.md) and [HTTP boundaries](http.md).
+
 ## Native callbacks
 
 `ErrorHandlerInterface` defines only `register()` and `unregister()`. `ErrorHandler` also implements throwable, PHP-error and shutdown handling.
@@ -79,6 +91,7 @@ The 2.x registered exception callback is the same `handleThrowable()` method use
 | `LogThrowableHandler` | Explicit PSR-3 adapter in the pending minor: logs the exact message and original exception once; logger failures propagate. |
 | `FilteringThrowableHandler` | Evaluates an explicit boolean predicate once; matches forward the same throwable once, nonmatches skip its delegate, failures propagate. |
 | `ThrowableHandlerAggregate` | Calls constructor reporters, then attached reporters, in order. An exception stops later deliveries and propagates. There is no best-effort/retry contract. |
+| `BestEffortThrowableHandlerAggregate` | Opt-in fixed reporter list: attempts every slot, then throws one AggregateReportingException containing the original and all ordered reporter failures. Zero/all-success passes return normally. |
 | `ThrowErrorExceptionPhpErrorHandler` | Converts enabled PHP errors to the library ErrorException. |
 | `CallableShutdownHandler` | Calls a configured zero-argument callback. |
 | `PhpLastErrorShutdownHandler` | Forwards a matching last fatal/compile/core error; otherwise does nothing. |

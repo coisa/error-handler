@@ -100,6 +100,7 @@
 <a href="#php-errors">PHP-error callbacks</a>
       <a href="#adapters">Adapters and events</a>
       <a href="#filtering">Conditional reporting</a>
+      <a href="#best-effort">Best-effort reporting</a>
       <a href="#container">Container integration</a>
       <a href="#http">HTTP composition</a>
       <a href="#examples">Executable recipes</a>
@@ -200,6 +201,7 @@ $process-&gt;handleThrowable($failure);</code></pre>
               <tr><td><code>CallablePhpErrorHandler</code></td><td>Invokes one four-argument application callback; ignores its return and leaves mask/conversion policy explicit.</td></tr>
               <tr><td><code>LogThrowableHandler</code></td><td>Pending minor: logs the exact message and original exception once through an explicit application PSR-3 logger.</td></tr>
               <tr><td><code>ThrowableHandlerAggregate</code></td><td>Calls reporters in order; a failure stops later deliveries and propagates.</td></tr>
+              <tr><td><code>BestEffortThrowableHandlerAggregate</code></td><td>Opt-in pending minor: attempts every reporter slot, then exposes the original and all ordered failures through one aggregate exception.</td></tr>
               <tr><td><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Converts enabled PHP errors; honors the reporting mask and suppression.</td></tr>
               <tr><td><code>CallableShutdownHandler</code><br><code>PhpLastErrorShutdownHandler</code></td><td>Adapts an application shutdown callback or forwards a matching last fatal/compile/core error.</td></tr>
               <tr><td><code>DispatchThrowableHandler</code><br><code>DispatchErrorEventThrowableHandler</code></td><td>Dispatches a raw throwable or an <code>ErrorEvent</code> through application-owned PSR-14.</td></tr>
@@ -217,6 +219,26 @@ $process-&gt;handleThrowable($failure);</code></pre>
           <pre tabindex="0" aria-label="Application filtering predicate PHP source"><code data-source="examples/filtering.php">    static fn(Throwable $error): bool =&gt; $error instanceof ErrorException &amp;&amp; E_USER_DEPRECATED === $error-&gt;getSeverity(),</code></pre>
         </figure>
         <p>This opt-in adapter requires a source version containing the additive API; a pending Changeset is not a published release. It adds no discovery, output, callback registration, recursion guard or response policy. A nonmatch is not recovery or redaction: built-in empty capture still falls back to diagnostic text. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the API guide</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP composition</a>.</p>
+      </section>
+
+      <section id="best-effort" aria-labelledby="best-effort-title">
+        <h2 id="best-effort-title">Attempt every reporter and retain every failure</h2>
+        <p><code>BestEffortThrowableHandlerAggregate</code> takes a fixed reporter list. Each invocation attempts every slot once, in order, with the same original throwable. Duplicate slots are separate attempts. Zero/all-success passes return normally; any failure, including partial success, produces one <code>AggregateReportingException</code> after all attempts.</p>
+        <figure>
+          <figcaption>Terminal handling from <a href="https://github.com/coisa/error-handler/blob/master/examples/best-effort.php">examples/best-effort.php</a> · synthetic reporters and imports appear in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Best-effort reporter terminal handling PHP source"><code data-source="examples/best-effort.php">$reporter = new BestEffortThrowableHandlerAggregate($audit, $archive, $backup);
+$recordedFailure = null;
+
+try {
+    $reporter-&gt;handleThrowable($original);
+} catch (AggregateReportingException $failure) {
+    $recordedFailure = [
+        'original' =&gt; $failure-&gt;getOriginalThrowable(),
+        'failures' =&gt; $failure-&gt;getFailures(),
+    ];
+}</code></pre>
+        </figure>
+        <p>The original also remains the previous cause; reporter failures retain their order and object identities. The fixed summary does not make the cause, failures or exception string public-safe. Applications own terminal handling and durable delivery. This pending additive API changes no fail-fast default, factory, callback lifecycle or HTTP response policy and adds no retry or reentry guard. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the full contract</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">explicit composition</a>.</p>
       </section>
 
       <section id="container" aria-labelledby="container-title">
@@ -258,6 +280,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/handlers.php">handlers.php</a><span>Callable/aggregate order, failure propagation, conversion and suppression.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">php-errors.php</a><span>Explicit four-argument callbacks and application-owned PHP-error policy.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">filtering.php</a><span>Explicit severity selection with the same original throwable and a general diagnostic branch.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/best-effort.php">best-effort.php</a><span>Ordered attempts through partial success, preserving the original and every reporter failure.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">events.php</a><span>Raw and wrapped dispatch, providers/listeners and PSR-3 logging.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>

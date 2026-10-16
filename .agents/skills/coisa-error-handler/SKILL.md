@@ -104,6 +104,19 @@ or HTTP response policy. No container/default aggregate discovers it. Verify
 that the selected source version contains this additive API, then follow the
 [filtering recipe](https://github.com/coisa/error-handler/blob/master/examples/filtering.php).
 
+For best-effort delivery, verify the selected source contains
+Handler\BestEffortThrowableHandlerAggregate and Exception\AggregateReportingException.
+Construct the aggregate explicitly with a fixed reporter list. Each invocation
+attempts every slot once, in order, with the same original; duplicates are separate
+attempts. Any failures produce one aggregate exception after all attempts, even
+with partial success. Catch it to retain getOriginalThrowable() and the ordered
+getFailures(); its previous cause is the original. Zero/all-success passes return.
+The existing fail-fast aggregate/defaults remain unchanged. No factory, retry,
+reentry guard, durable delivery or HTTP redaction is supplied. Use the
+[synthetic recipe](https://github.com/coisa/error-handler/blob/master/examples/best-effort.php)
+and [terminal policy](https://github.com/coisa/error-handler/blob/master/docs/api.md#best-effort-reporting);
+the original and reporter failures remain private diagnostics.
+
 For the existing container, construct
 CoiSA\ErrorHandler\Container\ErrorHandlerContainer($application) with an optional
 application PSR-11 parent, then resolve ErrorHandler::class. Provide a reporter:
