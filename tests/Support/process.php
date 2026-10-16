@@ -25,6 +25,11 @@ namespace CoiSA\ErrorHandler\Test\Harness;
  */
 function processStatus($process): array
 {
+    /**
+     * PHP 7.4 returns false when the process resource cannot be resolved.
+     *
+     * @var array{running: bool, exitcode: int}|false $status
+     */
     $status = proc_get_status($process);
     if (false === $status) {
         throw new \RuntimeException('Could not inspect fixture process.');
