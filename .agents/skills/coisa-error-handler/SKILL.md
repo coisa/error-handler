@@ -217,7 +217,7 @@ operate production diagnostics.
 
 ## Optional development HTML
 
-First verify the selected checkout/release contains Http\Message\WhoopsThrowableResponseFactory and ReportingThrowableResponseFactory. Install filp/whoops:^2.18 in the application's development dependencies only if this integration is selected. Construct the renderer with PSR-17 response/stream factories and a required callable(): Whoops\Handler\PrettyPageHandler that creates a new configured page per invocation. Construction invokes no page; missing Whoops raises LogicException with installation guidance. Core/container autoload remains available without it.
+First verify the selected checkout/release contains Http\Message\WhoopsThrowableResponseFactory and ReportingThrowableResponseFactory. Install filp/whoops:^2.18.4 in the application's development dependencies only if this integration is selected. Construct the renderer with PSR-17 response/stream factories and a required callable(): Whoops\Handler\PrettyPageHandler that creates a new configured page per invocation. Construction invokes no page; missing Whoops raises LogicException with installation guidance. Core/container autoload remains available without it.
 
 Use explicit trusted application configuration to select HTML in an existing HTML pipeline; retain a generic/public renderer otherwise. The library does not infer environment names, request globals, browser identity or Accept. The renderer uses a fresh unregistered Run and returns HTML with text/html; charset=UTF-8, no-store, integer 400–599 or fallback 500, and the PSR-17 default reason. It does not report or add a CoiSA output buffer.
 

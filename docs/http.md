@@ -89,7 +89,9 @@ The [complete JSON example](https://github.com/coisa/error-handler/blob/master/e
 
 ## Opt-in development HTML with Whoops
 
-For a checkout/release containing `Http\Message\WhoopsThrowableResponseFactory`, applications can explicitly select a development HTML page. Install optional `filp/whoops:^2.18` in that application's development dependencies. The library suggests Whoops and uses it for development tests; core/container installations do not require it. Loading the adapter class without Whoops works; constructing it without the dependency raises `LogicException` with installation guidance.
+For a checkout/release containing `Http\Message\WhoopsThrowableResponseFactory`, applications can explicitly select a development HTML page. Install optional `filp/whoops:^2.18.4` in that application's development dependencies. The library suggests Whoops and uses it for development tests; core/container installations do not require it. Loading the adapter class without Whoops works; constructing it without the dependency raises `LogicException` with installation guidance.
+
+The minimum Whoops 2.18.4 includes the upstream PHP 8.5 deprecation fix. Older Whoops versions are outside this adapter's supported integration; the minimum keeps that native deprecation from adding a PHP error event during rendering. This optional integration requirement does not add Whoops to core runtime dependencies.
 
 The constructor takes `ResponseFactoryInterface`, `StreamFactoryInterface` and a required `callable(): Whoops\Handler\PrettyPageHandler`. The callable must create a fresh configured page on every render. It is not invoked during construction. Use Whoops' public page configuration instead of a shared page or registered Run. The adapter creates its own fresh Run, sets `handleUnconditionally(true)`, `allowQuit(false)`, `writeToOutput(false)` and `sendHttpCode(false)`, and never calls `register()`.
 
