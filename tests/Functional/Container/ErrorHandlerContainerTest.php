@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\Container;
 
@@ -50,6 +50,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @package CoiSA\ErrorHandler\Test\Functional\Container
  *
  * @internal
+ *
  * @coversNothing
  */
 final class ErrorHandlerContainerTest extends TestCase
@@ -84,40 +85,40 @@ final class ErrorHandlerContainerTest extends TestCase
     }
 
     /**
-     * List the service identifiers backed by the provider's factory map.
-     *
-     * @return list<non-empty-array<int, class-string>> Independent configured service identifiers.
-     */
-    public function provideServiceProviderClassNames()
-    {
-        $factories = (new ConfigProvider())->getFactories();
-
-        return array_chunk(array_keys($factories), 1);
-    }
-
-    /**
      * Verify the library container advertises each factory-backed service.
      *
-     * @param class-string $service The configured service identifier.
+     * @param class-string $service the configured service identifier
      *
      * @dataProvider provideServiceProviderClassNames
      */
     public function testContainerHasConfigProviderFactories(string $service): void
     {
-        static::assertTrue($this->container->has($service));
+        self::assertTrue($this->container->has($service));
     }
 
     /**
      * Verify each factory-backed service resolves to its declared type.
      *
-     * @param class-string $service The configured service identifier.
+     * @param class-string $service the configured service identifier
      *
      * @dataProvider provideServiceProviderClassNames
      */
     public function testContainerProvideConfigProviderFactories(string $service): void
     {
         $this->serviceManager->setService(EventDispatcherInterface::class, $this->eventDispatcher);
-        static::assertInstanceOf($service, $this->container->get($service));
+        self::assertInstanceOf($service, $this->container->get($service));
+    }
+
+    /**
+     * List the service identifiers backed by the provider's factory map.
+     *
+     * @return list<non-empty-array<int, class-string>> independent configured service identifiers
+     */
+    public static function provideServiceProviderClassNames(): iterable
+    {
+        $factories = (new ConfigProvider())->getFactories();
+
+        return array_chunk(array_keys($factories), 1);
     }
 
     /**
@@ -148,11 +149,12 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
             function ($throwable) use ($exception): void {
-            $this->assertSame($exception, $throwable);
-        });
+                $this->assertSame($exception, $throwable);
+            },
+        );
         $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
 
         /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
@@ -174,11 +176,12 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
             function ($throwable) use ($exception): void {
-            $this->assertSame($exception, $throwable);
-        });
+                $this->assertSame($exception, $throwable);
+            },
+        );
         $this->serviceManager->setService(CallableThrowableHandler::class, $callableThrowableHandler);
 
         /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
@@ -200,26 +203,28 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Assert the dispatched error event preserves the fixture throwable.
              *
-             * @param ErrorEvent $event The dispatched error event.
+             * @param ErrorEvent $event the dispatched error event
              */
             function ($event) use ($exception): void {
-            $this->assertInstanceOf(ErrorEvent::class, $event);
-            $this->assertSame($exception, $event->getThrowable());
-            $this->assertSame((string) $exception, (string) $event);
-        });
+                $this->assertInstanceOf(ErrorEvent::class, $event);
+                $this->assertSame($exception, $event->getThrowable());
+                $this->assertSame((string) $exception, (string) $event);
+            },
+        );
 
         $throwableListener = new ThrowableCallableListener(
             /**
              * Assert the throwable event preserves the fixture object.
              *
-             * @param \Throwable $throwable The dispatched throwable.
+             * @param \Throwable $throwable the dispatched throwable
              */
             function (\Throwable $throwable) use ($exception): void {
-            $this->assertSame($exception, $throwable);
-        });
+                $this->assertSame($exception, $throwable);
+            },
+        );
 
         $logErrorEventListener = new LogErrorEventListener(
-            new AssertThrowableTestCaseLogger($this, $exception)
+            new AssertThrowableTestCaseLogger($this, $exception),
         );
 
         $errorEventListenerProvider = new ErrorEventListenerProvider($errorEventCallableListener);
@@ -249,11 +254,12 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
             function ($throwable): void {
-            $this->assertTrue(false);
-        });
+                $this->assertTrue(false);
+            },
+        );
         $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
 
         /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
@@ -264,7 +270,7 @@ final class ErrorHandlerContainerTest extends TestCase
         trigger_error('Test error reporting', E_USER_NOTICE);
         error_reporting($oldLevel);
 
-        static::assertTrue(true);
+        self::assertTrue(true);
     }
 
     /**
@@ -276,11 +282,12 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
             function ($throwable): void {
-            $this->assertInstanceOf(ErrorException::class, $throwable);
-        });
+                $this->assertInstanceOf(ErrorException::class, $throwable);
+            },
+        );
         $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
 
         /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
@@ -301,14 +308,15 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
-            function (\Throwable $throwable): void {
-            echo json_encode([
-                'code'    => $throwable->getCode(),
-                'message' => $throwable->getMessage(),
-            ]);
-        });
+            static function (\Throwable $throwable): void {
+                echo json_encode([
+                    'code'    => $throwable->getCode(),
+                    'message' => $throwable->getMessage(),
+                ]);
+            },
+        );
         $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
 
         /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
@@ -323,7 +331,7 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Retain the request failure without throwing during construction.
              *
-             * @param \Throwable $exception The throwable raised when handling a request.
+             * @param \Throwable $exception the throwable raised when handling a request
              */
             public function __construct(\Throwable $exception)
             {
@@ -333,11 +341,11 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Raise the configured fixture failure for the supplied request.
              *
-             * @param ServerRequestInterface $serverRequest The synthetic request.
+             * @param ServerRequestInterface $serverRequest the synthetic request
              *
-             * @return ResponseInterface A response is never produced by this fixture.
+             * @return ResponseInterface a response is never produced by this fixture
              *
-             * @throws \Throwable The failure supplied at construction.
+             * @throws \Throwable the failure supplied at construction
              */
             public function handle(ServerRequestInterface $serverRequest): ResponseInterface
             {
@@ -349,14 +357,14 @@ final class ErrorHandlerContainerTest extends TestCase
         $middleware = $this->container->get(ErrorHandlerMiddleware::class);
         $response   = $middleware->process($serverRequest, $requestHandler);
 
-        static::assertInstanceOf(ResponseInterface::class, $response);
-        static::assertSame($exception->getCode(), $response->getStatusCode());
+        self::assertInstanceOf(ResponseInterface::class, $response);
+        self::assertSame($exception->getCode(), $response->getStatusCode());
 
         $body = json_decode((string) $response->getBody(), true);
 
-        static::assertIsArray($body);
-        static::assertSame($exception->getCode(), $body['code']);
-        static::assertSame($exception->getMessage(), $body['message']);
+        self::assertIsArray($body);
+        self::assertSame($exception->getCode(), $body['code']);
+        self::assertSame($exception->getMessage(), $body['message']);
     }
 
     /**
@@ -369,7 +377,7 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler->handleShutdown();
 
         $output = $this->getActualOutput();
-        static::assertEmpty($output);
+        self::assertEmpty($output);
     }
 
     /**
@@ -383,21 +391,23 @@ final class ErrorHandlerContainerTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
             function ($throwable) use ($exception): void {
-            $this->assertSame($exception, $throwable);
-        });
+                $this->assertSame($exception, $throwable);
+            },
+        );
 
         $callableShutdownHandler = new CallableShutdownHandler(
             /**
              * Raise the configured shutdown failure for the reporting assertion.
              *
-             * @throws \InvalidArgumentException The shutdown fixture throwable.
+             * @throws \InvalidArgumentException the shutdown fixture throwable
              */
-            function () use ($exception): void {
-            throw $exception;
-        });
+            static function () use ($exception): void {
+                throw $exception;
+            },
+        );
 
         $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
         $this->serviceManager->setService(ShutdownHandlerInterface::class, $callableShutdownHandler);
@@ -417,6 +427,6 @@ final class ErrorHandlerContainerTest extends TestCase
         /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
         $errorHandler = $this->container->get(ErrorHandler::class);
         $errorHandler->unregister();
-        static::assertTrue(true);
+        self::assertTrue(true);
     }
 }

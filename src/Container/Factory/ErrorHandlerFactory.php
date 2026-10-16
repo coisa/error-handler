@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container\Factory;
 
@@ -23,7 +23,7 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use Psr\Container\ContainerInterface;
 
 /**
- * Class ErrorHandlerFactory
+ * Class ErrorHandlerFactory.
  *
  * A factory responsible for creating instances of ErrorHandler.
  * This factory SHALL ensure proper dependency injection of ThrowableHandlerInterface,
@@ -39,21 +39,21 @@ final class ErrorHandlerFactory
      * This method SHALL retrieve the required handlers from the container
      * and inject them into the ErrorHandler constructor.
      *
-     * @param ContainerInterface $container The PSR-11 container instance.
+     * @param ContainerInterface $container the PSR-11 container instance
      *
-     * @return ErrorHandler The configured ErrorHandler instance.
+     * @return ErrorHandler the configured ErrorHandler instance
      */
     public function __invoke(ContainerInterface $container): ErrorHandler
     {
         /** @var ThrowableHandlerInterface $throwableHandler */
         $throwableHandler = $container->get(ThrowableHandlerInterface::class);
 
-        /** @var PhpErrorHandlerInterface|null $phpErrorHandler */
+        /** @var null|PhpErrorHandlerInterface $phpErrorHandler */
         $phpErrorHandler = $container->has(PhpErrorHandlerInterface::class)
             ? $container->get(PhpErrorHandlerInterface::class)
             : null;
 
-        /** @var ShutdownHandlerInterface|null $shutdownHandler */
+        /** @var null|ShutdownHandlerInterface $shutdownHandler */
         $shutdownHandler = $container->has(ShutdownHandlerInterface::class)
             ? $container->get(ShutdownHandlerInterface::class)
             : null;

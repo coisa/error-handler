@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container\Factory;
 
@@ -22,7 +22,7 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 
 /**
- * Class ThrowableResponseFactoryFactory
+ * Class ThrowableResponseFactoryFactory.
  *
  * Factory responsible for creating instances of ThrowableResponseFactory.
  * This factory SHALL ensure proper dependency injection of ThrowableStreamFactoryInterface
@@ -39,9 +39,9 @@ final class ThrowableResponseFactoryFactory
      * - ThrowableStreamFactoryInterface
      * - ResponseFactoryInterface
      *
-     * @param ContainerInterface $container The PSR-11 container instance.
+     * @param ContainerInterface $container the PSR-11 container instance
      *
-     * @return ThrowableResponseFactory The configured ThrowableResponseFactory instance.
+     * @return ThrowableResponseFactory the configured ThrowableResponseFactory instance
      */
     public function __invoke(ContainerInterface $container): ThrowableResponseFactory
     {

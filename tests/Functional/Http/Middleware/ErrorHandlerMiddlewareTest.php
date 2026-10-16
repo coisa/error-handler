@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\Container;
 
@@ -33,6 +33,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @package CoiSA\ErrorHandler\Test\Functional\Container
  *
  * @internal
+ *
  * @coversNothing
  */
 final class ErrorHandlerMiddlewareTest extends TestCase
@@ -48,14 +49,15 @@ final class ErrorHandlerMiddlewareTest extends TestCase
             /**
              * Receive the throwable reported by this behavior fixture.
              *
-             * @param \Throwable $throwable The throwable supplied to the reporter.
+             * @param \Throwable $throwable the throwable supplied to the reporter
              */
-            function (\Throwable $throwable): void {
-            echo json_encode([
-                'code'    => $throwable->getCode(),
-                'message' => $throwable->getMessage(),
-            ]);
-        });
+            static function (\Throwable $throwable): void {
+                echo json_encode([
+                    'code'    => $throwable->getCode(),
+                    'message' => $throwable->getMessage(),
+                ]);
+            },
+        );
 
         $streamFactory  = $reponseFactory = new Psr17Factory();
         $serverRequest  = $streamFactory->createServerRequest('GET', 'http://localhost');
@@ -67,7 +69,7 @@ final class ErrorHandlerMiddlewareTest extends TestCase
             /**
              * Retain the failure raised when the synthetic request is handled.
              *
-             * @param \Throwable $exception The request's configured throwable.
+             * @param \Throwable $exception the request's configured throwable
              */
             public function __construct(\Throwable $exception)
             {
@@ -77,11 +79,11 @@ final class ErrorHandlerMiddlewareTest extends TestCase
             /**
              * Raise the configured failure instead of returning a response.
              *
-             * @param ServerRequestInterface $request The synthetic request.
+             * @param ServerRequestInterface $request the synthetic request
              *
-             * @return ResponseInterface A response is never produced by this fixture.
+             * @return ResponseInterface a response is never produced by this fixture
              *
-             * @throws \Throwable The failure supplied at construction.
+             * @throws \Throwable the failure supplied at construction
              */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
@@ -97,13 +99,13 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $middleware = new ErrorHandlerMiddleware($errorHandler, $throwableResponseFactory);
         $response   = $middleware->process($serverRequest, $requestHandler);
 
-        static::assertInstanceOf(ResponseInterface::class, $response);
-        static::assertSame($exception->getCode(), $response->getStatusCode());
+        self::assertInstanceOf(ResponseInterface::class, $response);
+        self::assertSame($exception->getCode(), $response->getStatusCode());
 
         $body = json_decode((string) $response->getBody(), true);
 
-        static::assertIsArray($body);
-        static::assertSame($exception->getCode(), $body['code']);
-        static::assertSame($exception->getMessage(), $body['message']);
+        self::assertIsArray($body);
+        self::assertSame($exception->getCode(), $body['code']);
+        self::assertSame($exception->getMessage(), $body['message']);
     }
 }

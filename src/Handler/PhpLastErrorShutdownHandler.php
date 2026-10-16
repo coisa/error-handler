@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Handler;
 
 /**
- * Class PhpLastErrorShutdownHandler
+ * Class PhpLastErrorShutdownHandler.
  *
  * Handles PHP fatal errors during the shutdown phase.
  * This class SHALL capture the last error using `error_get_last()` and delegate
@@ -29,14 +29,14 @@ namespace CoiSA\ErrorHandler\Handler;
 final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
 {
     /**
-     * @var PhpErrorHandlerInterface Handles PHP errors detected during shutdown.
+     * @var PhpErrorHandlerInterface handles PHP errors detected during shutdown
      */
     private PhpErrorHandlerInterface $phpErrorHandler;
 
     /**
      * Constructs the PhpLastErrorShutdownHandler instance.
      *
-     * @param PhpErrorHandlerInterface $phpErrorHandler The error handler for PHP errors.
+     * @param PhpErrorHandlerInterface $phpErrorHandler the error handler for PHP errors
      */
     public function __construct(PhpErrorHandlerInterface $phpErrorHandler)
     {
@@ -48,8 +48,6 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
      *
      * This method SHALL retrieve the last error using `error_get_last()` and,
      * if it is classified as a catchable fatal error, delegate it to the error handler.
-     *
-     * @return void
      */
     public function handleShutdown(): void
     {
@@ -63,7 +61,7 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
             $error['type'],
             $error['message'],
             $error['file'],
-            $error['line']
+            $error['line'],
         );
     }
 
@@ -74,9 +72,9 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
      * to one of the fatal error types: E_ERROR, E_PARSE, E_CORE_ERROR,
      * E_CORE_WARNING, E_COMPILE_ERROR, E_COMPILE_WARNING.
      *
-     * @param int $level The PHP error level to check.
+     * @param int $level the PHP error level to check
      *
-     * @return bool True if the error is a catchable fatal error, false otherwise.
+     * @return bool true if the error is a catchable fatal error, false otherwise
      */
     private function isCatchableFatalError(int $level): bool
     {

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,16 +8,18 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
 use Psr\Http\Message\StreamInterface;
 
 /**
- * Interface ThrowableStreamFactoryInterface
+ * Interface ThrowableStreamFactoryInterface.
  *
  * Defines the contract for creating PSR-7 streams from Throwable instances.
  * Implementing classes SHALL ensure that throwable details are converted
@@ -35,9 +35,9 @@ interface ThrowableStreamFactoryInterface
      * This method SHALL process the provided Throwable and convert its details
      * into a PSR-7 compliant StreamInterface instance.
      *
-     * @param \Throwable $throwable The throwable instance to convert into a stream.
+     * @param \Throwable $throwable the throwable instance to convert into a stream
      *
-     * @return StreamInterface The generated PSR-7 stream containing throwable details.
+     * @return StreamInterface the generated PSR-7 stream containing throwable details
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface;
 }

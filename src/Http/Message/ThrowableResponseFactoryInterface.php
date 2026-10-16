@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,16 +8,18 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * Interface ThrowableResponseFactoryInterface
+ * Interface ThrowableResponseFactoryInterface.
  *
  * Defines the contract for creating PSR-7 HTTP responses from Throwable instances.
  * Implementing classes SHALL convert a Throwable into an HTTP response,
@@ -36,9 +36,9 @@ interface ThrowableResponseFactoryInterface
      * that complies with the PSR-7 standard. The response MUST include
      * an appropriate status code, headers, and error message.
      *
-     * @param \Throwable $throwable The Throwable instance to convert into a response.
+     * @param \Throwable $throwable the Throwable instance to convert into a response
      *
-     * @return ResponseInterface The generated HTTP response.
+     * @return ResponseInterface the generated HTTP response
      */
     public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface;
 }

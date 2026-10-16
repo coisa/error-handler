@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,16 +8,18 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container\Exception;
 
 use Psr\Container\ContainerExceptionInterface;
 
 /**
- * Class ContainerException
+ * Class ContainerException.
  *
  * Represents a container exception specific to the error handler.
  * This exception SHOULD be used to wrap any throwable related to container operations.
@@ -34,16 +34,16 @@ class ContainerException extends \Exception implements ContainerExceptionInterfa
      * This factory method SHALL wrap a throwable into a ContainerException
      * to provide more context about container-related errors.
      *
-     * @param \Throwable $throwable The original throwable to wrap.
+     * @param \Throwable $throwable the original throwable to wrap
      *
-     * @return self A new instance of ContainerException.
+     * @return self a new instance of ContainerException
      */
     public static function createFromThrowable(\Throwable $throwable): self
     {
         return new self(
             $throwable->getMessage(),
             $throwable->getCode(),
-            $throwable
+            $throwable,
         );
     }
 }
