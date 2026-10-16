@@ -60,16 +60,42 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * This method SHALL process the throwable using the handler and convert
      * its output into a PSR-7 compatible stream.
+     * On capture failure, removable buffers above the entry level are discarded
+     * best-effort. Cleanup stops on failure or lack of progress and never replaces
+     * the primary throwable. Output-handler side effects cannot be undone.
      *
      * @param \Throwable $throwable the throwable instance to process
      *
      * @return StreamInterface the resulting PSR-7 stream containing throwable details
+     *
+     * @throws \Throwable the original handler, capture or stream-factory failure
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
+        $bufferLevel = ob_get_level();
         ob_start();
-        $this->throwableHandler->handleThrowable($throwable);
-        $buffer = ob_get_clean() ?: (string) $throwable;
+
+        try {
+            $this->throwableHandler->handleThrowable($throwable);
+            $buffer = ob_get_clean() ?: (string) $throwable;
+        } catch (\Throwable $failure) {
+            try {
+                while (ob_get_level() > $bufferLevel) {
+                    $level = ob_get_level();
+                    $status = ob_get_status();
+                    if (
+                        0 === ($status['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)
+                        || !ob_end_clean() || ob_get_level() >= $level
+                    ) {
+                        break;
+                    }
+                }
+            } catch (\Throwable $cleanupFailure) {
+                // Preserve the primary handler or capture failure.
+            }
+
+            throw $failure;
+        }
 
         return $this->streamFactory->createStream($buffer);
     }

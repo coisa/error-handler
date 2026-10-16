@@ -10,6 +10,7 @@ composer --no-plugins check
 
 php tests/Fire/run.php
 php tests/Fire/run.php --with-psr
+php tests/Fire/buffers.php
 php tests/Http/run.php
 php tests/Http/run.php --check-port-retry
 ```
@@ -22,8 +23,8 @@ dependencies. Run the commands directly with PHP CLI.
 The first fire command requires PHP only and runs 16 core scenarios. `--with-psr`
 adds five legacy response-capture scenarios and requires a compatible Composer
 autoload file containing the PSR interfaces and Nyholm PSR-7. The HTTP runner uses
-the same dependencies. These commands are explicit maintenance checks; this PR
-does not change the Composer quality scripts or configure PHP CI.
+the same dependencies. The focused buffer regressions use those dependencies too
+and run in the PHP 8.3–8.5 quality jobs after the unchanged Composer checks.
 
 Run these entrypoints directly with PHP CLI and argument collection enabled.
 They fail explicitly before starting child fixtures if `$argv` is unavailable;
@@ -36,6 +37,7 @@ plugins/scripts disabled. Supply its absolute autoload path to both runners:
 
 ```sh
 php tests/Fire/run.php --with-psr --autoload=/tmp/error-handler-psr-fixture/vendor/autoload.php
+php tests/Fire/buffers.php --autoload=/tmp/error-handler-psr-fixture/vendor/autoload.php
 php tests/Http/run.php --autoload=/tmp/error-handler-psr-fixture/vendor/autoload.php
 ```
 
@@ -82,6 +84,18 @@ server, application logs, credentials or external domains are used.
 
 ## What passing characterization means
 
+The 15 focused buffer cases each use a two-second, 16 MiB child with a 64 KiB
+combined-output cap. They verify exact primary identity, untouched caller output
+and levels, removable nested cleanup, protected buffers, callbacks that throw
+during rendering or cleanup, and unchanged successful capture/fallback bytes.
+Two child-only namespace function substitutions return false or true without
+closing a buffer, proving that a failed close or absent progress stops after one
+attempt. Native output handlers cannot safely start buffers while closing one;
+the substitutions exercise that defensive boundary without invoking a fatal
+callback. They add no production hook. `--source=/absolute/path/src --json`
+supports comparison with an archived baseline; the recorded reflected filename
+confirms which source was loaded.
+
 The assertions preserve observed 2.x behavior. A passing limitation case records
 a defect or boundary; it does not establish successful recovery or fix it.
 
@@ -103,7 +117,9 @@ their own focused regression cases.
 | Throwing custom shutdown and aggregate | Shutdown failure is forwarded; aggregate order and original throwable identity are preserved |
 | Legacy captured output | Nonempty renderer output is used as the response body |
 | Empty output and output `0` | Both fall back to the throwable diagnostic string: known legacy behavior; preserving `0` is separate work |
-| Throwing renderer | Failure propagates while one buffer remains; a non-removable nested buffer leaves two: known cleanup limitations |
+| Throwing renderer | The same failure propagates after removable capture buffers are discarded; a non-removable nested buffer still leaves two |
+| Throwing cleanup callback | The primary renderer failure survives; cleanup stops and can leave buffers behind |
+| Successful unbalanced nested capture | The innermost buffer becomes the body and one buffer remains: preserved legacy behavior |
 
 The four HTTP routes verify the actual middleware/response composition: integer
 404 remains 404, exception code 503 falls back to 500, ordinary exceptions and
@@ -118,9 +134,9 @@ PHPCS directives. Do not execute them in the parent test process.
 
 ## Evidence and limits
 
-This test-only change leaves runtime code untouched. The process handlers and
-HTTP adapters exercised here retain the published 2.0.0 behavior; independent
-metadata/container fixes already merged into the implementation base are retained.
+The core characterization began as tests of published 2.0.0 behavior. Focused
+regressions now also cover the compatible exceptional buffer cleanup above;
+successful bytes and the empty/`0` diagnostic fallback remain unchanged.
 Local macOS arm64 executions exercised PHP 7.4.33, 8.4.26 and 8.5.11, including the
 21 fire scenarios, five harness self-checks and four HTTP routes. Those runtime
 observations do not certify other PHP minors, dependency resolutions or CI.
@@ -129,5 +145,5 @@ Consult the implementation PR for its exact candidate SHA and executed results.
 PHP-FPM, Apache, Windows, concurrent requests/fibers, production load, signals,
 process descendants and external reporters require separate application-specific
 evidence. Startup errors, SIGKILL and an engine-aborted shutdown queue cannot be
-rescued by this harness. No exit-policy, lifecycle, SQLSTATE, output-buffer or
-HTTP-default implementation changes are part of this characterization.
+rescued by this harness. These checks do not establish safe behavior for arbitrary
+output-handler side effects or change exit, lifecycle or HTTP-default policy.

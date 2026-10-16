@@ -41,9 +41,9 @@ The executable modes verify these actual paths:
 | `zero` | Reporter output `"0"` also falls back to exception text. |
 | `success` | Normal downstream response, no throwable report. |
 | `renderer-failure` | Application renderer throws; callbacks are restored. |
-| `reporter-failure` | Built-in capture reporter throws; callbacks restore but the existing output buffer remains until application cleanup. |
+| `reporter-failure` | Built-in capture reporter throws; its removable capture buffer is discarded and callbacks are restored. |
 
-The reporter-failure buffer leak is tracked separately in [#24](https://github.com/coisa/error-handler/issues/24). The example observes it, then cleans only its own fixture-created buffer. That cleanup is not a library fix or a promise that arbitrary reporter buffer manipulation is safe. Reporters used with capture must balance their own buffers.
+On reporter or capture failure, the stream factory attempts to discard removable buffers above its entry level and rethrows the same primary failure. It does not close buffers that existed before the call. Cleanup stops at a non-removable buffer, a failed close, no decrease in buffer level, or a throwing output callback. Buffers can therefore remain in those cases. Callback side effects cannot be undone; fatal errors inside output handlers are outside this best-effort cleanup. Reporters must still balance their own buffers, including on success: successful unbalanced nested capture retains its existing 2.x behavior.
 
 ## A safe application response
 
