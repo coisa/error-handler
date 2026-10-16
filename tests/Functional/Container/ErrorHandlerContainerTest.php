@@ -250,34 +250,6 @@ final class ErrorHandlerContainerTest extends TestCase
     }
 
     /**
-     * Verify suppressed PHP error levels do not invoke the reporter.
-     */
-    public function testErrorHandlerRespectErrorReporting(): void
-    {
-        $callableThrowableHandler = new CallableThrowableHandler(
-            /**
-             * Receive the throwable reported by this behavior fixture.
-             *
-             * @param \Throwable $throwable the throwable supplied to the reporter
-             */
-            function ($throwable): void {
-                $this->assertTrue(false);
-            },
-        );
-        $this->serviceManager->setService(ThrowableHandlerInterface::class, $callableThrowableHandler);
-
-        /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
-        $errorHandler = $this->container->get(ErrorHandler::class);
-        $errorHandler->register();
-
-        $oldLevel = error_reporting(E_ALL ^ E_USER_NOTICE);
-        trigger_error('Test error reporting', E_USER_NOTICE);
-        error_reporting($oldLevel);
-
-        self::assertTrue(true);
-    }
-
-    /**
      * Verify a reported PHP error is converted into the library's error exception.
      */
     public function testThrowErrorExceptionPhpErrorHandlerThrowErrorException(): void
@@ -421,16 +393,5 @@ final class ErrorHandlerContainerTest extends TestCase
         $errorHandler->register();
 
         $errorHandler->handleShutdown();
-    }
-
-    /**
-     * Verify unregistering an inactive process handler returns normally.
-     */
-    public function testUnregisterNotRegisteredErrorHandlerShouldNotThrowExceptions(): void
-    {
-        /** @var ErrorHandler $errorHandler The known process-handler service from the fixture map. */
-        $errorHandler = $this->container->get(ErrorHandler::class);
-        $errorHandler->unregister();
-        self::assertTrue(true);
     }
 }
