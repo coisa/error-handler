@@ -10,6 +10,16 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.4.0
+
+### Minor Changes
+
+- [#80](https://github.com/coisa/error-handler/pull/80) [`6fa8ed0`](https://github.com/coisa/error-handler/commit/6fa8ed06f9bfb9cd2345ea9c5ef336a3841fa230) - Add an opt-in BestEffortThrowableHandlerAggregate that attempts every configured reporter in order and then exposes all reporter failures through AggregateReportingException, preserving the original throwable. Existing fail-fast aggregation, defaults, callback lifecycle and HTTP behavior remain unchanged.
+
+### Patch Changes
+
+- [#81](https://github.com/coisa/error-handler/pull/81) [`76ca4d3`](https://github.com/coisa/error-handler/commit/76ca4d36a80af8db158fb8acd6912bb557a58ac9) - Remove the unused manual Pages upload/deployment jobs now that GitHub Pages publishes the configured branch's docs folder. Keep read-only source, link and excerpt validation and align the publication guidance.
+
 ## 2.3.1
 
 ### Patch Changes
