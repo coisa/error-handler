@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\Container;
 
@@ -22,6 +22,7 @@ use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Container\ContainerInterface;
 
@@ -31,16 +32,26 @@ use Psr\Container\ContainerInterface;
  * @package CoiSA\ErrorHandler\Test\Unit\Container
  *
  * @internal
+ *
  * @coversNothing
  */
 final class ErrorHandlerContainerTest extends TestCase
 {
-    /** @var ContainerInterface|ObjectProphecy */
+    use ProphecyTrait;
+
+    /**
+     * Parent-container double configured independently for each test.
+     *
+     * @var ObjectProphecy<ContainerInterface>
+     */
     private $innerContainer;
 
     /** @var ErrorHandlerContainer */
     private $container;
 
+    /**
+     * Create an isolated parent-container double and the container under test.
+     */
     protected function setUp(): void
     {
         $this->innerContainer = $this->prophesize(ContainerInterface::class);
