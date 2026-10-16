@@ -32,7 +32,7 @@ Merging, releasing, tagging, transferring the repository, publishing Pages or de
 - [docs/api.md](docs/api.md): reporters, core lifecycle and process behavior; no recovery or exit guarantees.
 - [docs/container.md](docs/container.md): legacy container, ConfigProvider, factories and cached scopes; applications supply external implementations.
 - [docs/http.md](docs/http.md): existing PSR-15/capture behavior and safe application composition; the library never emits responses.
-- [docs/index.html](docs/index.html): static 2.x reading surface; source excerpts track executable examples and publication remains a separate manual action.
+- [docs/index.html](docs/index.html): static 2.x reading surface; source excerpts track executable examples and Pages publishes the owner-configured branch's `/docs` folder.
 - [examples/README.md](examples/README.md): runnable recipes for every built-in adapter with explicit application dependencies.
 - [examples/verify.md](examples/verify.md): bounded verifier inputs, outputs, child-process effects and recovery.
 - [docs/testing.md](docs/testing.md): direct PHPUnit contracts, isolated native process cases, installed-package checks and honest coverage limits; no custom test runner.

@@ -116,10 +116,11 @@ example. It uses Symfony Process directly and no test helper framework.
 Run `php tests/Documentation/site.php` with PHP 7.4+ and DOM to verify displayed
 source excerpts, unique IDs, anchors and links in `docs/index.html`. Browser
 layout, keyboard navigation and accessibility require separate visual evidence.
-The [Pages workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
-validates on PRs; artifact upload/deployment require a separately authorized
-manual run on the default branch and owner-configured hosting. Merging code does
-not publish the site.
+The [documentation workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
+performs these read-only checks on PRs and manual runs. GitHub Pages publishes
+the configured branch's `/docs` folder (currently `master`) through its native
+branch deployment; the workflow has no upload or deployment job. See GitHub's
+[publishing-source documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
 Native PHP CI provides style/tests/PHPStan/coverage and clean consumer evidence.
 The retired Scrutinizer requested additional data-flow security analysis; PHPStan
