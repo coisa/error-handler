@@ -33,6 +33,8 @@ class ContainerException extends \Exception implements ContainerExceptionInterfa
      *
      * This factory method SHALL wrap a throwable into a ContainerException
      * to provide more context about container-related errors.
+     * Integer codes are preserved; other code types use zero on this wrapper.
+     * The original code remains available on the exact previous throwable.
      *
      * @param \Throwable $throwable the original throwable to wrap
      *
@@ -40,9 +42,11 @@ class ContainerException extends \Exception implements ContainerExceptionInterfa
      */
     public static function createFromThrowable(\Throwable $throwable): self
     {
+        $code = $throwable->getCode();
+
         return new self(
             $throwable->getMessage(),
-            $throwable->getCode(),
+            \is_int($code) ? $code : 0,
             $throwable,
         );
     }

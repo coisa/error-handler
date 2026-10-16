@@ -28,7 +28,9 @@ $middleware = new CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware($err
 
 Here `$messages` implements both PSR-17 stream/response factory contracts.
 
-`ThrowableResponseFactory` passes the throwable message as the HTTP reason phrase. It uses integer codes from 400 through 500 inclusive as status, and 500 otherwise. String codes, including PDO SQLSTATE and numeric-looking strings, fall back to 500. This existing policy is not a general application error-to-HTTP mapping; choose application-owned mapping for domain/database errors.
+`ThrowableResponseFactory` passes the throwable message unchanged as the HTTP reason phrase when it contains only legal status-line bytes: horizontal tabs, spaces, visible ASCII or opaque bytes from `0x80` through `0xFF`. If it contains CR, LF, NUL, DEL or another forbidden control byte, the factory omits the reason argument so the PSR-17 implementation can select its default instead. An empty message is still passed explicitly, preserving the existing implementation-specific behavior (Nyholm retains an empty reason). Verify that the selected checkout/release contains the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89); this is not guaranteed by every 2.x installation.
+
+The factory uses integer codes from 400 through 500 inclusive as status, and 500 otherwise. String codes, including PDO SQLSTATE and numeric-looking strings, fall back to 500. This existing policy is not a general application error-to-HTTP mapping; choose application-owned mapping for domain/database errors. Reason validation changes neither the original throwable sent to the stream/reporting path nor its body policy. It prevents an invalid status line; it does not redact valid diagnostic text from the response.
 
 `ThrowableStreamFactory` starts an output buffer, invokes its configured reporter, then uses the captured text. If that text is empty or false-like (including the string `"0"`), it falls back to the throwable's string representation, including diagnostic details and stack information. A private logger that prints nothing therefore does not produce a safe generic body.
 

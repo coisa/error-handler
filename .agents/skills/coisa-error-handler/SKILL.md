@@ -129,6 +129,13 @@ reuse a cached handler. Read the matching source's
 [container guide](https://github.com/coisa/error-handler/blob/master/docs/container.md)
 when selecting this route; it includes the complete application recipe.
 
+For source/releases containing the [container-cause repair](https://github.com/coisa/error-handler/issues/90),
+the two public container-exception factories preserve the exact original throwable
+as getPrevious(). Integer codes are copied; string codes use 0 on the wrapper,
+including numeric-looking SQLSTATE values. Read the original code from the cause.
+Nested library factory/alias wrappers retain that cause chain; this does not
+change direct parent delegation or redact diagnostic messages.
+
 For PSR-14 or PSR-3, supply an application dispatcher/logger. Raw throwable and
 ErrorEvent adapters are separate deliveries. Read the matching
 [API guide](https://github.com/coisa/error-handler/blob/master/docs/api.md)
@@ -175,6 +182,17 @@ Read the matching
 [HTTP recipe](https://github.com/coisa/error-handler/blob/master/docs/http.md)
 and [complete JSON example](https://github.com/coisa/error-handler/blob/master/examples/http-json.php)
 before wiring this route; older releases may not contain these opt-in classes.
+
+For a source/release containing the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89),
+the built-in response factory preserves valid exception messages byte-for-byte
+as reason phrases, including horizontal tabs and opaque high bytes. Forbidden
+controls such as CR, LF, NUL and DEL omit the reason argument to select the
+application's PSR-17 default. Empty messages are still passed explicitly,
+preserving the selected implementation's existing behavior. Status mapping remains
+integer 400–500, with 500 for other integers or string codes. The original
+throwable still reaches stream/reporting once; body capture and diagnostic
+fallback are unchanged. Valid messages can still reveal details in the reason,
+so this repair does not replace an explicit public-safe application renderer.
 
 For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
 reporter/capture failure triggers best-effort removal of removable buffers above

@@ -57,12 +57,16 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
     /**
      * Creates a PSR-7 response from a throwable instance.
      *
-     * This method SHALL create a response using the provided throwable's code and message,
-     * set the HTTP status code appropriately, and include the throwable details in the body.
+     * This method SHALL retain integer codes from 400 through 500, using 500 otherwise.
+     * A message valid for an HTTP reason phrase SHALL be passed unchanged; forbidden
+     * control bytes SHALL select the PSR-17 factory's default reason instead.
+     * The configured stream factory SHALL receive the original throwable once.
      *
      * @param \Throwable $throwable the throwable to convert into an HTTP response
      *
      * @return ResponseInterface the generated PSR-7 response
+     *
+     * @throws \Throwable when the response or stream factory fails
      */
     public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
     {
@@ -71,10 +75,35 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
 
         $statusCode = $this->getStatusCode($code);
 
-        $response = $this->responseFactory->createResponse($statusCode, $message);
+        $response = $this->createResponse($statusCode, $message);
         $stream = $this->streamFactory->createStreamFromThrowable($throwable);
 
         return $response->withBody($stream);
+    }
+
+    /**
+     * Creates a response with a valid reason or the PSR-17 implementation's default.
+     *
+     * HTAB, spaces, visible ASCII and opaque high bytes SHALL remain unchanged.
+     * A valid empty message SHALL still be passed explicitly as in the existing API.
+     * A forbidden control byte SHALL omit the reason argument entirely.
+     *
+     * @param int    $statusCode the resolved legacy HTTP status
+     * @param string $message    the original throwable message
+     *
+     * @return ResponseInterface the response before attaching the throwable stream
+     *
+     * @throws \Throwable when the application response factory fails
+     *
+     * @see https://www.rfc-editor.org/rfc/rfc9112.html#section-4
+     */
+    private function createResponse(int $statusCode, string $message): ResponseInterface
+    {
+        if (1 === preg_match('/[\x00-\x08\x0A-\x1F\x7F]/', $message)) {
+            return $this->responseFactory->createResponse($statusCode);
+        }
+
+        return $this->responseFactory->createResponse($statusCode, $message);
     }
 
     /**
