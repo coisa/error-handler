@@ -36,7 +36,7 @@ foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 're
         [$mode],
         0,
         'HTTP ' . $mode . ': response/reporting contract and callback restoration passed; buffer delta '
-            . ('reporter-failure' === $mode ? '1' : '0') . "\n",
+            . "0\n",
     ];
 }
 

@@ -60,17 +60,83 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * This method SHALL process the throwable using the handler and convert
      * its output into a PSR-7 compatible stream.
+     * On capture failure, removable buffers above the entry level are discarded
+     * best-effort. Cleanup stops on failure or lack of progress and never replaces
+     * the primary throwable. Output-handler side effects cannot be undone.
+     * An output callback that terminates the process or triggers an engine fatal
+     * can prevent control from returning and the primary failure from being rethrown.
      *
      * @param \Throwable $throwable the throwable instance to process
      *
      * @return StreamInterface the resulting PSR-7 stream containing throwable details
+     *
+     * @throws \Throwable the original handler, capture or stream-factory failure
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
-        ob_start();
-        $this->throwableHandler->handleThrowable($throwable);
-        $buffer = ob_get_clean() ?: (string) $throwable;
+        return $this->streamFactory->createStream($this->captureThrowableOutput($throwable));
+    }
 
-        return $this->streamFactory->createStream($buffer);
+    /**
+     * Captures reporter output using the existing empty and false-like fallback.
+     *
+     * When cleanup returns, the primary reporter or capture failure is rethrown.
+     * Successful capture retains its existing nested-buffer behavior.
+     *
+     * @param \Throwable $throwable the throwable passed unchanged to the reporter
+     *
+     * @return string the captured output or the throwable's diagnostic string
+     *
+     * @throws \Throwable the original reporter or capture failure
+     */
+    private function captureThrowableOutput(\Throwable $throwable): string
+    {
+        $entryLevel = ob_get_level();
+        ob_start();
+
+        try {
+            $this->throwableHandler->handleThrowable($throwable);
+
+            return ob_get_clean() ?: (string) $throwable;
+        } catch (\Throwable $failure) {
+            $this->discardOutputBuffers($entryLevel);
+
+            throw $failure;
+        }
+    }
+
+    /**
+     * Discards reachable removable buffers after a primary capture failure.
+     *
+     * Cleanup does not attempt to close buffers at or below the entry level.
+     * It stops on a protected buffer, failed close, absent progress or callback
+     * failure. Callback side effects cannot be undone; cleanup failures must
+     * not replace the primary failure. Process termination or an engine fatal
+     * inside an output callback can prevent cleanup from returning.
+     *
+     * @param int $entryLevel the output-buffer depth before capture started
+     */
+    private function discardOutputBuffers(int $entryLevel): void
+    {
+        try {
+            while (ob_get_level() > $entryLevel) {
+                $level = ob_get_level();
+                $status = ob_get_status();
+
+                if (0 === ($status['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)) {
+                    return;
+                }
+
+                if (!ob_end_clean()) {
+                    return;
+                }
+
+                if (ob_get_level() >= $level) {
+                    return;
+                }
+            }
+        } catch (\Throwable $cleanupFailure) {
+            // Preserve the primary handler or capture failure.
+        }
     }
 }
