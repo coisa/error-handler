@@ -2,6 +2,8 @@
 
 These source-checkout examples use synthetic data and PHP 7.4-compatible syntax. They target the existing 2.x API, not the proposed major. Verify the installed package/checkouts and pending patch boundaries in the [API guide](../docs/api.md).
 
+Read all ten complete recipes, including imports and every executable branch, in the [2.x cookbook](../docs/examples.md). Its displayed code is checked against these sources; setup and bounded execution remain documented here and in the verifier guide.
+
 ## Application dependencies
 
 The library needs Composer's autoloader. The HTTP, event and container examples additionally use application implementations. In a disposable application directory, install:

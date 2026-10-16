@@ -101,9 +101,62 @@ if (0 === $snippets || !is_file($root . '/docs/.nojekyll')) {
     throw new \RuntimeException('The static site needs checked source excerpts and its .nojekyll marker.');
 }
 
+$cookbook = $readFile($root . '/docs/examples.md');
+$recipeCount = preg_match_all(
+    '~<!-- source: (examples/[a-z-]+\.php) -->\R```php\R(.*?\R)```~s',
+    $cookbook,
+    $recipeMatches,
+    PREG_SET_ORDER,
+);
+if (false === $recipeCount || 0 === $recipeCount || $recipeCount !== preg_match_all('~^```php\R~m', $cookbook)) {
+    throw new \RuntimeException('Every cookbook PHP block must name its complete executable recipe source.');
+}
+
+$recipes = [];
+foreach ($recipeMatches as $recipe) {
+    $source = $recipe[1];
+    if (isset($recipes[$source])) {
+        throw new \RuntimeException('Duplicate cookbook recipe: ' . $source);
+    }
+
+    // Remove the fixed license preamble and retain its following separator verbatim.
+    $display = preg_replace(
+        '~\A(<\?php)\R\R/\*\*\R \* This file is part of coisa/error-handler\..*?\*/~s',
+        '$1',
+        $readFile($root . '/' . $source),
+        1,
+        $headers,
+    );
+    if (null === $display || 1 !== $headers || $display !== $recipe[2]) {
+        throw new \RuntimeException('Complete cookbook recipe differs from source: ' . $source);
+    }
+    $recipes[$source] = true;
+}
+
+$exampleFiles = glob($root . '/examples/*.php');
+if (false === $exampleFiles) {
+    throw new \RuntimeException('Cannot list executable recipe sources.');
+}
+$expectedRecipes = [];
+foreach ($exampleFiles as $exampleFile) {
+    $filename = basename($exampleFile);
+    if (\in_array($filename, ['bootstrap.php', 'check.php', 'verify.php'], true)) {
+        continue;
+    }
+    $expectedRecipes['examples/' . $filename] = true;
+    if (!isset($recipes['examples/' . $filename])) {
+        throw new \RuntimeException('The cookbook is missing a complete recipe: ' . $filename);
+    }
+}
+$unexpectedRecipes = array_diff_key($recipes, $expectedRecipes);
+if ([] !== $unexpectedRecipes) {
+    throw new \RuntimeException('Unexpected cookbook recipes: ' . implode(', ', array_keys($unexpectedRecipes)));
+}
+
 printf(
-    "Static 2.x site passed: %d source excerpts, %d links and %d unique anchors.\n",
+    "Static 2.x documentation passed: %d source excerpts, %d links, %d unique anchors and %d complete recipes.\n",
     $snippets,
     $links,
     \count($ids),
+    $recipeCount,
 );

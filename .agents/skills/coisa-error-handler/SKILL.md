@@ -177,8 +177,9 @@ scope mechanism.
 
 Verify direct delivery, enabled/suppressed warnings, callback restoration after
 success/failure and configured response bodies. Run uncaught/fatal experiments
-only through a bounded child fixture. In the source checkout, use the
-[executable cookbook and verifier](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+only through a bounded child fixture. Read the
+[complete 2.x cookbook](https://github.com/coisa/error-handler/blob/master/docs/examples.md)
+with its [application setup and verifier](https://github.com/coisa/error-handler/blob/master/examples/README.md).
 In a consumer, retain focused tests against its own reporters and transports.
 Library/example checks do not prove delivery to a real logging service.
 
