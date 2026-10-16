@@ -178,6 +178,8 @@ or causes a native fatal termination.
 
 For complete runnable recipes covering every built-in adapter, consult
 `docs/examples.md` and `docs/index.html#examples` in the matching checkout.
+The cookbook retains imports and every executable branch; source parity omits
+only the leading license header. Keep its documented setup and bounded verifier.
 For full contract details, consult the matching checkout's `docs/fast-forward.md`,
 `docs/api.md` and `docs/testing.md`, or the
 [source repository](https://github.com/coisa/error-handler). Keep the observed

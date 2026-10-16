@@ -23,8 +23,10 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   and retain renderer-failure precedence over cleanup failures.
 - Reconcile the major with delivered 2.x handlers, native release tooling,
   distribution checks and organized PHPUnit Unit/Functional/Process coverage.
-  Preserve the existing regression gate; retire the prototype Fire/HTTP/Python
-  parents and custom release publisher instead of duplicating master tooling.
+  Inherit master's configurable 80% overall coverage floor and real comparisons;
+  retire the prototype Fire/HTTP/Python parents and custom release publisher.
+- Check all complete major cookbook recipes against executable source, retaining
+  the exact inventory and omitting only each leading license header.
 - Add a direct native regression for output-handler destruction that replaces its
   removed buffer, proving bounded cleanup, primary-failure and caller ownership.
 The current 2.x manifest version and published changelog remain unchanged. Native

@@ -26,6 +26,16 @@ and Prophecy uses the installed bridge/analysis extension. Unit tests target rea
 behavior; dangerous native termination belongs in the bounded PHPUnit Process
 suite. The [testing guide](docs/testing.md) describes commands and evidence limits.
 
+## Coverage reporting
+
+The inherited PHP CI policy permits overall decreases while requiring
+`MINIMUM_COVERAGE_THRESHOLD`, defaulting to **80% overall** when unset. Authentic
+baseline comparisons, file differences/colors and sticky reporting remain in
+place. The minimum applies to instrumentable source lines globally, not to each
+class or file; 100% line coverage does not prove every branch or behavior.
+Execution, invalid-report and artifact failures remain independent failures.
+See [coverage and current evidence](docs/testing.md#coverage-and-current-evidence).
+
 Source changes need complete English PHPDoc, meaningful regression tests, affected
 examples/guides/consumer skill and a pending Changeset. Runtime code stays separate
 from Node release tooling. Preserve the application-owned reporter, callback

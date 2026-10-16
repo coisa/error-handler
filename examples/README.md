@@ -23,9 +23,12 @@ ERROR_HANDLER_AUTOLOAD=/absolute/application/vendor/autoload.php php examples/ve
 Without that variable, run `php examples/verify.php` from the configured checkout.
 It executes all thirteen recipes with exact stdout/stderr and exit expectations,
 including the deliberate CLI exit 1. See [verifier operation](verify.md).
-The [cookbook](../docs/examples.md) and [site](../docs/index.html#examples) display
-the same sources. The three explicit logging/filtering/PHP-error adapters are
-preserved from delivered 2.x APIs; callable constructor unions remain planned.
+The [cookbook](../docs/examples.md) contains all thirteen complete sources, including
+imports and every executable branch, with only the leading license header omitted.
+Its exact source parity and recipe inventory are checked alongside the
+[site](../docs/index.html#examples). The four explicit logging/filtering/PHP-error/
+best-effort adapters are preserved from delivered 2.x APIs; callable constructor
+unions remain planned.
 
 The recipes do not start a server, emit HTTP to clients or deliver real logs.
 Applications own transports, private diagnostics and emission.

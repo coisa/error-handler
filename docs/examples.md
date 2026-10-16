@@ -2,13 +2,14 @@
 
 This is the unreleased PHP 8.3+ development line. The checkout includes Nyholm PSR-7 and Phly EventDispatcher for examples; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](../examples/README.md).
 
-Run `php examples/verify.php` to verify all thirteen recipes in bounded children. The CLI recipe deliberately exits 1. The same sources appear on the [static site](index.html#examples). Source parity is checked; examples do not prove delivery to real transports.
+Run `php examples/verify.php` to verify all thirteen recipes in bounded children. The CLI recipe deliberately exits 1. The same sources appear on the [static site](index.html#examples). Every complete entry is checked byte-for-byte against source, omitting only its leading license header. Duplicate, changed or missing recipes fail validation; examples do not prove delivery to real transports.
 
 <a id="cli"></a>
 ## Process bootstrap
 
 Report a warning and an uncaught exception, then exit 1. [Source](../examples/cli.php).
 
+<!-- source: examples/cli.php -->
 ```php
 <?php
 
@@ -37,6 +38,7 @@ throw new RuntimeException('Example uncaught exception; exit status is 1.');
 
 Resolve real FastForward definitions without installing callbacks during lookup. [Source](../examples/fast-forward.php).
 
+<!-- source: examples/fast-forward.php -->
 ```php
 <?php
 
@@ -105,6 +107,7 @@ try {
 
 Deliver the same throwable in order; the existing aggregate remains fail-fast. [Source](../examples/reporters.php).
 
+<!-- source: examples/reporters.php -->
 ```php
 <?php
 
@@ -142,6 +145,7 @@ echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 
 Exercise original Throwable and ErrorEvent notification paths. [Source](../examples/event-dispatcher.php).
 
+<!-- source: examples/event-dispatcher.php -->
 ```php
 <?php
 
@@ -228,6 +232,7 @@ printf("Private log records: %d\n", count($logger->records));
 
 Report once, render a generic response and restore the process handler. [Source](../examples/http-middleware.php).
 
+<!-- source: examples/http-middleware.php -->
 ```php
 <?php
 
@@ -304,6 +309,7 @@ printf("Reported: %d\n", count($reported));
 
 Return application-owned JSON without echo or buffering. [Source](../examples/http-rendering.php).
 
+<!-- source: examples/http-rendering.php -->
 ```php
 <?php
 
@@ -387,6 +393,7 @@ printf("Private reports: %d\n", count($privateDiagnostics));
 
 Supply explicit interface implementations and a shutdown callback. [Source](../examples/custom-handlers.php).
 
+<!-- source: examples/custom-handlers.php -->
 ```php
 <?php
 
@@ -467,6 +474,7 @@ printf("PHP errors: %d | Shutdown notifications: %d\n", count($phpErrors->messag
 
 Use factory services for a new scope; ordinary lookups remain cached. [Source](../examples/scopes.php).
 
+<!-- source: examples/scopes.php -->
 ```php
 <?php
 
@@ -576,6 +584,7 @@ printf("HTTP %d | Reports: %d\n", $response->getStatusCode(), $reported);
 
 Capture a separate public renderer, preserving the string zero. [Source](../examples/output-capture.php).
 
+<!-- source: examples/output-capture.php -->
 ```php
 <?php
 
@@ -605,6 +614,7 @@ printf("Captured body: %s\n", (string) $body);
 
 Log exact messages with the original exception context. [Source](../examples/logging.php).
 
+<!-- source: examples/logging.php -->
 ```php
 <?php
 
@@ -663,6 +673,7 @@ echo 'direct PSR-3 logging, exact messages and original context passed' . PHP_EO
 
 Select per invocation without changing the event or defaults. [Source](../examples/filtering.php).
 
+<!-- source: examples/filtering.php -->
 ```php
 <?php
 
@@ -727,6 +738,7 @@ echo 'explicit filtering, severity selection and original-object delivery passed
 
 Keep four original arguments and application-owned mask policy. [Source](../examples/php-errors.php).
 
+<!-- source: examples/php-errors.php -->
 ```php
 <?php
 
@@ -799,6 +811,7 @@ echo 'callable PHP errors: four arguments, explicit mask policy and conversion p
 
 Attempt every fixed slot in order, then retain the original and all reporter failures. [Source](../examples/best-effort.php).
 
+<!-- source: examples/best-effort.php -->
 ```php
 <?php
 
@@ -888,4 +901,4 @@ Middleware requires lifecycle and reporting on one scoped object. It reports onc
 
 Unregister in reverse order and use distinct nested instances. Failed-reporter suppression applies within a registered lifecycle; independent direct calls remain usable. Arbitrary exit/die, engine fatals, callback side effects and concurrent native callback scopes are not recovered. See [provider](fast-forward.md), [API](api.md), [migration](migration.md) and [testing](testing.md).
 
-The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. JSON/developer-HTML adapters remain separate proposals (#7/#8); native callable constructor unions remain planned in #70.
+The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. Reusable JSON/developer-HTML adapters are outside this candidate (#7/#8); native callable constructor inputs remain planned in #70.

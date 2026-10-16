@@ -66,14 +66,27 @@ required construction is asserted without promising one attempt or original caus
 adapters already delivered in 2.x. The existing Symfony Process verifier uses
 five-second/64 MiB children and aborts above 16 KiB of observed output. It clears
 inherited environment variables except the selected autoloader/fixture marker.
-`php tests/Documentation/site.php` checks local source links, anchors and exact
-cookbook/site source parity. Neither command starts a server or publishes Pages.
+`php tests/Documentation/site.php` checks local source links, anchors and all
+thirteen complete cookbook recipes against executable source, omitting only the
+leading license header. Duplicate, changed or missing recipes fail; a new
+executable recipe needs its own complete entry. Bootstrap, assertion helper and
+verifier are setup tools, not recipes. The site retains its source-parity checks.
+Neither command starts a server or publishes Pages.
 
 ## Coverage and current evidence
 
 The PHP 8.5/Xdebug job exports native Clover and Cobertura for all `src/` files.
-The existing comparison rejects a negative overall difference from an available
-target-branch baseline and retains its configured absolute minimum policy.
+The inherited master policy permits overall decreases and fails below the
+repository variable `MINIMUM_COVERAGE_THRESHOLD`, defaulting to **80%** when unset.
+The authentic target-branch baseline, per-file differences/colors and sticky
+report remain visible. At the default floor, 80% passes and a result below it
+fails; a configured variable overrides that default. No variable is changed by
+the workflow. Execution, invalid-report and artifact failures remain failures.
+
+Overall coverage weights instrumentable lines, not class percentages: ten
+uncovered lines plus 90 covered lines elsewhere produce 90% overall. An 80%
+overall floor is not an 80% floor per class. Even 100% of lines does not prove all
+branches or behaviors.
 The sticky note identifies the head SHA, tested merge SHA and workflow run.
 Read those exact identities; a historical note or a running review is not approval.
 No runtime exclusions, merged child coverage or artificial coverage ignores are

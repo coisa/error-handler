@@ -81,8 +81,9 @@ Check documentation links and inspect the actual CI result for the tested SHA.
 - [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
 - [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
   cached services and fresh middleware scopes.
-- [docs/examples.md](docs/examples.md): executable cookbook covering all built-in
-  adapters; keep website snippets identical to their example sources.
+- [docs/examples.md](docs/examples.md): all thirteen complete major recipes, checked
+  byte-for-byte against executable source with only the leading license header omitted;
+  preserve setup boundaries and matching website excerpts.
 - [docs/releases.md](docs/releases.md): pending Changesets, reviewed version PRs,
   immutable release tags and Composer delivery boundaries.
 - [docs/testing.md](docs/testing.md): PHPUnit/process tests, commands and evidence limits.

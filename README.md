@@ -76,7 +76,9 @@ Interop provider, ordered reporters, PSR-14 events with PSR-3 logging, HTTP
 middleware, safe JSON rendering, custom PHP/shutdown handlers, nested scopes, explicit public output capture, direct PSR-3 logging, filtering, callable PHP-error conversion and best-effort reporting.
 Reporters keep their void contract; HTTP middleware reports once, then uses a
 pure renderer. JSON examples return streams directly without echo or buffering.
-CI executes every recipe and verifies that the displayed code matches its source.
+CI executes every recipe. Complete cookbook entries are checked byte-for-byte
+against source, omitting only the leading license header; displayed site excerpts
+are checked against the same executable examples.
 
 ## Releases
 
