@@ -35,6 +35,9 @@ The `coisa/php-cs-fixer:^3.0` preset supplies the formatter policy. A local over
 limits multiline trailing commas to arguments, destructuring and arrays;
 parameter and `match` commas require PHP 8.0. The preset's automatic PHP migration
 target follows the Composer minimum, and its remaining rules are retained.
+The opening file header in `.php-cs-fixer.dist.php` is the canonical header
+template, read through the preset's `HeaderExtractor::extractFromFile(__FILE__)`.
+The preset updates the ending copyright year when formatting.
 Run each check independently when diagnosing a failure:
 `composer check` stops at the first failed command.
 

@@ -14,6 +14,7 @@
 
 declare(strict_types=1);
 
+use CoiSA\PhpCsFixer\HeaderExtractor;
 use CoiSA\PhpCsFixer\PhpCsFixer;
 
 $paths = [
@@ -21,7 +22,7 @@ $paths = [
     __DIR__,
 ];
 
-$header = file_get_contents(__DIR__ . '/.docheader');
+$header = HeaderExtractor::extractFromFile(__FILE__);
 
 return PhpCsFixer::create($paths, $header, [
     'trailing_comma_in_multiline' => [
