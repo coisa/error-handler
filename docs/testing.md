@@ -20,6 +20,10 @@ autoload file containing the PSR interfaces and Nyholm PSR-7. The HTTP runner us
 the same dependencies. These commands are explicit maintenance checks; this PR
 does not change the Composer quality scripts or configure PHP CI.
 
+Run these entrypoints directly with PHP CLI and argument collection enabled.
+They fail explicitly before starting child fixtures if `$argv` is unavailable;
+missing arguments must not silently disable requested options.
+
 For a runtime whose development integrations cannot be installed, create an
 isolated fixture directory with only `nyholm/psr7:^1.8` and
 `psr/http-server-middleware:^1.0`, resolving with that PHP runtime and Composer
@@ -44,9 +48,11 @@ in `finally`. Cleanup allows a 250 ms graceful termination period followed by a
 one-second forced-termination observation period. The child fixtures do not spawn
 descendants. The parent never deliberately exhausts its own memory.
 
-The harness self-check executes normal exit, a sleeping child that exceeds its
-deadline, and a noisy child that exceeds its output cap. It asserts exact normal
-output/exit, termination reasons, bounded captured bytes and observed reaping.
+The five harness self-checks execute normal exit, a sleeping child that exceeds
+its deadline, a noisy child that exceeds its output cap, and both entrypoints
+with missing CLI arguments. They assert exact normal output/exit, termination
+reasons, bounded captured bytes, observed reaping and an explicit argument error
+before any fixture work.
 It runs before the fire cases, or independently:
 
 ```sh
@@ -73,6 +79,12 @@ server, application logs, credentials or external domains are used.
 
 The assertions preserve observed 2.x behavior. A passing limitation case records
 a defect or boundary; it does not establish successful recovery or fix it.
+
+The non-removable-buffer scenario uses a typed callback that returns captured
+bytes unchanged, with cleanable/flushable flags and no removable flag. Its
+assertions measure failure propagation and remaining buffer levels, not every
+output-handler phase or callback implementation. Other buffer callbacks require
+their own focused regression cases.
 
 | Scenarios | Observed contract or known limitation |
 | --- | --- |
@@ -105,7 +117,7 @@ This test-only change leaves runtime code untouched. The process handlers and
 HTTP adapters exercised here retain the published 2.0.0 behavior; independent
 metadata/container fixes already merged into the implementation base are retained.
 Local macOS arm64 executions exercised PHP 7.4.33, 8.4.26 and 8.5.11, including the
-21 fire scenarios, three harness self-checks and four HTTP routes. Those runtime
+21 fire scenarios, five harness self-checks and four HTTP routes. Those runtime
 observations do not certify other PHP minors, dependency resolutions or CI.
 Consult the implementation PR for its exact candidate SHA and executed results.
 

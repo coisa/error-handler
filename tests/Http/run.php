@@ -16,10 +16,14 @@ declare(strict_types=1);
 
 use function CoiSA\ErrorHandler\Test\Harness\runProcess;
 
+if (!isset($argv)) {
+    throw new RuntimeException('Fixture arguments are unavailable; use PHP CLI with register_argc_argv enabled.');
+}
+$arguments = $argv;
+
 require __DIR__ . '/../Support/process.php';
 
 $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-$arguments = $argv ?? [];
 foreach ($arguments as $argument) {
     if (0 === strpos($argument, '--autoload=')) {
         $autoload = substr($argument, strlen('--autoload='));

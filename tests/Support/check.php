@@ -37,3 +37,19 @@ foreach ($cases as $name => [$code, $timeout, $limit, $reason, $exit]) {
 
     printf("PASS harness %s\n", $name);
 }
+
+foreach (['Fire', 'Http'] as $entrypoint) {
+    $path = dirname(__DIR__, 2) . '/tests/' . $entrypoint . '/run.php';
+    $code = 'unset($argv); require ' . var_export($path, true) . ';';
+    $result = runProcess([
+        PHP_BINARY, '-n', '-d', 'memory_limit=16M', '-d', 'display_errors=stderr', '-d', 'log_errors=0', '-r', $code,
+    ], 1.0, 16384);
+    $message = 'Fixture arguments are unavailable; use PHP CLI with register_argc_argv enabled.';
+    if (
+        'exit' !== $result['reason'] || 255 !== $result['exitCode'] || !$result['reaped']
+        || '' !== $result['stdout'] || false === strpos($result['stderr'], $message)
+    ) {
+        throw new RuntimeException('Missing-arguments guard failed: ' . $entrypoint . ' ' . json_encode($result));
+    }
+    printf("PASS harness missing arguments fail before %s fixture work\n", $entrypoint);
+}
