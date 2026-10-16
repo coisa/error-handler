@@ -117,3 +117,13 @@ latest `2.0`. Keep at least one consumer requiring only the library to verify
 transitive runtime installation. Version `1.0.0` must fail dependency resolution.
 Record actual runtime and resolved package versions; a simulated Composer
 platform alone does not prove runtime compatibility.
+
+Before installing an exported package, inspect its committed archive:
+
+```sh
+git archive --format=tar --output=/absolute/temporary/package.tar HEAD
+php tests/Production/archive.php /absolute/temporary/package.tar
+```
+
+This checks archive paths and bytes against the selected source, including every
+runtime file. Then run the clean consumer and production container smoke above.
