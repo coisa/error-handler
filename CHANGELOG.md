@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.7
+
+### Patch Changes
+
+- [#56](https://github.com/coisa/error-handler/pull/56) [`1946d88`](https://github.com/coisa/error-handler/commit/1946d884a3ab871ea47a4c7a2f2ac6c68e0f966e) - Document the existing 2.x lifecycle, reporting, container and HTTP APIs with PHP 7.4-compatible runnable examples, bounded example verification and matching portable consumer guidance. Keep application-owned dependencies and observed output/exit limitations explicit.
+
 ## 2.0.6
 
 ### Patch Changes
