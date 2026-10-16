@@ -177,7 +177,7 @@ try {
     exampleCheck(in_array($mode, ['renderer-failure', 'reporter-failure'], true), 'Unexpected HTTP fixture failure.');
     exampleCheck(false !== strpos($error->getMessage(), 'fixture failed'), 'Failure identity changed.');
 
-    // Observe the existing output-buffer leak, then clean only this fixture's new buffers.
+    // Observe the library's exceptional cleanup before the fixture's final safety cleanup.
     $bufferDelta = ob_get_level() - $bufferLevel;
 } finally {
     while (ob_get_level() > $bufferLevel) {
@@ -200,7 +200,7 @@ try {
 
 if ('renderer-failure' === $mode || 'reporter-failure' === $mode) {
     exampleCheck(null === $response, 'A failed renderer unexpectedly returned a response.');
-    exampleCheck(('reporter-failure' === $mode ? 1 : 0) === $bufferDelta, 'The documented buffer behavior changed.');
+    exampleCheck(0 === $bufferDelta, 'A failed renderer left an output buffer behind.');
 } else {
     exampleCheck($response instanceof ResponseInterface, 'Middleware did not return a PSR response.');
 

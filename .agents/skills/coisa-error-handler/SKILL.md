@@ -124,6 +124,16 @@ a fixed public response. Read the matching
 [HTTP recipe](https://github.com/coisa/error-handler/blob/master/docs/http.md)
 before wiring this route; do not invent a built-in pure/default JSON renderer.
 
+For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
+reporter/capture failure triggers best-effort removal of removable buffers above
+the entry level. Cleanup stops at a protected buffer, failed close, absent progress
+or throwing output callback; earlier caller buffers are not deliberately closed.
+If cleanup returns, the same primary failure propagates. An output handler that
+calls exit()/die() or triggers an engine fatal can prevent that propagation and
+terminate execution. Callback side effects cannot be undone. Verify the selected
+source/release before relying on this repair; successful empty/"0" fallback and
+unbalanced nested capture retain their legacy behavior.
+
 ## Verify and report
 
 Use distinct objects for nested scopes and restore callbacks in reverse order.
@@ -137,6 +147,12 @@ only through a bounded child fixture. In the source checkout, use the
 [executable cookbook and verifier](https://github.com/coisa/error-handler/blob/master/examples/README.md).
 In a consumer, retain focused tests against its own reporters and transports.
 Library/example checks do not prove delivery to a real logging service.
+
+When using capture, verify caller-buffer bytes/levels and primary failure identity
+with the application's reporter. Exercise protected, throwing or terminating output
+handlers only in bounded children. In a source checkout with its PSR dependencies,
+`php tests/Fire/buffers.php` runs the focused cleanup regressions; a pass does not
+certify arbitrary callback side effects or process termination recovery.
 
 Return observed package/PHP versions, integration changes, executed checks and
 remaining limits. This procedure does not deploy, publish, install globally or

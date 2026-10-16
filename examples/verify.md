@@ -12,7 +12,7 @@ Successful execution prints seventeen scenario results and the actual PHP versio
 
 The registered uncaught fixture currently reports then exits 0; the native compile fatal reports at shutdown and exits 255. These are observed 2.x contracts, not a general PHP process recovery guarantee.
 
-The reporter-failure HTTP case intentionally measures the current extra output buffer, then removes only the fixture's new buffers before checking restoration. It does not modify the library. If that separate bug is fixed, update the expected contract and guide together.
+The reporter-failure HTTP case verifies that the library discards its removable capture buffer before propagating failure. It measures buffer delta zero before the fixture's final safety cleanup and checks callback restoration. Protected buffers and arbitrary output-handler side effects require the focused cases and limits in [testing](https://github.com/coisa/error-handler/blob/master/docs/testing.md).
 
 On failure, retain the diagnostic and isolated application's Composer lock/version record. Fix the affected example or documentation against the selected library API, then rerun only affected scenarios before the full bounded verifier. Do not debug a fatal case inside an agent/application process.
 
