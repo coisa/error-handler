@@ -28,6 +28,8 @@ use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
  * to a parent container when configured.
  *
  * @package CoiSA\ErrorHandler\Container
+ *
+ * @phpstan-import-type FactoryClass from ConfigProvider
  */
 final class ErrorHandlerContainer implements ContainerInterface
 {
@@ -37,17 +39,17 @@ final class ErrorHandlerContainer implements ContainerInterface
     private ?ContainerInterface $container;
 
     /**
-     * @var string[] List of factories mapped to their service IDs.
+     * @var array<class-string, FactoryClass> Invokable factory classes mapped to service IDs.
      */
     private array $factories;
 
     /**
-     * @var string[] List of aliases mapped to their service IDs.
+     * @var array<class-string, class-string> Aliases mapped to their target service IDs.
      */
     private array $aliases;
 
     /**
-     * @var object[] Cached instances of resolved services.
+     * @var array<string, mixed> Cached values returned by service factories or aliases.
      */
     private array $instances = [];
 

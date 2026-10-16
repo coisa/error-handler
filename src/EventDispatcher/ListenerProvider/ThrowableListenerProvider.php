@@ -65,7 +65,7 @@ final class ThrowableListenerProvider implements ListenerProviderInterface
      *
      * @param object $event The event for which listeners are requested.
      *
-     * @return iterable The list of applicable listeners.
+     * @return iterable<callable> The list of applicable listeners.
      */
     public function getListenersForEvent(object $event): iterable
     {

@@ -46,6 +46,9 @@ final class ConfigProviderTest extends TestCase
     /** @var ConfigProvider */
     private $configProvider;
 
+    /**
+     * Compose fresh configured containers for each integration case.
+     */
     protected function setUp(): void
     {
         $this->configProvider = new ConfigProvider();
@@ -57,6 +60,11 @@ final class ConfigProviderTest extends TestCase
         $this->setUpServiceManager($this->serviceManager);
     }
 
+    /**
+     * Supply application-owned event dispatching and HTTP factories.
+     *
+     * @param ServiceManager $serviceManager The container receiving fixture services.
+     */
     public function setUpServiceManager(ServiceManager $serviceManager): void
     {
         $listenerProvider = new ListenerProviderAggregate();
@@ -68,6 +76,11 @@ final class ConfigProviderTest extends TestCase
         $serviceManager->setService(StreamFactoryInterface::class, $factory);
     }
 
+    /**
+     * List every alias and factory service advertised by the provider.
+     *
+     * @return list<non-empty-array<int, class-string>> Independent service identifiers.
+     */
     public function provideContainerDependenciesClassNames(): array
     {
         $dependencies = (new ConfigProvider())->getDependencies();
@@ -75,41 +88,79 @@ final class ConfigProviderTest extends TestCase
         return array_chunk(array_keys(array_merge(...array_values($dependencies))), 1);
     }
 
-    /** @dataProvider provideContainerDependenciesClassNames */
+    /**
+     * Verify the configured ServiceManager advertises each library service.
+     *
+     * @param class-string $className The configured service identifier.
+     *
+     * @dataProvider provideContainerDependenciesClassNames
+     */
     public function testServiceManagerHasConfigProviderDependencies(string $className): void
     {
         static::assertTrue($this->serviceManager->has($className));
     }
 
-    /** @dataProvider provideContainerDependenciesClassNames */
+    /**
+     * Verify the wrapper advertises services supplied by its parent container.
+     *
+     * @param class-string $className The configured service identifier.
+     *
+     * @dataProvider provideContainerDependenciesClassNames
+     */
     public function testContainerWithServiceManagerHasConfigProviderDependencies(string $className): void
     {
         static::assertTrue($this->container->has($className));
     }
 
-    /** @dataProvider provideContainerDependenciesClassNames */
+    /**
+     * Verify a standalone library container advertises its own services.
+     *
+     * @param class-string $className The configured service identifier.
+     *
+     * @dataProvider provideContainerDependenciesClassNames
+     */
     public function testContainerWithoutServiceManagerHasConfigProviderDependencies(string $className): void
     {
         $container = new ErrorHandlerContainer();
         static::assertTrue($container->has($className));
     }
 
+    /**
+     * Pair each configured service identifier with its expected instance type.
+     *
+     * @return list<array{class-string, class-string}> Service and expected type pairs.
+     */
     public function provideContainerDependenciesWithInstanceType(): array
     {
         $dependencies = (new ConfigProvider())->getDependencies();
         $classNames   = array_keys(array_merge(...array_values($dependencies)));
 
-        return array_map(function ($classNameName) use ($dependencies) {
+        return array_map(
+            /**
+             * Resolve an alias's expected type without constructing its service.
+             *
+             * @param class-string $classNameName The configured service identifier.
+             *
+             * @return array{class-string, class-string} Service and expected type.
+             */
+            function ($classNameName) use ($dependencies) {
             $instanceOf = $dependencies['aliases'][$classNameName] ?? $classNameName;
 
             return [
                 $classNameName,
                 $instanceOf,
             ];
-        }, $classNames);
+            },
+            $classNames
+        );
     }
 
     /**
+     * Verify the configured ServiceManager creates the expected instance.
+     *
+     * @param class-string $className The configured service identifier.
+     * @param class-string $instanceOf The expected concrete type or interface.
+     *
      * @dataProvider provideContainerDependenciesWithInstanceType
      */
     public function testServiceManagerCanCreateDependecyThatImplements(string $className, string $instanceOf): void
@@ -119,6 +170,11 @@ final class ConfigProviderTest extends TestCase
     }
 
     /**
+     * Verify the wrapper delegates or constructs the expected instance.
+     *
+     * @param class-string $className The configured service identifier.
+     * @param class-string $instanceOf The expected concrete type or interface.
+     *
      * @dataProvider provideContainerDependenciesWithInstanceType
      */
     public function testContainerCanCreateDependecyThatImplements(string $className, string $instanceOf): void
@@ -128,6 +184,11 @@ final class ConfigProviderTest extends TestCase
     }
 
     /**
+     * Verify the configured wrapper still resolves after preparing another container.
+     *
+     * @param class-string $className The configured service identifier.
+     * @param class-string $instanceOf The expected concrete type or interface.
+     *
      * @dataProvider provideContainerDependenciesWithInstanceType
      */
     public function testWithCleanServiceManagerCanCreateDependecyThatImplements(

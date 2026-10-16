@@ -124,14 +124,14 @@ final class ErrorHandler implements
     /**
      * Handles PHP errors.
      *
-     * Converts PHP errors into ErrorException if required.
+     * Invokes the PHP error adapter and reports any resulting ErrorException.
      *
      * @param int $code The error level.
      * @param string $message The error message.
      * @param string $filename The filename where the error occurred.
      * @param int $line The line number where the error occurred.
      *
-     * @throws \ErrorException When a PHP error is escalated.
+     * @throws \Throwable If another adapter failure or a reporter failure propagates.
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
@@ -145,7 +145,7 @@ final class ErrorHandler implements
     /**
      * Handles shutdown events.
      *
-     * Ensures graceful shutdown and captures any remaining errors.
+     * Reports a shutdown-adapter failure while registered; it does not recover the process.
      */
     public function handleShutdown(): void
     {

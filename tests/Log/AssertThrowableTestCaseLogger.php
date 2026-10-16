@@ -23,7 +23,7 @@ use Psr\Log\LogLevel;
 /**
  * Class AssertThrowableTestCaseLogger.
  *
- * @package CoiSA\ErrorHandler\Test\Util
+ * @package CoiSA\ErrorHandler\Test\Log
  */
 final class AssertThrowableTestCaseLogger extends AbstractLogger
 {
@@ -43,7 +43,11 @@ final class AssertThrowableTestCaseLogger extends AbstractLogger
     private static $testCase;
 
     /**
-     * AssertThrowableTestCaseLogger constructor.
+     * Capture the throwable and expected level asserted by each log call.
+     *
+     * @param TestCase $testCase The test case receiving assertion counts.
+     * @param \Throwable $throwable The throwable whose string representation is expected.
+     * @param string $logLevel The exact expected PSR-3 log level.
      */
     public function __construct(TestCase $testCase, \Throwable $throwable, string $logLevel = LogLevel::ERROR)
     {
@@ -54,8 +58,11 @@ final class AssertThrowableTestCaseLogger extends AbstractLogger
     }
 
     /**
+     * Assert that a diagnostic report preserves the expected level and throwable text.
+     *
      * @param mixed  $level
      * @param string $message
+     * @param array<string, mixed> $context Optional PSR-3 context, unused by this fixture.
      */
     public function log($level, $message, array $context = []): void
     {

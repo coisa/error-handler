@@ -37,11 +37,20 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
+    /**
+     * Verify explicit middleware composition reports and renders a request failure.
+     */
     public function testErrorHandlerMiddlewareHandleRequestException(): void
     {
         $exception = new \InvalidArgumentException(uniqid('test', true), random_int(400, 500));
 
-        $callableThrowableHandler = new CallableThrowableHandler(function (\Throwable $throwable): void {
+        $callableThrowableHandler = new CallableThrowableHandler(
+            /**
+             * Receive the throwable reported by this behavior fixture.
+             *
+             * @param \Throwable $throwable The throwable supplied to the reporter.
+             */
+            function (\Throwable $throwable): void {
             echo json_encode([
                 'code'    => $throwable->getCode(),
                 'message' => $throwable->getMessage(),
@@ -52,13 +61,28 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $serverRequest  = $streamFactory->createServerRequest('GET', 'http://localhost');
 
         $requestHandler = new class ($exception) implements RequestHandlerInterface {
+            /** @var \Throwable The failure raised by this request fixture. */
             private $exception;
 
+            /**
+             * Retain the failure raised when the synthetic request is handled.
+             *
+             * @param \Throwable $exception The request's configured throwable.
+             */
             public function __construct(\Throwable $exception)
             {
                 $this->exception = $exception;
             }
 
+            /**
+             * Raise the configured failure instead of returning a response.
+             *
+             * @param ServerRequestInterface $request The synthetic request.
+             *
+             * @return ResponseInterface A response is never produced by this fixture.
+             *
+             * @throws \Throwable The failure supplied at construction.
+             */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 throw $this->exception;

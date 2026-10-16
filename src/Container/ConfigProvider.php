@@ -35,6 +35,12 @@ use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
  * required for the proper functioning of the error-handler library.
  *
  * @package CoiSA\ErrorHandler\Container
+ *
+ * @phpstan-type FactoryClass class-string<Factory\ErrorHandlerFactory|Factory\ErrorHandlerMiddlewareFactory|Factory\DispatchErrorEventThrowableHandlerFactory|Factory\DispatchThrowableHandlerFactory|Factory\ThrowableHandlerAggregateFactory|Factory\ThrowableResponseFactoryFactory|Factory\ThrowableStreamFactoryFactory>
+ * @phpstan-type Dependencies array{
+ *     aliases: array<class-string, class-string>,
+ *     factories: array<class-string, FactoryClass>
+ * }
  */
 final class ConfigProvider
 {
@@ -45,7 +51,7 @@ final class ConfigProvider
      * for dependency injection containers, including dependencies, aliases,
      * and factories.
      *
-     * @return array The configuration array.
+     * @return array{dependencies: Dependencies} The configuration array.
      */
     public function __invoke(): array
     {
@@ -60,7 +66,7 @@ final class ConfigProvider
      * This method SHALL define aliases and factories used for resolving
      * dependencies in the container.
      *
-     * @return array An array containing aliases and factories.
+     * @return Dependencies An array containing aliases and factories.
      */
     public function getDependencies(): array
     {
@@ -76,7 +82,7 @@ final class ConfigProvider
      * This method SHALL define class aliases to allow easier resolution
      * of services in the dependency injection container.
      *
-     * @return array An associative array of aliases.
+     * @return array<class-string, class-string> An associative array of aliases.
      */
     public function getAliases(): array
     {
@@ -93,7 +99,7 @@ final class ConfigProvider
      * This method SHALL define factories responsible for instantiating
      * and configuring services in the dependency injection container.
      *
-     * @return array An associative array of service factories.
+     * @return array<class-string, FactoryClass> An associative array of service factories.
      */
     public function getFactories(): array
     {

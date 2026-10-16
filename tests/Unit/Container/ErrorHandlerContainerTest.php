@@ -58,6 +58,9 @@ final class ErrorHandlerContainerTest extends TestCase
         $this->container      = new ErrorHandlerContainer($this->innerContainer->reveal());
     }
 
+    /**
+     * Verify that an unknown service ID raises the library's not-found exception.
+     */
     public function testGetWithInvalidServiceWillThrowNotFoundException(): void
     {
         $this->expectException(NotFoundException::class);
@@ -66,6 +69,9 @@ final class ErrorHandlerContainerTest extends TestCase
         $this->container->get($index);
     }
 
+    /**
+     * Verify that a delegated dependency failure is wrapped as a container error.
+     */
     public function testGetWithServiceThatThrowsExceptionWillThrowContainerException(): void
     {
         $this->innerContainer->has(ErrorHandler::class)->willReturn(false);
