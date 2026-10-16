@@ -10,6 +10,16 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.9
+
+### Patch Changes
+
+- [#64](https://github.com/coisa/error-handler/pull/64) [`6fb45d7`](https://github.com/coisa/error-handler/commit/6fb45d7d00465d394b0917d26f02fc50b3c98ef5) - Exclude the intentionally invalid compile-fatal fixture from optimized development classmaps while preserving its explicit bounded fire-test execution.
+
+- [#63](https://github.com/coisa/error-handler/pull/63) [`0157fcc`](https://github.com/coisa/error-handler/commit/0157fccc27aab0771bb3a8934c79a246b0712017) - Retire the historical Scrutinizer configuration and badges after verifying that its latest public inspection predates the 2.x line. Link the current PHP CI and document its security-analysis limits without changing runtime code or external service settings.
+
+- [#59](https://github.com/coisa/error-handler/pull/59) [`c82fbab`](https://github.com/coisa/error-handler/commit/c82fbabb6a35f28b07d69f913f2587ee5ed4cb24) - Add a static 2.x documentation guide with checked example excerpts and a manual Pages workflow.
+
 ## 2.0.8
 
 ### Patch Changes
