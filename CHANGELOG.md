@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.2.0
+
+### Minor Changes
+
+- [#69](https://github.com/coisa/error-handler/pull/69) [`9068a5d`](https://github.com/coisa/error-handler/commit/9068a5dda9759376c01bf5f95c593938d0f4ef8d) - Add the opt-in LogThrowableHandler adapter for direct PSR-3 reporting with the exact throwable message, configured level and original exception context. Preserve logger failures, existing discovery, application-owned transports and PHP 7.4 compatibility; add runnable examples and matching integration guidance.
+
 ## 2.1.0
 
 ### Minor Changes
