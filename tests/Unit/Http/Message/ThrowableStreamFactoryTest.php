@@ -435,4 +435,122 @@ final class ThrowableStreamFactoryTest extends TestCase
             }
         }
     }
+
+    /**
+     * Stops bounded cleanup when a native handler destructor replaces its removed buffer.
+     *
+     * The replacement remains removable for fixture cleanup; the caller's bytes and
+     * callback remain untouched until this test explicitly discards its own scopes.
+     */
+    public function testCleanupStopsWhenAHandlerDestructorReplacesItsBuffer(): void
+    {
+        $original = new \Error('incoming event before native destruction');
+        $primary = new \RuntimeException('renderer failure before native destruction');
+        $received = null;
+
+        /** @var \ArrayObject<string, int> $events observed native callback and destructor counts */
+        $events = new \ArrayObject(['callback' => 0, 'destructor' => 0, 'caller' => 0]);
+        $renderer = new CallableThrowableHandler(
+            /**
+             * Leaves the native output stack as the sole owner of its invokable handler.
+             *
+             * @param \Throwable $event the unchanged incoming event
+             *
+             * @throws \RuntimeException the primary renderer failure
+             */
+            static function (\Throwable $event) use ($primary, $events, &$received): void {
+                $received = $event;
+                ob_start(
+                    // Replaces its native output scope only when PHP releases this object.
+                    new class ($events) {
+                        /**
+                         * Shares observations without retaining a reference to this handler.
+                         *
+                         * @param \ArrayObject<string, int> $events native callback/destructor counts
+                         */
+                        public function __construct(private \ArrayObject $events)
+                        {
+                        }
+
+                        /**
+                         * Receives bytes during the actual native buffer close.
+                         *
+                         * @param string $bytes the renderer-owned output being discarded
+                         *
+                         * @return string the same bytes, with no stack manipulation in the callback
+                         */
+                        public function __invoke(string $bytes): string
+                        {
+                            ++$this->events['callback'];
+
+                            return $bytes;
+                        }
+
+                        /** Opens a removable replacement after PHP has popped the original buffer. */
+                        public function __destruct()
+                        {
+                            ++$this->events['destructor'];
+                            ob_start();
+                            echo 'replacement renderer bytes';
+                        }
+                    },
+                );
+                echo 'discarded renderer bytes';
+
+                throw $primary;
+            },
+        );
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->expects(self::never())->method('createStream');
+        $entry = ob_get_level();
+        ob_start(
+            /**
+             * Records premature cleanup of the caller while retaining its original bytes.
+             *
+             * @param string $bytes the caller-owned output
+             *
+             * @return string unchanged caller-owned bytes
+             */
+            static function (string $bytes) use ($events): string {
+                ++$events['caller'];
+
+                return $bytes;
+            },
+        );
+        echo 'caller-owned bytes';
+        $caller = ob_get_level();
+
+        try {
+            try {
+                (new ThrowableStreamFactory($streams, $renderer))->createStreamFromThrowable($original);
+                self::fail('The primary renderer failure must propagate.');
+            } catch (\RuntimeException $caught) {
+                self::assertSame($primary, $caught);
+            }
+
+            self::assertSame($original, $received);
+            self::assertSame(1, $events['callback']);
+            self::assertSame(1, $events['destructor']);
+            self::assertSame(0, $events['caller']);
+            self::assertSame($caller + 2, ob_get_level());
+            self::assertSame('replacement renderer bytes', ob_get_contents());
+            $flags = ob_get_status()['flags'];
+            self::assertIsInt($flags);
+            self::assertSame(PHP_OUTPUT_HANDLER_REMOVABLE, $flags & PHP_OUTPUT_HANDLER_REMOVABLE);
+
+            ob_end_clean();
+            ob_end_clean();
+
+            self::assertSame($caller, ob_get_level());
+            self::assertSame('caller-owned bytes', ob_get_contents());
+            self::assertSame(0, $events['caller']);
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+
+        self::assertSame($entry, ob_get_level());
+        self::assertSame(1, $events['caller']);
+    }
 }

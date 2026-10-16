@@ -96,5 +96,12 @@ can terminate PHP or have arbitrary side effects; cleanup only removes reachable
 removable scopes and stops without progress. Reporters own private diagnostics;
 a safe PSR response body cannot prevent an application reporter from echoing.
 
+An output-handler object's destructor can open a replacement buffer after PHP
+removes its original scope. The direct stream-factory unit test verifies cleanup
+stops when depth does not decrease, preserves the original failure and caller
+bytes, and never creates a stream. The test explicitly removes its replacement
+scopes and restores the fixture in finally; the factory does not promise to
+remove every scope after native callbacks or destructors change the stack.
+
 Release maintenance uses the existing [Changesets procedure](releases.md).
 Preparing or testing this draft does not merge, publish a release or deploy Pages.

@@ -25,6 +25,8 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   distribution checks and organized PHPUnit Unit/Functional/Process coverage.
   Preserve the existing regression gate; retire the prototype Fire/HTTP/Python
   parents and custom release publisher instead of duplicating master tooling.
+- Add a direct native regression for output-handler destruction that replaces its
+  removed buffer, proving bounded cleanup, primary-failure and caller ownership.
 The current 2.x manifest version and published changelog remain unchanged. Native
 callable constructor unions and ready JSON/developer-HTML adapters remain separate
 work; this note does not claim their implementation or perform a release.
