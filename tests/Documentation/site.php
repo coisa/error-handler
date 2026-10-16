@@ -103,7 +103,7 @@ if (0 === $snippets || !is_file($root . '/docs/.nojekyll')) {
 
 $cookbook = $readFile($root . '/docs/examples.md');
 $recipeCount = preg_match_all(
-    '~<!-- source: (examples/[a-z-]+\.php) -->\R```php\R(.*?)\R```~s',
+    '~<!-- source: (examples/[a-z-]+\.php) -->\R```php\R(.*?\R)```~s',
     $cookbook,
     $recipeMatches,
     PREG_SET_ORDER,
@@ -119,15 +119,15 @@ foreach ($recipeMatches as $recipe) {
         throw new \RuntimeException('Duplicate cookbook recipe: ' . $source);
     }
 
-    // Omit only the leading source license header; keep all executable PHP intact.
+    // Remove the fixed license preamble and retain its following separator verbatim.
     $display = preg_replace(
-        '~\A<\?php\s*/\*\*\s*\* This file is part of coisa/error-handler\..*?\*/\s*~s',
-        "<?php\n\n",
+        '~\A(<\?php)\R\R/\*\*\R \* This file is part of coisa/error-handler\..*?\*/~s',
+        '$1',
         $readFile($root . '/' . $source),
         1,
         $headers,
     );
-    if (null === $display || 1 !== $headers || rtrim($display, "\r\n") !== $recipe[2]) {
+    if (null === $display || 1 !== $headers || $display !== $recipe[2]) {
         throw new \RuntimeException('Complete cookbook recipe differs from source: ' . $source);
     }
     $recipes[$source] = true;
@@ -137,14 +137,20 @@ $exampleFiles = glob($root . '/examples/*.php');
 if (false === $exampleFiles) {
     throw new \RuntimeException('Cannot list executable recipe sources.');
 }
+$expectedRecipes = [];
 foreach ($exampleFiles as $exampleFile) {
     $filename = basename($exampleFile);
     if (\in_array($filename, ['bootstrap.php', 'check.php', 'verify.php'], true)) {
         continue;
     }
+    $expectedRecipes['examples/' . $filename] = true;
     if (!isset($recipes['examples/' . $filename])) {
         throw new \RuntimeException('The cookbook is missing a complete recipe: ' . $filename);
     }
+}
+$unexpectedRecipes = array_diff_key($recipes, $expectedRecipes);
+if ([] !== $unexpectedRecipes) {
+    throw new \RuntimeException('Unexpected cookbook recipes: ' . implode(', ', array_keys($unexpectedRecipes)));
 }
 
 printf(
