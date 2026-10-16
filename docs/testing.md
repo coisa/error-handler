@@ -16,8 +16,18 @@ XDEBUG_MODE=coverage composer --no-plugins test-coverage -- --coverage-cobertura
 over source and tests. Coverage needs an enabled Xdebug or PCOV driver. When both
 are installed, select the intended driver explicitly rather than inferring it
 from a successful test run. Raw Cobertura measures source lines; the independent
-coverage job compares the authentic target-branch baseline and retains its
-existing overall regression gate. See [coverage reporting](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md#phpunit-coverage-and-pr-notes).
+coverage job compares the authentic target-branch baseline and permits decreases
+while enforcing an overall minimum. The repository variable
+`MINIMUM_COVERAGE_THRESHOLD` configures that floor, defaulting to **80%** when unset.
+See [coverage reporting](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md#phpunit-coverage-and-pr-notes).
+
+Overall line coverage is covered instrumentable lines divided by all instrumentable
+lines, rather than the average of class percentages. Ten uncovered lines in one
+class and 90 covered lines elsewhere yield 90% overall. An 80% overall floor does
+not require 80% in every class; file colors and negative differences remain visible
+without independently failing the job. At the default floor, a decrease to 80%
+passes and a result below 80% fails. A different configured floor changes that
+boundary. Even 100% overall line coverage does not prove every branch or behavior.
 
 ## Test responsibilities
 

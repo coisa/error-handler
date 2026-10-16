@@ -142,8 +142,8 @@ the checks it ran, without claiming coverage or permission to release.
 The [PHP CI workflow](.github/workflows/ci.yml) has a read-only `coverage` job
 on PHP 8.5/Xdebug and a dependent `coverage-report` job. PHPUnit 9.6 produces
 Clover plus Cobertura through its native `--coverage-cobertura` flag. The complete
-`src/` filter, runtime PHP constraint, public APIs and overall regression policy
-remain unchanged. `coverage-report-php` retains both XML files for 14 days.
+`src/` filter, runtime PHP constraint and public APIs remain unchanged.
+`coverage-report-php` retains both XML files for 14 days.
 
 The comparison action receives Cobertura to measure lines. Its
 [Clover parser](https://github.com/clearlyip/code-coverage-report-action/blob/v7/src/reports/clover/parser/index.ts)
@@ -160,24 +160,29 @@ Fire/HTTP runners are replaced by direct assertions and the few bounded native
 fixtures described in [testing](docs/testing.md). Read each current report's
 exact SHA and metric rather than treating those historical counts as current.
 
-The action uses its standard templates and fails when overall line coverage drops
-against an available target-branch baseline, including new uncovered source files.
-Changed files and their differences remain visible in the report. The overall
-minimum comes from the repository variable `MINIMUM_COVERAGE_THRESHOLD`, with a
-fallback of `0` when absent; no repository variable is created by this workflow.
-Zero disables the absolute minimum, not the regression check or execution,
-invalid-report and artifact failures. A higher minimum requires reviewing the
-intended annotation scope and measured baseline.
+The action uses its standard templates and permits coverage decreases against the
+target-branch baseline. It fails when reported overall line coverage is below the
+repository variable `MINIMUM_COVERAGE_THRESHOLD`, defaulting to **80%** when that
+variable is unset. The variable can override the default; this workflow creates
+or changes no repository variables. With the default, 80% passes the floor and
+79% fails, even if both are decreases. Execution, invalid-report and artifact
+failures remain failures independently of this policy.
+
+The floor applies to the complete measured source, not each class or changed file.
+Cobertura's overall line rate weights lines across that source; it is not an
+arithmetic mean of file percentages. Changed files, their colors and positive or
+negative differences remain visible in the report, without individual drop gates.
+See the action's [independent threshold and difference inputs](https://github.com/clearlyip/code-coverage-report-action/blob/v7/action.yml).
 
 After successful collection, the report job downloads this run's XML artifact
 and generates the job summary and `coverage-pr-comment` Markdown artifact
 (14-day retention). Pushes and manual runs on `master` store the Cobertura
 baseline as `phpunit-coverage-master` for 90 days. Before that baseline exists,
 or after it expires, the report shows current coverage without a comparison.
-The regression gate cannot compare until that baseline exists. A manual `PHP CI`
-run on `master` refreshes it. A manual run on another branch stores a baseline
-for that actual branch, allowing a stacked PR targeting it to compare before
-the workflow reaches `master`.
+The minimum still applies without a baseline, but no difference can be displayed.
+A manual `PHP CI` run on `master` refreshes it. A manual run on another branch
+stores a baseline for that actual branch, allowing a stacked PR targeting it to
+compare before the workflow reaches `master`.
 
 The same report job updates one sticky note only for PRs from this repository,
 excluding branches starting with `dependabot/`, when its token permits comments.
