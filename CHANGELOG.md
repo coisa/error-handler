@@ -10,6 +10,24 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.4.1
+
+### Patch Changes
+
+- [#86](https://github.com/coisa/error-handler/pull/86) [`94055d2`](https://github.com/coisa/error-handler/commit/94055d2b2c869cb11a8c92a0d7d754ebf6aed992) - Expose all existing 2.x recipes in a complete source-checked cookbook. Preserve
+  website excerpt validation and verify every full recipe against executable PHP,
+  with application setup, consumer guidance and navigation aligned.
+
+- [#87](https://github.com/coisa/error-handler/pull/87) [`85d8488`](https://github.com/coisa/error-handler/commit/85d8488c9eb161f9ea870d802dfe5ff13b3683c1) - Permit coverage decreases while requiring an overall line-coverage minimum of
+  80% by default, configurable with MINIMUM_COVERAGE_THRESHOLD. Preserve authentic
+  baseline comparisons, per-file differences and the existing sticky PR report.
+
+- [#84](https://github.com/coisa/error-handler/pull/84) [`f095afe`](https://github.com/coisa/error-handler/commit/f095afec6e075bd5b9186a615012f7cdac4b6f11) - Continue exceptional output-buffer cleanup when PHP removes a buffer before its
+  output callback throws. Preserve the original reporter/capture failure and
+  caller-owned buffers while discarding remaining reachable removable scopes.
+
+- [#83](https://github.com/coisa/error-handler/pull/83) [`e40dddd`](https://github.com/coisa/error-handler/commit/e40dddd0a4e06e77900b12eb1ef5d16eaf69fe49) - Describe the released logging and best-effort adapters as available opt-in 2.x APIs across the guides, cookbook, static site and consumer skill. Retain installed-version checks and the distinction between pending Changesets and published releases.
+
 ## 2.4.0
 
 ### Minor Changes
