@@ -89,6 +89,9 @@ only changed PHP files within the existing Finder scope. It does not apply fixes
 For a full local preview, run `composer --no-plugins cs-check`; the new preset also
 reports existing formatting differences outside the files changed in a PR.
 
+See [testing and characterization](docs/testing.md) for bounded failure probes,
+loopback HTTP fixtures, supported commands and known 2.x limitations.
+
 ## Contributing release notes
 
 See [contributor dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for local Composer resolution

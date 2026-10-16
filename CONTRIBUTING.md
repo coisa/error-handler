@@ -4,6 +4,7 @@ This library intentionally does not track `composer.lock`. Composer constraints
 in `composer.json` describe its supported dependency contract. Applications that
 consume the library own their application lockfiles.
 
+Use Composer directly for dependency installation and quality checks.
 Resolve development dependencies with the PHP runtime intended for the check:
 
 ```sh
@@ -39,6 +40,10 @@ target follows the Composer minimum, and its remaining rules are retained.
 The opening file header in `.php-cs-fixer.dist.php` is the canonical header
 template, read through the preset's `HeaderExtractor::extractFromFile(__FILE__)`.
 The preset updates the ending copyright year when formatting.
+The superseded PHP-CS-Fixer 2 `.php_cs` configuration is removed. Composer
+commands and CI use `.php-cs-fixer.dist.php`; pass that same path when invoking
+the formatter explicitly. The old configuration called `Config::create()`,
+which the installed PHP-CS-Fixer 3 API does not provide.
 Run each check independently when diagnosing a failure:
 `composer check` stops at the first failed command.
 
@@ -78,6 +83,25 @@ cache keys must not require a committed Composer lockfile.
 
 `package-lock.json` remains tracked for the independent Node release tooling.
 Node.js is not a runtime dependency of the Composer library.
+
+## Native development environment
+
+Use an installed PHP runtime and Composer 2 for the commands above. The removed
+Docker development wrappers used PHP 7.2 and Xdebug 2.6, below the library's
+declared PHP 7.4 minimum. They wrapped Composer and PHPUnit; they were not a
+supported runtime image for consumers.
+
+For an existing local resolution, install dependencies without enabling plugins
+or scripts, then run the native quality chain:
+
+```sh
+composer install --no-plugins --no-scripts --no-interaction --prefer-dist
+composer --no-plugins check
+```
+
+The native workflows described below do not build a repository Docker image.
+Record the actual workflow/SHA and local runtime results; an active workflow
+name alone does not prove a runtime matrix was executed.
 
 ## Continuous integration
 
