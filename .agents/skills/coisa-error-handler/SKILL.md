@@ -1,0 +1,131 @@
+---
+name: coisa-error-handler
+description: Integrate the existing coisa/error-handler 2.x PHP API with explicit reporters, process callbacks, legacy PSR-11/ConfigProvider composition or PSR-15 middleware, then verify reporting, output and callback restoration.
+license: MIT
+compatibility: PHP and Composer matching the selected 2.x package; PHP 7.4-compatible application code. Applications supply PSR-14/17 implementations and HTTP emission.
+metadata:
+  source_url: https://github.com/coisa/error-handler
+---
+
+# CoiSA Error Handler 2.x integration
+
+Package: coisa/error-handler; namespace: CoiSA\ErrorHandler.
+[Source and maintenance](https://github.com/coisa/error-handler).
+Retain that identity when copying the package into a consumer. This procedure
+uses the existing 2.x API, not the proposed FastForward-based major.
+
+## Select the API and scope
+
+Read the consumer's composer.json/lock, composer show coisa/error-handler, PHP
+version and installed interfaces. The declared runtime is ^7.4 || ^8.0;
+development integrations may be narrower. A pending Changeset is not a release.
+For clean PHP 7.4 container use, verify the selected release/check-out contains
+the [PSR-11 metadata](https://github.com/coisa/error-handler/issues/13) and
+[alias compatibility](https://github.com/coisa/error-handler/issues/40) repairs.
+Do not raise PHP requirements or replace the container to make a recipe work.
+
+Use direct handleThrowable() for explicit reporting without callbacks. Use one
+registered handler at process bootstrap for uncaught exceptions. For a caught
+operation, report inside its catch and unregister in finally. Unregistering in an
+unwinding finally happens before the uncaught-exception callback and can prevent
+that handler from seeing the exception.
+
+## Complete ordinary setup
+
+Install with Composer 2:
+
+```sh
+composer require 'coisa/error-handler:^2.0' --no-plugins --no-scripts
+```
+
+In an application entrypoint, load its autoloader and choose its private reporter:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$reports = 0;
+$errors = new ErrorHandler(new CallableThrowableHandler(
+    /**
+     * Record a synthetic delivery before choosing an application transport.
+     *
+     * @param Throwable $error the reported PHP warning
+     */
+    static function (Throwable $error) use (&$reports): void {
+        ++$reports; // Replace this synthetic counter with the application's private sink.
+    },
+));
+
+$errors->register();
+
+try {
+    trigger_error('Synthetic warning', E_USER_WARNING);
+} finally {
+    $errors->unregister();
+}
+
+if (1 !== $reports) {
+    throw new RuntimeException('The configured reporter did not receive the warning.');
+}
+```
+
+Run the entrypoint with PHP; expect exit 0 and one synthetic report. The default
+PHP-error adapter honors error_reporting/suppression. Direct reporting returns
+when its reporter returns; reporter failures propagate. ThrowableHandlerAggregate
+is ordered and stops when a reporter throws. A registered uncaught report does
+not automatically exit 1. Fatal shutdown reporting observes a native failure;
+it does not recover execution.
+
+## Conditional composition
+
+For the existing container, construct
+CoiSA\ErrorHandler\Container\ErrorHandlerContainer($application) with an optional
+application PSR-11 parent, then resolve ErrorHandler::class. Provide a reporter:
+the default aggregate is empty and silent. ConfigProvider exposes the existing
+aliases/factories and Laminas discovery metadata. Factories are under
+Container\Factory; discovery/construction does not register callbacks.
+Services are cached. For distinct nested handlers, invoke ErrorHandlerFactory
+explicitly or construct the core directly; a fresh middleware wrapper can still
+reuse a cached handler. Read the matching source's
+[container guide](https://github.com/coisa/error-handler/blob/master/docs/container.md)
+when selecting this route; it includes the complete application recipe.
+
+For PSR-14 or PSR-3, supply an application dispatcher/logger. Raw throwable and
+ErrorEvent adapters are separate deliveries. Read the matching
+[API guide](https://github.com/coisa/error-handler/blob/master/docs/api.md)
+for providers/listeners, aggregate ordering and the logging adapter's string
+message behavior.
+
+For HTTP, supply PSR-17 response/stream factories and an application emitter.
+Middleware registers/restores its lifecycle handler and delegates caught
+throwables to the response factory. It does not report independently first.
+The default stream factory invokes the reporter while capturing output; empty
+or "0" output falls back to exception text. This can expose diagnostics. Use
+an explicit application response factory that reports privately once and creates
+a fixed public response. Read the matching
+[HTTP recipe](https://github.com/coisa/error-handler/blob/master/docs/http.md)
+before wiring this route; do not invent a built-in pure/default JSON renderer.
+
+## Verify and report
+
+Use distinct objects for nested scopes and restore callbacks in reverse order.
+Native callbacks are process-wide, including under fibers. PHP cannot remove
+queued shutdown functions; repeated register cycles are not a bounded worker
+scope mechanism.
+
+Verify direct delivery, enabled/suppressed warnings, callback restoration after
+success/failure and configured response bodies. Run uncaught/fatal experiments
+only through a bounded child fixture. In the source checkout, use the
+[executable cookbook and verifier](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+In a consumer, retain focused tests against its own reporters and transports.
+Library/example checks do not prove delivery to a real logging service.
+
+Return observed package/PHP versions, integration changes, executed checks and
+remaining limits. This procedure does not deploy, publish, install globally or
+operate production diagnostics.
