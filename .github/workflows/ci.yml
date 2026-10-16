@@ -44,6 +44,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
           coverage: none
           tools: composer:v2
 
@@ -53,6 +54,7 @@ jobs:
       - name: Record and validate the resolved platform
         run: |
           php --version
+          php -r 'echo "error_reporting=" . error_reporting() . PHP_EOL;'
           composer --version
           composer validate --strict --no-check-publish
           composer check-platform-reqs

@@ -101,7 +101,8 @@ each actual PHP version. The recorded graph is the evidence for those bounds,
 not a claim that every possible dependency combination was tested.
 
 Composer 2 installations disable plugins and scripts; quality scripts run only
-in their explicit check step. Jobs have time limits, read-only repository
+in their explicit check step. Quality jobs explicitly use `error_reporting=E_ALL`
+so deprecations can also reach the configured PHP handlers. Jobs have time limits, read-only repository
 permissions and no persisted checkout credential. The workflow uses the verified
 major action refs documented by [Checkout](https://github.com/actions/checkout)
 and [Setup PHP](https://github.com/shivammathur/setup-php). The independent changed
