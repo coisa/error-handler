@@ -105,7 +105,7 @@ name alone does not prove a runtime matrix was executed.
 
 ## Continuous integration
 
-The read-only [PHP CI workflow](.github/workflows/ci.yml) runs on pull requests,
+The [PHP CI workflow](.github/workflows/ci.yml) runs on pull requests,
 pushes to `master` and manual dispatches. Each job records the actual PHP,
 Composer and resolved package versions. No Composer lockfile or simulated PHP
 platform is needed.
@@ -115,7 +115,7 @@ platform is needed.
 | Development quality | 8.3, 8.4, 8.5 | Fresh current development graph; formatting, PHPCS, PHPUnit and maximum PHPStan over `src` and `tests` |
 | Production | 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5 | Current runtime graph; tracked PHP syntax, distribution contents, public container and alias factories |
 | Production lower bounds | 7.4, 8.5 | Fresh `--prefer-lowest --prefer-stable` runtime graph; the same production checks |
-| PHPUnit coverage | 8.5 with Xdebug | Fresh development graph; Clover/Cobertura, baseline comparison, Markdown and publisher fixture tests |
+| PHPUnit coverage | 8.5 with Xdebug | Fresh development graph; Clover/Cobertura, baseline comparison and Markdown |
 
 Production jobs install only the library into a separate consumer from its
 committed `git archive`, with path-package mirroring instead of a source symlink.
