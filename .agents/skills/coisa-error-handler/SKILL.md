@@ -136,7 +136,7 @@ for providers/listeners, aggregate ordering and the logging adapter's string
 message behavior.
 
 For direct PSR-3 reporting, first verify the selected checkout/release contains
-Handler\LogThrowableHandler; it is a pending additive minor, not an API promised
+Handler\LogThrowableHandler; it is an opt-in 2.x adapter, not an API promised
 by every ^2.0 installation. Construct it explicitly with the application logger,
 optional level (ERROR by default) and context. It logs the exact message once,
 including empty, and keeps the original throwable under exception over caller
@@ -159,8 +159,9 @@ before wiring this route; do not invent a built-in pure/default JSON renderer.
 
 For a source/release containing the [exceptional capture cleanup repair](https://github.com/coisa/error-handler/issues/24),
 reporter/capture failure triggers best-effort removal of removable buffers above
-the entry level. Cleanup stops at a protected buffer, failed close, absent progress
-or throwing output callback; earlier caller buffers are not deliberately closed.
+the entry level. Cleanup stops at a protected buffer, failed close or absent progress;
+earlier caller buffers are not deliberately closed. A throwing output callback does
+not stop cleanup when PHP has removed its buffer and cleanup can still make progress.
 If cleanup returns, the same primary failure propagates. An output handler that
 calls exit()/die() or triggers an engine fatal can prevent that propagation and
 terminate execution. Callback side effects cannot be undone. Verify the selected

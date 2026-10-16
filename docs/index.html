@@ -147,7 +147,7 @@ echo 'continued' . PHP_EOL;</code></pre>
 
       <section id="logging" aria-labelledby="logging-title">
         <h2 id="logging-title">Report directly to an application logger</h2>
-        <p><code>LogThrowableHandler</code> is an explicit minor addition under development. Verify that your checkout or release contains it; a pending Changeset does not publish the API. Supply your own PSR-3 logger, optional string level (ERROR by default) and context.</p>
+        <p><code>LogThrowableHandler</code> is an explicit opt-in 2.x adapter. Verify that your checkout or release contains it; older installed versions may not provide it. Supply your own PSR-3 logger, optional string level (ERROR by default) and context.</p>
         <figure>
           <figcaption>Excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">examples/logging.php</a> · the complete source supplies an in-memory logger, imports and bootstrap</figcaption>
           <pre tabindex="0" aria-label="Direct PSR-3 logging PHP source"><code data-source="examples/logging.php">$context = ['component' =&gt; 'worker', 'exception' =&gt; new LogicException('Caller context')];
@@ -199,9 +199,9 @@ $process-&gt;handleThrowable($failure);</code></pre>
             <tbody>
               <tr><td><code>CallableThrowableHandler</code></td><td>Invokes one configured reporter.</td></tr>
               <tr><td><code>CallablePhpErrorHandler</code></td><td>Invokes one four-argument application callback; ignores its return and leaves mask/conversion policy explicit.</td></tr>
-              <tr><td><code>LogThrowableHandler</code></td><td>Pending minor: logs the exact message and original exception once through an explicit application PSR-3 logger.</td></tr>
+              <tr><td><code>LogThrowableHandler</code></td><td>Logs the exact message and original exception once through an explicit application PSR-3 logger.</td></tr>
               <tr><td><code>ThrowableHandlerAggregate</code></td><td>Calls reporters in order; a failure stops later deliveries and propagates.</td></tr>
-              <tr><td><code>BestEffortThrowableHandlerAggregate</code></td><td>Opt-in pending minor: attempts every reporter slot, then exposes the original and all ordered failures through one aggregate exception.</td></tr>
+              <tr><td><code>BestEffortThrowableHandlerAggregate</code></td><td>Opt-in adapter: attempts every reporter slot, then exposes the original and all ordered failures through one aggregate exception.</td></tr>
               <tr><td><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Converts enabled PHP errors; honors the reporting mask and suppression.</td></tr>
               <tr><td><code>CallableShutdownHandler</code><br><code>PhpLastErrorShutdownHandler</code></td><td>Adapts an application shutdown callback or forwards a matching last fatal/compile/core error.</td></tr>
               <tr><td><code>DispatchThrowableHandler</code><br><code>DispatchErrorEventThrowableHandler</code></td><td>Dispatches a raw throwable or an <code>ErrorEvent</code> through application-owned PSR-14.</td></tr>
@@ -238,7 +238,7 @@ try {
     ];
 }</code></pre>
         </figure>
-        <p>The original also remains the previous cause; reporter failures retain their order and object identities. The fixed summary does not make the cause, failures or exception string public-safe. Applications own terminal handling and durable delivery. This pending additive API changes no fail-fast default, factory, callback lifecycle or HTTP response policy and adds no retry or reentry guard. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the full contract</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">explicit composition</a>.</p>
+        <p>The original also remains the previous cause; reporter failures retain their order and object identities. The fixed summary does not make the cause, failures or exception string public-safe. Applications own terminal handling and durable delivery. This opt-in adapter changes no fail-fast default, factory, callback lifecycle or HTTP response policy and adds no retry or reentry guard. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the full contract</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">explicit composition</a>.</p>
       </section>
 
       <section id="container" aria-labelledby="container-title">

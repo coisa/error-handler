@@ -290,8 +290,14 @@ final class ThrowableStreamFactoryTest extends TestCase
         }
     }
 
-    /** Verifies a native throwing output handler preserves primary failure and caller-owned scopes. */
-    public function testCleanupCallbackFailurePreservesPrimaryAndCaller(): void
+    /**
+     * Continues cleanup after a throwing native callback removed its buffer.
+     *
+     * @param int $nestedBuffers the ordinary removable buffers below the throwing callback
+     *
+     * @dataProvider provideCleanupCallbackFailurePreservesPrimaryAndCallerCases
+     */
+    public function testCleanupCallbackFailurePreservesPrimaryAndCaller(int $nestedBuffers): void
     {
         $original = new \Error('incoming report');
         $primary = new \RuntimeException('primary reporter failure');
@@ -307,8 +313,18 @@ final class ThrowableStreamFactoryTest extends TestCase
              *
              * @throws \RuntimeException the primary reporter failure
              */
-            static function (\Throwable $event) use ($primary, $secondary, &$callbackCalls, &$received): void {
+            static function (\Throwable $event) use (
+                $nestedBuffers,
+                $primary,
+                $secondary,
+                &$callbackCalls,
+                &$received
+            ): void {
                 $received = $event;
+                for ($index = 0; $index < $nestedBuffers; ++$index) {
+                    ob_start();
+                    echo 'discard ordinary nested';
+                }
                 ob_start(
                     /**
                      * Throws once from the actual native close, without modifying buffer structure.
@@ -364,10 +380,8 @@ final class ThrowableStreamFactoryTest extends TestCase
             self::assertSame($original, $received);
             self::assertSame($primary, $caught);
             self::assertSame(1, $callbackCalls);
-            self::assertSame($callerLevel + 1, ob_get_level());
-            self::assertSame(0, $callerCalls);
-            ob_end_clean();
             self::assertSame($callerLevel, ob_get_level());
+            self::assertSame(0, $callerCalls);
             self::assertSame('C1:', ob_get_contents());
             ob_end_flush();
             self::assertSame('C0:C1:', ob_get_contents());
@@ -378,5 +392,15 @@ final class ThrowableStreamFactoryTest extends TestCase
             }
         }
         self::assertSame($entry, ob_get_level());
+    }
+
+    /**
+     * Supplies factory-only cleanup and multiple additional removable scopes.
+     *
+     * @return array<string, array{int}> ordinary nested buffer counts
+     */
+    public static function provideCleanupCallbackFailurePreservesPrimaryAndCallerCases(): iterable
+    {
+        return ['factory buffer' => [0], 'nested buffers' => [2]];
     }
 }
