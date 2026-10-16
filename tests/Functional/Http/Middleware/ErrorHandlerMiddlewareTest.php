@@ -14,7 +14,7 @@
 
 declare(strict_types=1);
 
-namespace CoiSA\ErrorHandler\Test\Functional\Container;
+namespace CoiSA\ErrorHandler\Test\Functional\Http\Middleware;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
@@ -30,7 +30,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 /**
  * Class ErrorHandlerMiddlewareTest.
  *
- * @package CoiSA\ErrorHandler\Test\Functional\Container
+ * @package CoiSA\ErrorHandler\Test\Functional\Http\Middleware
  *
  * @internal
  *
