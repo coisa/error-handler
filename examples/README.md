@@ -16,7 +16,15 @@ Each implementation resolves to a version compatible with the application's actu
 
 The direct logging recipe requires a checkout or release containing `LogThrowableHandler`. It is an additive minor change under development; the pending Changeset does not make that API available in an older installed release. Its recording logger needs no transport or extra package beyond the library's existing PSR-3 dependency.
 
-To use the disposable application's dependencies:
+Individual recipes need only their application dependencies. The bounded
+verifier additionally uses Symfony Process as a development tool. Add it in the
+disposable application before selecting that application's autoloader:
+
+```sh
+composer require --dev 'symfony/process:^5.4 || ^6.4 || ^7.4 || ^8.0' --no-plugins --no-scripts --no-interaction
+```
+
+Then use the disposable application's dependencies:
 
 ```sh
 ERROR_HANDLER_AUTOLOAD=/absolute/application/vendor/autoload.php php examples/verify.php

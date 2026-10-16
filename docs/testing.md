@@ -1,69 +1,99 @@
-# Testing and 2.x characterization
+# PHPUnit testing and coverage
 
-The library declares PHP `^7.4 || ^8.0`. Resolve development dependencies for the
-runtime used to execute them; see [contributor setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md). Existing
-quality-toolchain work is tracked in [issue #10](https://github.com/coisa/error-handler/issues/10).
+The library declares PHP `^7.4 || ^8.0`. Development integrations can require a
+newer runtime; resolve their actual graph as described in
+[contributor setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md).
 
 ```sh
 composer update --no-plugins --no-scripts --no-interaction --prefer-dist
 composer --no-plugins check
-
-php tests/Fire/run.php
-php tests/Fire/run.php --with-psr
-php tests/Fire/buffers.php
-php tests/Http/run.php
-php tests/Http/run.php --check-port-retry
+vendor/bin/phpunit --testsuite Unit --no-coverage
+vendor/bin/phpunit --testsuite Process --no-coverage
+XDEBUG_MODE=coverage composer --no-plugins test-coverage -- --coverage-cobertura tests/cobertura.xml
 ```
 
-For runnable consumer integrations, use the [2.x cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
-and its [bounded example verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
-That verifier reuses the shared process runner below with explicit application
-dependencies. Run the commands directly with PHP CLI.
+`composer check` runs formatting, PHPCS, all PHPUnit suites and maximum PHPStan
+over source and tests. Coverage needs an enabled Xdebug or PCOV driver. When both
+are installed, select the intended driver explicitly rather than inferring it
+from a successful test run. Raw Cobertura measures source lines; the independent
+coverage job compares the authentic target-branch baseline and retains its
+existing overall regression gate. See [coverage reporting](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md#phpunit-coverage-and-pr-notes).
 
-The first fire command requires PHP only and runs 16 core scenarios. `--with-psr`
-adds five legacy response-capture scenarios and requires a compatible Composer
-autoload file containing the PSR interfaces and Nyholm PSR-7. The HTTP runner uses
-the same dependencies. The focused buffer regressions use those dependencies too
-and run in the PHP 8.3–8.5 quality jobs after the unchanged Composer checks.
+## Test responsibilities
 
-Run these entrypoints directly with PHP CLI and argument collection enabled.
-They fail explicitly before starting child fixtures if `$argv` is unavailable;
-missing arguments must not silently disable requested options.
+- `tests/Unit`: direct contracts for the measured subjects, including reporters,
+  native PHP callbacks, PSR responses and successful/failed output capture.
+  Specific `@covers` annotations describe those subjects. Doubles control
+  application-owned services; actual PSR values and real PHP callbacks are used
+  where relevant. Further class coverage is a separate test delivery.
+- `tests/Functional`: legacy application/container composition. These tests
+  retain `@coversNothing`; their executed lines are not relabeled unit coverage.
+  The existing global PHPUnit process isolation remains in this transition.
+  Scoping isolation and expanding direct class coverage are separate changes.
+- `tests/Process`: genuine uncaught/shutdown/fatal and hazardous output-handler
+  behavior, asserted by PHPUnit through public Symfony Process. External children
+  do not contribute to the parent's unit-coverage XML.
+- `tests/Fixtures`: only the small native lifecycle/output fixtures and unchanged
+  invalid parse/compile inputs. Run them through PHPUnit, never directly in an
+  application, agent or parent test process.
+- `tests/Production`: committed-archive and clean no-dev consumer checks. They
+  prove installed metadata/autoloading across the declared PHP range, which unit
+  tests of a development checkout cannot establish.
 
-For a runtime whose development integrations cannot be installed, create an
-isolated fixture directory with only `nyholm/psr7:^1.8` and
-`psr/http-server-middleware:^1.0`, resolving with that PHP runtime and Composer
-plugins/scripts disabled. Supply its absolute autoload path to both runners:
+The old standalone Fire/HTTP runners and custom process helper have been retired.
+Ordinary warnings/capture and the four HTTP response tuples now run directly in
+PHPUnit. No server is needed: the library returns PSR responses and applications
+own emission. Integer 404 stays 404, 503 falls back to 500, ordinary exceptions and
+TypeError produce 500; tests also verify exact captured bodies, original events
+and restored native callbacks. They do not certify an HTTP server or a future
+report-once/redacted-default policy.
 
-```sh
-php tests/Fire/run.php --with-psr --autoload=/tmp/error-handler-psr-fixture/vendor/autoload.php
-php tests/Fire/buffers.php --autoload=/tmp/error-handler-psr-fixture/vendor/autoload.php
-php tests/Http/run.php --autoload=/tmp/error-handler-psr-fixture/vendor/autoload.php
-```
+## Process bounds and known limits
 
-Use an owned test fixture, never a production application's bootstrap or data.
-The source autoloader takes precedence over fixture dependencies, so both runners
-exercise this checkout's `src` tree. Composer fixture files belong to their
-temporary directory and can be removed after the run.
+Each native fixture runs with `PHP_BINARY -n`, a 16 MiB memory limit, a two-second
+Symfony Process timeout and an interruption threshold of 64 KiB combined output.
+`finally` calls `stop(0)` on the owned child. Output can arrive in a final chunk
+during cleanup; this threshold is not a promise of exact byte-level buffer
+retention. The output callback raises once so cleanup cannot replace that
+exception while draining pipes. Fixtures never spawn descendants or contact
+external domains, credentials, application logs or production services.
 
-## Native CI and security-analysis limits
+Symfony Process is a direct development dependency. Its declared lines 5.4/6.4/
+7.4/8.0 permit resolution appropriate to PHP 7.4 and modern development runtimes;
+record the actual selected versions. Minimum-runtime component probes and native
+CI are evidence for the executed platforms, not universal Windows/signal behavior.
 
-The [PHP CI workflow](https://github.com/coisa/error-handler/actions/workflows/ci.yml)
-runs formatting, PHPCS, PHPUnit and maximum PHPStan analysis over source and
-tests, plus clean production installations across the declared PHP range.
-Its separate coverage jobs collect PHPUnit XML and report the measured lines;
-process/HTTP characterization remains separate evidence from that percentage.
+| Real native case | Observed 2.x contract or limitation |
+| --- | --- |
+| Uncaught Exception/Error/TypeError/ParseError | Original type is reported; process exits 0, a known limitation |
+| Compile fatal and bounded OOM | Exit 255, native diagnostic and fatal-severity reporting; no recovery |
+| Nested fatal handlers | Both report, preserving the known duplicate-delivery limitation |
+| Repeated registrations | Three cycles plus final registration retain four shutdown notifications |
+| Previous native callbacks | Reverse-order restoration preserves their actual delivery/mask/exit behavior |
+| Reporter throws during native delivery | Three deliveries then exit 255, a known reentry limitation |
+| Shutdown adapter throws | Its actual shutdown failure is forwarded to the reporter |
+| Protected output scopes | Caller bytes survive; a protected nested scope prevents deeper cleanup |
+| Output callback throws | Primary failure remains when control returns; buffers can remain |
+| Output callback exits | Its exit status wins; caller catch is never reached |
 
-The retired Scrutinizer configuration requested data-flow security analysis in
-addition to style, tests and coverage. Its latest public inspection was from
-September 2019, so its historical badges did not describe the current 2.x tree.
-PHPStan and PHPCS do not establish equivalent security analysis; the native
-workflow does not include that Scrutinizer capability. Removing repository
-configuration and badges does not change the external service's settings.
+Direct tests retain empty/`"0"` diagnostic fallback and successful unbalanced
+capture: the inner output becomes the body and an outer buffer remains. Passing
+characterization does not endorse these limitations or change runtime policy.
 
-## Direct logging compatibility
+Some lines cannot be safely asserted by ordinary unit tests: fatal last-error
+forwarding cannot return through PHPUnit's child result protocol, and three
+stream guards stop protected, failed or non-progressing cleanup. A real throwing native cleanup callback is
+tested directly with removable scopes restored in `finally`. Native process
+tests prove the other reachable hazardous operations; synthetic substitutions that made a native
+function return success without closing a buffer were discarded. No private
+reflection, coverage ignores, source exclusions or child-coverage protocol merging
+is used to claim 100%. Consult the implementation PR for exact reports and SHAs.
 
-The pending minor's `LogThrowableHandler` consumes the existing `psr/log`
+## Consumer examples and documentation
+
+### Direct logging compatibility
+
+The opt-in `LogThrowableHandler` consumes the existing `psr/log`
 `^1.1 || ^2.0 || ^3.0` interface without supplying a logger implementation.
 Verify each major explicitly: an ordinary highest/lowest dependency matrix can
 omit 2.x. Resolve an isolated application on its actual PHP, select the PSR-3
@@ -75,129 +105,24 @@ Recording-log tests establish calls, messages, context and failure propagation,
 not delivery to a real backend. Consult the implementation PR for the exact
 runtimes, resolved versions and measured coverage.
 
-## Bounds and cleanup
+### Cookbook and site
 
-Each fire child runs with `php -n`, a 16 MiB memory limit, a five-second deadline
-and a 256 KiB combined stdout/stderr cap. The shared runner reads in bounded
-chunks, terminates overdue/noisy children, closes pipes and reaps process handles
-in `finally`. Cleanup allows a 250 ms graceful termination period followed by a
-one-second forced-termination observation period. The child fixtures do not spawn
-descendants. The parent never deliberately exhausts its own memory.
+Run `php examples/verify.php` after installing the development/application
+dependencies. The [cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
+and [verifier guide](https://github.com/coisa/error-handler/blob/master/examples/verify.md)
+describe its real inputs, expected outputs and separate bounded native-fatal
+example. It uses Symfony Process directly and no test helper framework.
 
-The five harness self-checks execute normal exit, a sleeping child that exceeds
-its deadline, a noisy child that exceeds its output cap, and both entrypoints
-with missing CLI arguments. They assert exact normal output/exit, termination
-reasons, bounded captured bytes, observed reaping and an explicit argument error
-before any fixture work.
-It runs before the fire cases, or independently:
+Run `php tests/Documentation/site.php` with PHP 7.4+ and DOM to verify displayed
+source excerpts, unique IDs, anchors and links in `docs/index.html`. Browser
+layout, keyboard navigation and accessibility require separate visual evidence.
+The [Pages workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
+validates on PRs; artifact upload/deployment require a separately authorized
+manual run on the default branch and owner-configured hosting. Merging code does
+not publish the site.
 
-```sh
-php tests/Support/check.php
-```
-
-The HTTP runner reserves a dynamic `127.0.0.1` port and starts an owned PHP fixture
-server. The reservation must be released before `php -S` binds; if that child
-exits before confirming startup, the runner reaps it and tries a fresh port, up
-to three attempts. Requests begin only after the owned child's startup banner
-and must return a random per-run ownership header. `--check-port-retry` holds the
-first reservation deliberately and verifies exactly one rejected bind, reaping
-and retry before the four routes pass; no request is sent to the reserved port.
-Startup is limited to five seconds per attempt, each request to two seconds and
-64 KiB of body, and each active server lifetime to 20 seconds. Each request
-runs in its own bounded child, so a streaming response cannot bypass its deadline
-by repeatedly resetting an idle timeout. Redirects
-are disabled. Server output is capped at 256 KiB and its memory at 32 MiB. The
-same `finally` cleanup runs on success and on assertion/request failures. Request
-children use 16 MiB of memory and a 128 KiB captured-output cap. No real
-server, application logs, credentials or external domains are used.
-
-## What passing characterization means
-
-The 15 focused buffer cases each use a two-second, 16 MiB child with a 64 KiB
-combined-output cap. They verify exact primary identity, untouched caller output
-and levels, removable nested cleanup, protected buffers, callbacks that throw
-during rendering or cleanup, and unchanged successful capture/fallback bytes.
-Two child-only namespace function substitutions return false or true without
-closing a buffer, proving that a failed close or absent progress stops after one
-attempt. Native output handlers cannot safely start buffers while closing one;
-the substitutions exercise that defensive boundary without invoking a fatal
-callback. They add no production hook. `--source=/absolute/path/src --json`
-supports comparison with an archived baseline; the recorded reflected filename
-confirms which source was loaded.
-
-The assertions preserve observed 2.x behavior. A passing limitation case records
-a defect or boundary; it does not establish successful recovery or fix it.
-
-The non-removable-buffer scenario uses a typed callback that returns captured
-bytes unchanged, with cleanable/flushable flags and no removable flag. Its
-assertions measure failure propagation and remaining buffer levels, not every
-output-handler phase or callback implementation. Other buffer callbacks require
-their own focused regression cases.
-
-Process-terminating callbacks are a separate limit: cleanup invokes native output
-handlers, so an `exit()`/`die()` inside one can end the process before the primary
-failure reaches the caller. Bounded probes on PHP 7.4/8.4/8.5 confirmed the chosen
-callback exit status and no caller catch; PHP 7.4 also emitted a native diagnostic.
-These observations do not promise particular shutdown output across PHP versions
-or recovery from terminating/engine-fatal callbacks.
-
-| Scenarios | Observed contract or known limitation |
-| --- | --- |
-| User/native warnings and suppression | Reported severities produce one event and execution continues; masks and `@` suppression are honored |
-| Uncaught exception, Error, TypeError and included parse error | Original throwable class is reported, but the process exits **0**: known limitation |
-| Compile fatal and bounded allocation failure | Native exit **255**, native stderr and fatal severity reporting; execution is not recovered |
-| Nested fatal handlers | Both registered handlers report the fatal error: known duplicate-delivery limitation |
-| Repeated registration lifecycles | Three unregister/re-register cycles plus the final registration produce **four** shutdown notifications: known limitation |
-| Unregistered handler and reverse-order restoration | Unregistered shutdown callback is inactive; previous native callback/mask behavior is restored |
-| Throwing reporter | Reporter runs three times across exception/shutdown failure paths, then exits 255: known retry limitation |
-| Throwing custom shutdown and aggregate | Shutdown failure is forwarded; aggregate order and original throwable identity are preserved |
-| Legacy captured output | Nonempty renderer output is used as the response body |
-| Empty output and output `0` | Both fall back to the throwable diagnostic string: known legacy behavior; preserving `0` is separate work |
-| Throwing renderer | The same failure propagates after removable capture buffers are discarded; a non-removable nested buffer still leaves two |
-| Throwing cleanup callback | The primary renderer failure survives; cleanup stops and can leave buffers behind |
-| Successful unbalanced nested capture | The innermost buffer becomes the body and one buffer remains: preserved legacy behavior |
-
-The four HTTP routes verify the actual middleware/response composition: integer
-404 remains 404, exception code 503 falls back to 500, ordinary exceptions and
-TypeError produce 500. Bodies contain the synthetic renderer's diagnostic text;
-this is **not** a redacted generic-body default. Each route also observes one
-renderer invocation and restoration of the previous error/exception callbacks.
-It does not promise a future report-once middleware policy.
-
-The intentionally invalid `.inc` files belong only to bounded parse/compile
-fixtures and are excluded from ordinary syntax/style assertions with local
-PHPCS directives. Do not execute them in the parent test process.
-
-## Static documentation
-
-From a source checkout, open `docs/index.html` locally to inspect the 2.x reading guide. Run
-`php tests/Documentation/site.php` with PHP 7.4+ and its DOM extension to check
-every displayed source excerpt against its executable example, unique IDs,
-anchor targets and repository source links. Inspect keyboard navigation,
-horizontal code/table scrolling and mobile layout in a browser as separate
-visual/accessibility evidence. The checker does not certify a live website.
-
-The [Documentation Pages workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
-runs only its read-only validation job on pull requests. Artifact upload and
-deployment require `workflow_dispatch` on the repository's default branch.
-Hosting must be configured separately by the owner; the workflow does not enable
-Pages. Its deployment job uses the `github-pages` environment and Pages/OIDC write
-permissions, following [GitHub's custom workflow requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
-The first specifically authorized deployment remains a separate live integration
-check. Preparing or merging this workflow does not perform that check.
-
-## Evidence and limits
-
-The core characterization began as tests of published 2.0.0 behavior. Focused
-regressions now also cover the compatible exceptional buffer cleanup above;
-successful bytes and the empty/`0` diagnostic fallback remain unchanged.
-Local macOS arm64 executions exercised PHP 7.4.33, 8.4.26 and 8.5.11, including the
-21 fire scenarios, five harness self-checks and four HTTP routes. Those runtime
-observations do not certify other PHP minors, dependency resolutions or CI.
-Consult the implementation PR for its exact candidate SHA and executed results.
-
-PHP-FPM, Apache, Windows, concurrent requests/fibers, production load, signals,
-process descendants and external reporters require separate application-specific
-evidence. Startup errors, SIGKILL and an engine-aborted shutdown queue cannot be
-rescued by this harness. These checks do not establish safe behavior for arbitrary
-output-handler side effects or change exit, lifecycle or HTTP-default policy.
+Native PHP CI provides style/tests/PHPStan/coverage and clean consumer evidence.
+The retired Scrutinizer requested additional data-flow security analysis; PHPStan
+and PHPCS are not equivalent to that capability. Repository cleanup does not
+alter the external service. FPM/Apache, Windows, concurrency, arbitrary reporter
+side effects and production load still require application-specific validation.

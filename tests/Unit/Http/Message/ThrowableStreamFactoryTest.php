@@ -21,11 +21,12 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamFactoryInterface;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 
 /**
  * Verifies captured bytes, exceptional cleanup and primary failure propagation.
  *
- * Dangerous output callbacks remain in the bounded Fire fixtures.
+ * Dangerous output callbacks are verified by PHPUnit Process tests and bounded fixtures.
  *
  * @internal
  *
@@ -231,5 +232,151 @@ final class ThrowableStreamFactoryTest extends TestCase
                 ob_end_clean();
             }
         }
+    }
+
+    /** Verifies successful unbalanced capture retains its existing inner-body/outer-buffer behavior. */
+    public function testUnbalancedSuccessRetainsLegacyOuterBuffer(): void
+    {
+        $reporter = new CallableThrowableHandler(
+            /**
+             * Leaves one ordinary nested scope for the successful legacy capture to consume.
+             *
+             * @param \Throwable $event the supplied reporting event
+             */
+            static function (\Throwable $event): void {
+                echo 'outer';
+                ob_start();
+                echo 'inner';
+            },
+        );
+        $entry = ob_get_level();
+        ob_start();
+        echo 'caller:';
+        $caller = ob_get_level();
+
+        try {
+            $stream = (new ThrowableStreamFactory(new Psr17Factory(), $reporter))
+                ->createStreamFromThrowable(new \RuntimeException('incoming'))
+            ;
+            self::assertSame('inner', (string) $stream);
+            self::assertSame($caller + 1, ob_get_level());
+            self::assertSame('outer', ob_get_contents());
+            ob_end_clean();
+            self::assertSame('caller:', ob_get_contents());
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+    }
+
+    /** Verifies PSR stream failures propagate after successful capture has already closed. */
+    public function testStreamFactoryFailureDoesNotLeaveTheCaptureOpen(): void
+    {
+        $original = new \Error('incoming');
+        $primary = new \RuntimeException('stream creation');
+        $reporter = $this->createMock(ThrowableHandlerInterface::class);
+        $reporter->expects(self::once())->method('handleThrowable')->with(self::identicalTo($original));
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->method('createStream')->willThrowException($primary);
+        $entry = ob_get_level();
+
+        try {
+            (new ThrowableStreamFactory($streams, $reporter))->createStreamFromThrowable($original);
+            self::fail('The PSR stream factory failure must propagate.');
+        } catch (\RuntimeException $caught) {
+            self::assertSame($primary, $caught);
+            self::assertSame($entry, ob_get_level());
+        }
+    }
+
+    /** Verifies a native throwing output handler preserves primary failure and caller-owned scopes. */
+    public function testCleanupCallbackFailurePreservesPrimaryAndCaller(): void
+    {
+        $original = new \Error('incoming report');
+        $primary = new \RuntimeException('primary reporter failure');
+        $secondary = new \LogicException('secondary callback failure');
+        $callbackCalls = 0;
+        $callerCalls = 0;
+        $received = null;
+        $reporter = new CallableThrowableHandler(
+            /**
+             * Opens a removable scope whose native callback fails before reporting fails.
+             *
+             * @param \Throwable $event the original event supplied for reporting
+             *
+             * @throws \RuntimeException the primary reporter failure
+             */
+            static function (\Throwable $event) use ($primary, $secondary, &$callbackCalls, &$received): void {
+                $received = $event;
+                ob_start(
+                    /**
+                     * Throws once from the actual native close, without modifying buffer structure.
+                     *
+                     * @param string $buffer the nested reporter bytes
+                     *
+                     * @return string unchanged bytes on any later invocation
+                     *
+                     * @throws \LogicException the distinct first output-handler failure
+                     */
+                    static function (string $buffer) use ($secondary, &$callbackCalls): string {
+                        if (1 === ++$callbackCalls) {
+                            throw $secondary;
+                        }
+
+                        return $buffer;
+                    },
+                );
+                echo 'discard nested';
+
+                throw $primary;
+            },
+        );
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->expects(self::never())->method('createStream');
+        $entry = ob_get_level();
+        ob_start();
+        echo 'C0:';
+        ob_start(
+            /**
+             * Records premature invocation of a caller-owned scope.
+             *
+             * @param string $buffer the caller's original bytes
+             *
+             * @return string the same caller bytes
+             */
+            static function (string $buffer) use (&$callerCalls): string {
+                ++$callerCalls;
+
+                return $buffer;
+            },
+        );
+        echo 'C1:';
+        $callerLevel = ob_get_level();
+        $caught = null;
+
+        try {
+            try {
+                (new ThrowableStreamFactory($streams, $reporter))->createStreamFromThrowable($original);
+            } catch (\Throwable $failure) {
+                $caught = $failure;
+            }
+            self::assertSame($original, $received);
+            self::assertSame($primary, $caught);
+            self::assertSame(1, $callbackCalls);
+            self::assertSame($callerLevel + 1, ob_get_level());
+            self::assertSame(0, $callerCalls);
+            ob_end_clean();
+            self::assertSame($callerLevel, ob_get_level());
+            self::assertSame('C1:', ob_get_contents());
+            ob_end_flush();
+            self::assertSame('C0:C1:', ob_get_contents());
+            self::assertSame(1, $callerCalls);
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+        self::assertSame($entry, ob_get_level());
     }
 }
