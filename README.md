@@ -8,11 +8,11 @@
 
 Small, composable PHP error handling with FastForward Container, PSR-14 events and PSR-15 middleware. Report warnings, handle uncaught throwables and inspect fatal errors at shutdown through the same reporter interface.
 
-**Development documentation for the next major release.** This branch requires PHP 8.3–8.5 and changes lifecycle, CLI exit and HTTP response behavior. These changes are not part of the published 2.0.0 release. Read the [migration guide](docs/migration.md) before adopting this branch.
+**Development documentation for the next major release.** This branch declares PHP 8.3+ (`^8.3`), with CI testing PHP 8.3–8.5, and changes lifecycle, CLI exit and HTTP response behavior. These changes are not part of the published 2.x releases. Read the [migration guide](docs/migration.md) before adopting this branch.
 
 ## Install and run
 
-To reproduce this branch with PHP 8.3–8.5 and Composer 2:
+To reproduce this branch with PHP 8.3 or newer and Composer 2:
 
 ```sh
 git clone https://github.com/coisa/error-handler.git
@@ -52,28 +52,28 @@ is the single container integration entrypoint. Direct construction remains avai
 
 ## HTTP integration
 
-Compose `ErrorHandlerMiddleware` with a `ThrowableResponseFactory` and a PSR-17 implementation. The complete, tested [HTTP example](tests/Http/router.php) uses Nyholm PSR-7. Run its bounded smoke test with `php tests/Http/run.php`; it starts and cleans up a loopback-only server automatically.
+Compose `ErrorHandlerMiddleware` with a `ThrowableResponseFactory` and a PSR-17 implementation. The complete [HTTP example](examples/http-middleware.php) uses Nyholm PSR-7. Run `php examples/verify.php` for bounded recipe verification; PHPUnit tests the response, report order and callback restoration directly.
 
-The middleware restores handlers in `finally`, including when response rendering fails. Reporters that emit no content produce the generic body `Internal Server Error`. A custom renderer may emit a safe response body. Exception text is never used as a reason phrase. Integer exception codes 400–599 become the response status; other codes become 500. Native PHP warnings are reported separately and do not automatically turn a successful request into an error response.
+The middleware restores handlers in `finally`, including when response rendering fails. The provider's `GenericThrowableStreamFactory` always returns `Internal Server Error`, independently of reporter output. Reporters must keep diagnostics in private sinks: echoing diagnostics can still escape the PSR response and corrupt HTTP emission. A custom pure renderer may return a safe response body. Exception text is never used as a reason phrase. Integer exception codes 400–599 become the response status; other codes become 500. Native PHP warnings are reported separately and do not automatically turn a successful request into an error response.
 
 ## Documentation
 
 - [API and composition](docs/api.md): lifecycle, factories, handlers, containers and events.
 - [FastForward service provider](docs/fast-forward.md): callable definitions, application overrides and independent process/middleware handlers, with a [runnable example](examples/fast-forward.php).
-- [Testing and limitations](docs/testing.md): reproducible fire tests, exact observed platforms, isolation and failure boundaries.
+- [Testing and limitations](docs/testing.md): organized PHPUnit tests, exact observed platforms, isolation and failure boundaries.
 - [Migration from 2.0](docs/migration.md): breaking behavior and compatibility changes.
 - [Static documentation site](docs/index.html): install, composition and evidence at a glance. Open the file locally, or preview the `docs/` directory with a loopback static server.
 
-GitHub Pages is prepared as a **manual** workflow restricted to `master`. After review and merge, an owner can enable Pages with GitHub Actions as the source and run the Documentation workflow from `master`. Nothing in the pull-request CI publishes documentation or executes PHP on Pages.
+The static site is served through the owner's GitHub Pages configuration. The documentation workflow validates source parity and links; this development PR does not publish or change Pages settings.
 
 Dependabot is configured to propose Composer, npm release-tooling and GitHub Actions updates weekly after this configuration reaches the default branch. Updates remain reviewable pull requests.
 
 ## Complete usage recipes
 
 The [usage cookbook](docs/examples.md) and [documentation site](docs/index.html#examples)
-show all built-in adapters with nine runnable examples: process bootstrap,
+show all built-in adapters with twelve runnable examples: process bootstrap,
 Interop provider, ordered reporters, PSR-14 events with PSR-3 logging, HTTP
-middleware, safe JSON rendering, custom PHP/shutdown handlers, nested scopes and explicit compatibility output capture.
+middleware, safe JSON rendering, custom PHP/shutdown handlers, nested scopes, explicit public output capture, direct PSR-3 logging, filtering and callable PHP-error conversion.
 Reporters keep their void contract; HTTP middleware reports once, then uses a
 pure renderer. JSON examples return streams directly without echo or buffering.
 CI executes every recipe and verifies that the displayed code matches its source.
@@ -82,8 +82,8 @@ CI executes every recipe and verifies that the displayed code matches its source
 
 [Changesets](docs/releases.md) collects English release notes and maintains a
 version PR after changes reach `master`. Merging that reviewed bot PR creates the
-matching Git tag and GitHub release. The initial major note prepares 3.0.0 from
-the published 2.0.0 baseline; no release is performed by this development PR.
+matching Git tag and GitHub release. The pending major note is kept separate from the current 2.x package version;
+no release is performed by this development PR.
 Node is only development release tooling; consumers install the Composer package.
 
 ## Working with coding agents

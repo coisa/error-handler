@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\Event;
 
 /**
- * Class ErrorEvent
+ * Class ErrorEvent.
  *
  * Represents an event that encapsulates a throwable exception.
  * This class SHALL be used to propagate error-related events through the application.
@@ -27,14 +27,14 @@ namespace CoiSA\ErrorHandler\EventDispatcher\Event;
 final class ErrorEvent implements ErrorEventInterface
 {
     /**
-     * @var \Throwable The throwable instance associated with the event.
+     * @var \Throwable the throwable instance associated with the event
      */
     private \Throwable $throwable;
 
     /**
      * Constructs the ErrorEvent.
      *
-     * @param \Throwable $throwable The throwable instance representing the error.
+     * @param \Throwable $throwable the throwable instance representing the error
      */
     public function __construct(\Throwable $throwable)
     {
@@ -47,7 +47,7 @@ final class ErrorEvent implements ErrorEventInterface
      * This method SHALL return the string representation of the throwable,
      * typically used for debugging or logging purposes.
      *
-     * @return string The string representation of the throwable.
+     * @return string the string representation of the throwable
      */
     public function __toString(): string
     {
@@ -59,7 +59,7 @@ final class ErrorEvent implements ErrorEventInterface
      *
      * This method SHALL return the throwable instance associated with the event.
      *
-     * @return \Throwable The throwable instance.
+     * @return \Throwable the throwable instance
      */
     public function getThrowable(): \Throwable
     {

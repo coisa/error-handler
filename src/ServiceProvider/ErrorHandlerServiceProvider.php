@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -13,6 +11,8 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider;
 
@@ -45,7 +45,7 @@ final class ErrorHandlerServiceProvider implements ServiceProviderInterface
     /**
      * Supplies aliases and factories that define reporter composition and handler lifetimes.
      *
-     * @return array<class-string, callable> Lazy service definitions.
+     * @return array<class-string, callable> lazy service definitions
      */
     public function getFactories(): array
     {
@@ -65,7 +65,7 @@ final class ErrorHandlerServiceProvider implements ServiceProviderInterface
     /**
      * Supplies no service extensions; applications own registration and decoration.
      *
-     * @return array<string, callable> An empty extension map.
+     * @return array<string, callable> an empty extension map
      */
     public function getExtensions(): array
     {

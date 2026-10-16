@@ -1,6 +1,7 @@
 # FastForward service provider
 
-This integration belongs to the unreleased next major of `coisa/error-handler`.
+This integration belongs to the unreleased next major of `coisa/error-handler`,
+requiring PHP `^8.3`; PHP 8.3–8.5 are the tested versions.
 It follows the provider contract used by FastForward Container 1.6.0 and
 Framework 1.4.0. The existing `CoiSA\ErrorHandler` namespace remains the current
 API; a possible future move to php-fast-forward has not happened.
@@ -8,7 +9,7 @@ API; a possible future move to php-fast-forward has not happened.
 ## Installation and bootstrap
 
 The library requires `fast-forward/container:^1.6` and the
-`container-interop/service-provider:^0.4.1` interface package at runtime.
+`container-interop/service-provider:^0.4` interface package at runtime.
 Composer installs them for consumers. The provider reuses FastForward's
 `AliasFactory::get()` and `InvokableFactory`; it does not ship a second container.
 To install the container explicitly in an application:
@@ -87,7 +88,7 @@ try {
 
 For a process-wide handler, keep it registered through termination. For a scoped
 operation, use `try/finally` and unregister; the caller then owns any propagated
-exception. See [lifecycle](api.md#lifecycle) before combining these patterns.
+exception. See [lifecycle](api.md#lifecycle-and-diagnostic-reporting) before combining these patterns.
 
 `getFactories()` declares lazy services; `getExtensions()` returns an empty
 array. Neither method, service construction nor `has()` installs PHP callbacks.
@@ -132,6 +133,22 @@ reporter. Alternatively provide `CallableThrowableHandler` or
 PSR-14 path dispatches both the original throwable and an `ErrorEvent` wrapper;
 subscribe intentionally to avoid duplicate application reporting. An aggregate
 with no configured reporters is silent. No logger is silently installed.
+
+The compatible 2.x LogThrowableHandler and FilteringThrowableHandler remain
+explicit application composition. Construct the chosen reporter and bind it under
+ThrowableHandlerInterface using the merged-provider pattern below. Neither adapter
+is added to the optional discovery list. A logger binding alone does not opt into
+direct logging, and a filter does not change the separate public HTTP renderer.
+
+For an explicit PHP-error policy, construct CallablePhpErrorHandler and bind its
+instance under PhpErrorHandlerInterface. ErrorHandlerFactory passes that optional
+interface into process and fresh middleware handlers, preserving four arguments,
+ignored callback results and the callback's own mask/conversion policy. It adds no
+factory or automatic registration. The three constructor inputs remain typed
+interfaces; [bare-callable inputs](https://github.com/coisa/error-handler/issues/70)
+are separate pending major work. See [adapter contracts](api.md#callable-php-error-policy)
+and the [logging](../examples/logging.php), [filtering](../examples/filtering.php)
+and [PHP-error](../examples/php-errors.php) examples.
 
 Some autowiring containers advertise `CallableThrowableHandler` through `has()`
 even when its required callable cannot be constructed. Optional discovery skips
@@ -233,7 +250,7 @@ The integration tests use the real released FastForward container, including
 provider-class bootstrap, explicit and optional reporters, custom PHP/shutdown
 handlers, event dispatch, fresh factories, nested HTTP scopes and restoration
 after renderer failure. The full [test command](testing.md) retains the existing
-fatal-error and HTTP checks. CI also installs without development dependencies
+bounded fatal-error fixtures under PHPUnit Process tests. CI also installs without development dependencies
 and resolves a process handler through the provider, proving that FastForward's
 factory classes and autowiring are available in production installations.
 

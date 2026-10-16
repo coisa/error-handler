@@ -1,17 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
  *
- * @link https://github.com/coisa/error-handler
+ * @link      https://github.com/coisa/error-handler
+ *
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
- * @license https://opensource.org/licenses/MIT MIT License
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
@@ -27,7 +28,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 use function FastForward\Container\container;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $reported = [];
 
@@ -38,9 +39,9 @@ $reporter = new CallableThrowableHandler(static function (Throwable $error) use 
 });
 
 $application = new ArrayServiceProvider([
-    CallableThrowableHandler::class => static fn (): CallableThrowableHandler => $reporter,
-    ResponseFactoryInterface::class => static fn (): ResponseFactoryInterface => $psr17,
-    StreamFactoryInterface::class => static fn (): StreamFactoryInterface => $psr17,
+    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => $reporter,
+    ResponseFactoryInterface::class => static fn(): ResponseFactoryInterface => $psr17,
+    StreamFactoryInterface::class => static fn(): StreamFactoryInterface => $psr17,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);
@@ -48,12 +49,13 @@ $services = container(ErrorHandlerServiceProvider::class, $application);
 $process = $services->get(ErrorHandlerInterface::class);
 $middleware = $services->get(ErrorHandlerMiddleware::class);
 
-$downstream = new class () implements RequestHandlerInterface {
+$downstream = new class implements RequestHandlerInterface {
     /**
      * Simulates an application failure with an HTTP error status.
      *
-     * @param ServerRequestInterface $request The incoming request.
-     * @return ResponseInterface A response supplied by the error middleware.
+     * @param ServerRequestInterface $request the incoming request
+     *
+     * @return ResponseInterface a response supplied by the error middleware
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {

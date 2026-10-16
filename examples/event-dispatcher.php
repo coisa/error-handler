@@ -1,17 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
  *
- * @link https://github.com/coisa/error-handler
+ * @link      https://github.com/coisa/error-handler
+ *
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
- * @license https://opensource.org/licenses/MIT MIT License
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
@@ -30,13 +31,13 @@ use Psr\Log\LogLevel;
 
 use function FastForward\Container\container;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $deliveries = [];
 
-$logger = new class () extends AbstractLogger {
+$logger = new class extends AbstractLogger {
     /**
-     * @var list<string> Synthetic private log records; replace with an application logger.
+     * @var list<string> synthetic private log records; replace with an application logger
      */
     public array $records = [];
 
@@ -45,9 +46,9 @@ $logger = new class () extends AbstractLogger {
      *
      * Untyped parameters also support applications using psr/log 1.x.
      *
-     * @param mixed $level The PSR-3 log level.
-     * @param mixed $message The diagnostic message.
-     * @param array<string, mixed> $context The application log context.
+     * @param mixed                $level   the PSR-3 log level
+     * @param mixed                $message the diagnostic message
+     * @param array<string, mixed> $context the application log context
      */
     public function log($level, $message, array $context = []): void
     {
@@ -58,19 +59,19 @@ $logger = new class () extends AbstractLogger {
 $throwables = new ThrowableListenerProvider(
     new ThrowableCallableListener(static function (Throwable $error) use (&$deliveries): void {
         $deliveries[] = 'throwable: ' . $error->getMessage();
-    })
+    }),
 );
 $events = new ErrorEventListenerProvider(
     new ErrorEventCallableListener(static function (ErrorEventInterface $event) use (&$deliveries): void {
         $deliveries[] = 'event: ' . $event->getThrowable()->getMessage();
-    })
+    }),
 );
 $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
 
 $dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
 
 $application = new ArrayServiceProvider([
-    EventDispatcherInterface::class => static fn (): EventDispatcherInterface => $dispatcher,
+    EventDispatcherInterface::class => static fn(): EventDispatcherInterface => $dispatcher,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);

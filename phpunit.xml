@@ -15,6 +15,15 @@
         <testsuite name="Functional">
             <directory suffix="Test.php">tests/Functional</directory>
         </testsuite>
+        <testsuite name="Process">
+            <directory suffix="Test.php">tests/Process</directory>
+        </testsuite>
     </testsuites>
     <source><include><directory>src</directory></include></source>
+    <coverage>
+        <report>
+            <clover outputFile="tests/clover.xml"/>
+            <text outputFile="php://stdout"/>
+        </report>
+    </coverage>
 </phpunit>

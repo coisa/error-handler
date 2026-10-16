@@ -1,11 +1,11 @@
 .composer/
+/composer.lock
 .idea/
 vendor/
-composer.lock
 node_modules/
-changeset-status.json
+/tmp/
 tests/html/
 tests/clover.xml
+tests/cobertura.xml
 tests/testdox.html
 .*.cache
-tmp/

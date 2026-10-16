@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Handler;
 
 /**
- * Class CallableThrowableHandler
+ * Class CallableThrowableHandler.
  *
  * Handles throwable instances using a provided callable handler.
  * This class SHALL ensure that the handler callable is invoked
@@ -28,7 +28,7 @@ namespace CoiSA\ErrorHandler\Handler;
 final class CallableThrowableHandler implements ThrowableHandlerInterface
 {
     /**
-     * @var callable The handler responsible for processing throwable instances.
+     * @var callable the handler responsible for processing throwable instances
      */
     private $handler;
 
@@ -37,7 +37,7 @@ final class CallableThrowableHandler implements ThrowableHandlerInterface
      *
      * This constructor SHALL accept a callable to handle throwable instances.
      *
-     * @param callable $handler The callable that will process the throwable.
+     * @param callable $handler the callable that will process the throwable
      */
     public function __construct(callable $handler)
     {
@@ -49,9 +49,7 @@ final class CallableThrowableHandler implements ThrowableHandlerInterface
      *
      * This method SHALL invoke the provided callable handler with the given throwable.
      *
-     * @param \Throwable $throwable The throwable instance to be handled.
-     *
-     * @return void
+     * @param \Throwable $throwable the throwable instance to be handled
      */
     public function handleThrowable(\Throwable $throwable): void
     {

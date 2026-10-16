@@ -1,112 +1,249 @@
-name: CI
+name: PHP CI
 
 on:
+  pull_request:
   push:
     branches: [master]
-  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: php-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  COMPOSER_PROCESS_TIMEOUT: '600'
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  test:
-    name: PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
+  quality:
+    name: Quality / PHP ${{ matrix.php }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        php: ['8.3', '8.4', '8.5']
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
+          coverage: none
+          tools: composer:v2
+
+      - name: Resolve the development graph on the actual runtime
+        run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+
+      - name: Record and validate the resolved platform
+        run: |
+          php --version
+          php -r 'echo "error_reporting=" . error_reporting() . PHP_EOL;'
+          composer --version
+          composer validate --strict --no-check-publish
+          composer check-platform-reqs
+          composer show --locked
+
+      - name: Run formatting, PHPCS, PHPUnit and maximum src-plus-tests analysis
+        run: composer --no-plugins check
+
+  production:
+    name: Production / PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5']
+        dependencies: [highest]
         include:
           - php: '8.3'
             dependencies: lowest
-          - php: '8.3'
-            dependencies: highest
-          - php: '8.4'
-            dependencies: highest
           - php: '8.5'
-            dependencies: highest
+            dependencies: lowest
+
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, mbstring, xml, xmlwriter, pdo
           coverage: none
           tools: composer:v2
-      - run: composer validate --strict --no-plugins
-      - if: matrix.dependencies == 'highest'
-        run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
-      - if: matrix.dependencies == 'lowest'
-        run: composer update --prefer-lowest --prefer-stable --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
-      - run: composer --no-plugins check
-      - name: Verify every documented example and displayed source
-        run: python3 tests/Examples/run.py
-      - name: Verify runtime archive and production-only installation
-        run: python3 tests/Distribution/run.py
+
+      - name: Lint all tracked PHP on the actual runtime
+        run: git ls-files -z -- '*.php' | xargs -0 -n1 php -l
+
+      - name: Verify the committed distribution and create a clean consumer
+        run: |
+          mkdir -p "$RUNNER_TEMP/package" "$RUNNER_TEMP/consumer"
+          git archive --format=tar --output="$RUNNER_TEMP/package.tar" HEAD
+          php tests/Production/archive.php "$RUNNER_TEMP/package.tar"
+          tar -xf "$RUNNER_TEMP/package.tar" -C "$RUNNER_TEMP/package"
+          jq -n --arg path "$RUNNER_TEMP/package" '{
+            name: "coisa/production-fixture",
+            repositories: [{
+              type: "path",
+              url: $path,
+              options: {symlink: false, versions: {"coisa/error-handler": "dev-ci"}}
+            }],
+            require: {"coisa/error-handler": "dev-ci"},
+            config: {"allow-plugins": false}
+          }' > "$RUNNER_TEMP/consumer/composer.json"
+
+      - name: Resolve runtime dependencies without development packages
+        env:
+          DEPENDENCIES: ${{ matrix.dependencies }}
+        run: |
+          options=()
+          if [ "$DEPENDENCIES" = lowest ]; then
+            options+=(--prefer-lowest --prefer-stable)
+          fi
+          composer --working-dir="$RUNNER_TEMP/consumer" update \
+            --no-dev --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress \
+            "${options[@]}"
+
+      - name: Record and check the production platform
+        run: |
+          php --version
+          composer --version
+          composer --working-dir="$RUNNER_TEMP/consumer" check-platform-reqs --no-dev
+          composer --working-dir="$RUNNER_TEMP/consumer" show --locked
+
+      - name: Exercise the public container and alias factories
+        run: |
+          php tests/Production/container.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
+          php tests/Production/alias-factory.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
 
   coverage:
-    name: PHPUnit coverage
+    name: PHPUnit coverage / PHP 8.5
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Resolve and record the actual coverage toolchain
+        run: |
+          composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+          php --version
+          composer --version
+          composer check-platform-reqs
+          composer show --locked
+
+      - name: Run PHPUnit with Clover and line-coverage reports
+        env:
+          XDEBUG_MODE: coverage
+        run: composer --no-plugins test-coverage -- --coverage-cobertura tests/cobertura.xml
+
+      - name: Upload the raw PHPUnit coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report-php
+          path: |
+            tests/clover.xml
+            tests/cobertura.xml
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+  coverage-report:
+    name: Coverage report
+    needs: coverage
+    if: ${{ !cancelled() && needs.coverage.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: read
-      pull-requests: read
-    env:
-      MINIMUM_COVERAGE: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || vars.MINIMUM_COVERAGE || '85' }}
+      pull-requests: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
-        with:
-          php-version: '8.5'
-          extensions: dom, mbstring, xml, xmlwriter, pdo
-          coverage: xdebug
-          tools: composer:v2
-      - name: Validate coverage configuration
-        run: |
-          if [[ ! "$MINIMUM_COVERAGE" =~ ^([0-9]|[1-9][0-9]|100)$ ]]; then
-            echo "Minimum coverage must be an integer from 0 to 100." >&2
-            exit 1
-          fi
-      - run: composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
-      - name: Run PHPUnit with coverage
-        run: composer --no-plugins test -- --coverage-cobertura tmp/coverage/cobertura.xml
-        env:
-          XDEBUG_MODE: coverage
-      - name: Upload the coverage report
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      - name: Download this run's coverage artifact
+        uses: actions/download-artifact@v8
         with:
           name: coverage-report-php
-          path: tmp/coverage/cobertura.xml
-          if-no-files-found: error
-      - name: Compare coverage and prepare the PR report
+          path: tests
+
+      - name: Create the baseline or check coverage
         id: coverage-diff
-        uses: clearlyip/code-coverage-report-action@110af9d4ec87b6706f182fd90e3102af9e5203bf # v7
+        uses: clearlyip/code-coverage-report-action@v7
         with:
-          filename: tmp/coverage/cobertura.xml
-          artifact_download_workflow_names: CI
-          artifact_name: php-coverage-%name%
-          overall_coverage_fail_threshold: ${{ env.MINIMUM_COVERAGE }}
+          filename: tests/cobertura.xml
+          artifact_download_workflow_names: PHP CI
+          artifact_name: phpunit-coverage-%name%
+          retention_days: '90'
+          overall_coverage_fail_threshold: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || '0' }}
           fail_on_negative_difference: 'true'
+          negative_difference_by: overall
           only_list_changed_files: 'true'
-          file_coverage_error_min: ${{ env.MINIMUM_COVERAGE }}
-          file_coverage_warning_max: '90'
-          without_base_coverage_template: .github/coverage-templates/without-base-coverage.hbs
-          with_base_coverage_template: .github/coverage-templates/with-base-coverage.hbs
-      - name: Export markdown for the default-branch sticky-note publisher
-        if: >-
-          !cancelled() && github.event_name == 'pull_request' &&
-          steps.coverage-diff.outputs.file != ''
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+
+      - name: Identify the tested head and run
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTED_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          printf '\n\nHead: %s. Tested commit: %s. [PHP CI run](%s).\n' \
+            "$HEAD_SHA" "$TESTED_SHA" "$RUN_URL" >> code-coverage-results.md
+
+      - name: Upload the Markdown report
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-pr-comment
           path: ${{ steps.coverage-diff.outputs.file }}
           if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+      - name: Update the PR coverage note
+        if: >-
+          !cancelled() &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          !startsWith(github.head_ref, 'dependabot/') &&
+          steps.coverage-diff.outputs.file != ''
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: phpunit-coverage
+          path: ${{ steps.coverage-diff.outputs.file }}
 

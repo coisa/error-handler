@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -14,13 +12,15 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
+declare(strict_types=1);
+
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
 $reporter = new CallableThrowableHandler(static function (Throwable $error): void {
-    fwrite(STDERR, get_class($error) . ': ' . $error->getMessage() . PHP_EOL);
+    fwrite(STDERR, $error::class . ': ' . $error->getMessage() . PHP_EOL);
 });
 
 $handler = new ErrorHandler($reporter);

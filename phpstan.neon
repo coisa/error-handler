@@ -1,7 +1,11 @@
+includes:
+  - vendor/jangregor/phpstan-prophecy/extension.neon
+
 parameters:
   level: max
   paths:
     - src
+    - tests
   stubFiles:
-    - tests/StaticAnalysis/output-buffer.stub
+    - tests/Analysis/output-buffer.stub
   tmpDir: tmp/phpstan

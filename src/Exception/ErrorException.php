@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Exception;
 
 /**
- * Class ErrorException
+ * Class ErrorException.
  *
  * Represents a specialized error exception used within the error-handler package.
  * This exception SHALL provide enhanced error-handling capabilities while maintaining
@@ -32,14 +32,14 @@ final class ErrorException extends \ErrorException
      *
      * This method SHALL provide a factory for creating exceptions from native PHP errors.
      *
-     * @param string $message The error message.
-     * @param int $code The error code.
-     * @param int $severity The severity level of the error.
-     * @param string|null $filename The filename where the error occurred.
-     * @param int|null $line The line number where the error occurred.
-     * @param \Throwable|null $previous The previous throwable used for exception chaining.
+     * @param string          $message  the error message
+     * @param int             $code     the error code
+     * @param int             $severity the severity level of the error
+     * @param null|string     $filename the filename where the error occurred
+     * @param null|int        $line     the line number where the error occurred
+     * @param null|\Throwable $previous the previous throwable used for exception chaining
      *
-     * @return self An instance of ErrorException.
+     * @return self an instance of ErrorException
      */
     public static function fromPhpError(
         string $message,

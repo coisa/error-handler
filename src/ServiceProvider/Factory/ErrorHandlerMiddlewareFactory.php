@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -13,6 +11,8 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
 
@@ -30,9 +30,9 @@ final class ErrorHandlerMiddlewareFactory
     /**
      * Creates an independent middleware scope without registering PHP callbacks.
      *
-     * @param ContainerInterface $container The container supplying a reusable handler factory and responses.
+     * @param ContainerInterface $container the container supplying a reusable handler factory and responses
      *
-     * @return ErrorHandlerMiddleware Middleware owning a fresh, initially unregistered handler.
+     * @return ErrorHandlerMiddleware middleware owning a fresh, initially unregistered handler
      */
     public function __invoke(ContainerInterface $container): ErrorHandlerMiddleware
     {
@@ -40,6 +40,7 @@ final class ErrorHandlerMiddlewareFactory
          * @var ErrorHandlerFactory $handlerFactory
          */
         $handlerFactory = $container->get(ErrorHandlerFactory::class);
+
         /**
          * @var ThrowableResponseFactoryInterface $responses
          */

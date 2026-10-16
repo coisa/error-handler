@@ -1,17 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
  *
- * @link https://github.com/coisa/error-handler
+ * @link      https://github.com/coisa/error-handler
+ *
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
- * @license https://opensource.org/licenses/MIT MIT License
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
@@ -26,18 +27,16 @@ final class GenericThrowableStreamFactory implements ThrowableStreamFactoryInter
     /**
      * Constructs a renderer using the application's PSR-17 stream factory.
      *
-     * @param StreamFactoryInterface $streams Creates response body streams.
+     * @param StreamFactoryInterface $streams creates response body streams
      */
-    public function __construct(private StreamFactoryInterface $streams)
-    {
-    }
+    public function __construct(private StreamFactoryInterface $streams) {}
 
     /**
      * Creates the generic response body without disclosing throwable diagnostics.
      *
-     * @param \Throwable $throwable The private failure whose details remain undisclosed.
+     * @param \Throwable $throwable the private failure whose details remain undisclosed
      *
-     * @return StreamInterface A new stream containing the generic public message.
+     * @return StreamInterface a new stream containing the generic public message
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {

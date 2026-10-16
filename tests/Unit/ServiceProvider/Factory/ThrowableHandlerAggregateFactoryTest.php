@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -13,6 +11,8 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\ServiceProvider\Factory;
 
@@ -30,6 +30,8 @@ use Psr\Container\NotFoundExceptionInterface;
  * @package CoiSA\ErrorHandler\Test\Unit\ServiceProvider\Factory
  *
  * @internal
+ *
+ * @coversNothing
  */
 final class ThrowableHandlerAggregateFactoryTest extends TestCase
 {
@@ -38,8 +40,7 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
      */
     public function testAnAdvertisedButMissingOptionalCallableIsSkipped(): void
     {
-        $missing = new class ('Missing callable') extends \RuntimeException implements NotFoundExceptionInterface {
-        };
+        $missing = new class ('Missing callable') extends \RuntimeException implements NotFoundExceptionInterface {};
         $container = $this->containerFailingWith($missing);
         $aggregate = (new ThrowableHandlerAggregateFactory())($container);
 
@@ -50,9 +51,9 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
     /**
      * Verifies reporter construction failures other than not-found propagate.
      *
-     * @param \Throwable $failure The synthetic failure to propagate.
+     * @param \Throwable $failure the synthetic failure to propagate
      */
-    #[DataProvider('constructionFailures')]
+    #[DataProvider('provideConstructionErrorsAreNotHiddenCases')]
     public function testConstructionErrorsAreNotHidden(\Throwable $failure): void
     {
         $container = $this->containerFailingWith($failure);
@@ -64,32 +65,33 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
     /**
      * Provides PSR container and ordinary application construction failures.
      *
-     * @return iterable<string, array{\Throwable}> Synthetic construction failures.
+     * @return iterable<string, array{\Throwable}> synthetic construction failures
      */
-    public static function constructionFailures(): iterable
+    public static function provideConstructionErrorsAreNotHiddenCases(): iterable
     {
         yield 'PSR construction failure' => [
-            new class ('Invalid reporter') extends \RuntimeException implements ContainerExceptionInterface {
-            },
+            new class ('Invalid reporter') extends \RuntimeException implements ContainerExceptionInterface {},
         ];
+
         yield 'application failure' => [new \LogicException('Reporter initialization failed')];
     }
 
     /**
      * Creates a container double that advertises a reporter but fails its lookup.
      *
-     * @param \Throwable $failure The synthetic failure to propagate.
+     * @param \Throwable $failure the synthetic failure to propagate
      *
-     * @return ContainerInterface The fixture result.
+     * @return ContainerInterface the fixture result
      */
     private function containerFailingWith(\Throwable $failure): ContainerInterface
     {
         $container = $this->createMock(ContainerInterface::class);
         $container->method('has')->willReturnCallback(
-            static fn (string $id): bool => $id === CallableThrowableHandler::class
+            static fn(string $id): bool => CallableThrowableHandler::class === $id,
         );
         $container->expects(self::once())->method('get')
-            ->with(CallableThrowableHandler::class)->willThrowException($failure);
+            ->with(CallableThrowableHandler::class)->willThrowException($failure)
+        ;
 
         return $container;
     }

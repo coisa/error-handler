@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,16 +8,25 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
-// coisa/php-cs-fixer 2.1.0 depends on AbstractRuleSetDescription, removed from
-// current PHP CS Fixer. This explicit PSR-12 baseline is not its full CoiSA preset.
-return (new PhpCsFixer\Config())
-    ->setRules(['@PSR12' => true])
-    ->setFinder(PhpCsFixer\Finder::create()->in([
-        __DIR__ . '/src',
-        __DIR__ . '/tests',
-        __DIR__ . '/examples',
-    ])->name('*.php'));
+declare(strict_types=1);
+
+use CoiSA\PhpCsFixer\HeaderExtractor;
+use CoiSA\PhpCsFixer\PhpCsFixer;
+
+$paths = [
+    __FILE__,
+    __DIR__,
+];
+
+$header = HeaderExtractor::extractFromFile(__FILE__);
+
+return PhpCsFixer::create($paths, $header, [
+    'trailing_comma_in_multiline' => [
+        'after_heredoc' => true,
+        'elements'     => ['arguments', 'array_destructuring', 'arrays'],
+    ],
+]);

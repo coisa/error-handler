@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Http\Message;
 
@@ -21,7 +21,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 
 /**
- * Class ThrowableStreamFactory
+ * Class ThrowableStreamFactory.
  *
  * Captures deliberately public renderer output as an optional compatibility adapter.
  * Middleware reports diagnostics separately before rendering. Consumers MUST NOT
@@ -32,20 +32,20 @@ use Psr\Http\Message\StreamInterface;
 final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
 {
     /**
-     * @var StreamFactoryInterface Factory for creating PSR-7 streams.
+     * @var StreamFactoryInterface factory for creating PSR-7 streams
      */
     private StreamFactoryInterface $streamFactory;
 
     /**
-     * @var ThrowableHandlerInterface Handler for processing throwable instances.
+     * @var ThrowableHandlerInterface handler for processing throwable instances
      */
     private ThrowableHandlerInterface $throwableHandler;
 
     /**
      * Constructs the ThrowableStreamFactory.
      *
-     * @param StreamFactoryInterface $streamFactory Factory for creating PSR-7 streams.
-     * @param ThrowableHandlerInterface $throwableHandler Handler for throwable instances.
+     * @param StreamFactoryInterface    $streamFactory    factory for creating PSR-7 streams
+     * @param ThrowableHandlerInterface $throwableHandler handler for throwable instances
      */
     public function __construct(
         StreamFactoryInterface $streamFactory,
@@ -63,12 +63,12 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * It SHALL preserve the body "0" and use a generic fallback for empty output.
      * Renderers MUST balance removable buffers and MUST NOT close caller-owned buffers.
      *
-     * @param \Throwable $throwable The throwable instance to process.
+     * @param \Throwable $throwable the throwable instance to process
      *
-     * @return StreamInterface The rendered response body or a generic fallback.
+     * @return StreamInterface the rendered response body or a generic fallback
      *
      * @throws \Throwable If rendering, buffer cleanup or stream construction fails.
-     *     A renderer failure takes precedence over any later cleanup failure.
+     *                    A renderer failure takes precedence over any later cleanup failure.
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
@@ -76,6 +76,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
         $failure = null;
         $buffer = false;
         ob_start();
+
         try {
             $this->throwableHandler->handleThrowable($throwable);
             $buffer = ob_get_contents();
@@ -85,13 +86,13 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
             $cleanupFailure = $this->cleanOutputBuffers($initialLevel);
         }
 
-        if ($failure !== null) {
+        if (null !== $failure) {
             throw $failure;
         }
-        if ($cleanupFailure !== null) {
+        if (null !== $cleanupFailure) {
             throw $cleanupFailure;
         }
-        if ($buffer === false || $buffer === '') {
+        if (false === $buffer || '' === $buffer) {
             $buffer = 'Internal Server Error';
         }
 
@@ -105,9 +106,9 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * makes no progress. Its first failure is returned so the caller can preserve
      * a renderer failure in preference to a later cleanup failure.
      *
-     * @param int $initialLevel The caller's output-buffer depth before rendering.
+     * @param int $initialLevel the caller's output-buffer depth before rendering
      *
-     * @return \Throwable|null The first cleanup failure, or null when no removal failed.
+     * @return null|\Throwable the first cleanup failure, or null when no removal failed
      */
     private function cleanOutputBuffers(int $initialLevel): ?\Throwable
     {
@@ -115,11 +116,12 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
 
         while (ob_get_level() > $initialLevel) {
             $flags = ob_get_status()['flags'] ?? null;
-            if (!is_int($flags) || ($flags & PHP_OUTPUT_HANDLER_REMOVABLE) === 0) {
+            if (!\is_int($flags) || ($flags & PHP_OUTPUT_HANDLER_REMOVABLE) === 0) {
                 break;
             }
 
             $level = ob_get_level();
+
             try {
                 ob_end_clean();
             } catch (\Throwable $cleanupFailure) {

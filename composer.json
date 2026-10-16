@@ -16,7 +16,7 @@
     },
     "require": {
         "php": "^8.3",
-        "container-interop/service-provider": "^0.4.1",
+        "container-interop/service-provider": "^0.4",
         "fast-forward/container": "^1.6",
         "psr/container": "^1.1 || ^2.0",
         "psr/http-server-middleware": "^1.0",
@@ -30,27 +30,31 @@
         }
     },
     "autoload-dev": {
-        "exclude-from-classmap": ["tests/Fire/", "tests/Http/"],
+        "exclude-from-classmap": ["/tests/Fixtures/compile-fatal.inc"],
         "psr-4": {
             "CoiSA\\ErrorHandler\\Test\\": "tests/"
         }
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3.95",
+        "coisa/php-cs-fixer": "^3.0",
+        "jangregor/phpstan-prophecy": "^2.1",
         "nyholm/psr7": "^1.8",
+        "nyholm/psr7-server": "^1.1",
         "phly/phly-event-dispatcher": "^1.0",
+        "phpspec/prophecy": "^1.20",
+        "phpspec/prophecy-phpunit": "^2.1",
         "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-strict-rules": "^2.0",
         "phpunit/phpunit": "^12.5 || ^13.0",
-        "squizlabs/php_codesniffer": "^4.0"
+        "squizlabs/php_codesniffer": "^4.0",
+        "symfony/process": "^5.4 || ^6.4 || ^7.4 || ^8.0"
     },
     "scripts": {
         "check": [
             "@cs-check",
             "@sniff",
             "@test",
-            "@analyze",
-            "@fire-test",
-            "@http-test"
+            "@analyze"
         ],
         "analyze": "phpstan analyze --no-progress",
         "cs-check": "php-cs-fixer fix --dry-run --diff --using-cache=no",
@@ -59,8 +63,7 @@
             "phpcbf"
         ],
         "sniff": "phpcs",
-        "test": "phpunit",
-        "fire-test": "@php tests/Fire/run.php --with-psr",
-        "http-test": "@php tests/Http/run.php"
+        "test": "phpunit --no-coverage --colors=always",
+        "test-coverage": "phpunit --colors=always"
     }
 }

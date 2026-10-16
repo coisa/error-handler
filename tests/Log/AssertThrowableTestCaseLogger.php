@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Log;
 
@@ -23,7 +23,7 @@ use Psr\Log\LogLevel;
 /**
  * Class AssertThrowableTestCaseLogger.
  *
- * @package CoiSA\ErrorHandler\Test\Util
+ * @package CoiSA\ErrorHandler\Test\Log
  */
 final class AssertThrowableTestCaseLogger extends AbstractLogger
 {
@@ -43,7 +43,11 @@ final class AssertThrowableTestCaseLogger extends AbstractLogger
     private static $testCase;
 
     /**
-     * AssertThrowableTestCaseLogger constructor.
+     * Capture the throwable and expected level asserted by each log call.
+     *
+     * @param TestCase   $testCase  the test case receiving assertion counts
+     * @param \Throwable $throwable the throwable whose string representation is expected
+     * @param string     $logLevel  the exact expected PSR-3 log level
      */
     public function __construct(TestCase $testCase, \Throwable $throwable, string $logLevel = LogLevel::ERROR)
     {
@@ -54,8 +58,11 @@ final class AssertThrowableTestCaseLogger extends AbstractLogger
     }
 
     /**
-     * @param mixed  $level
-     * @param string $message
+     * Assert that a diagnostic report preserves the expected level and throwable text.
+     *
+     * @param mixed                $level
+     * @param string               $message
+     * @param array<string, mixed> $context optional PSR-3 context, unused by this fixture
      */
     public function log($level, $message, array $context = []): void
     {

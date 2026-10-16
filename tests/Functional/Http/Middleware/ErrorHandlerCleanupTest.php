@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -13,6 +11,8 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\Http\Middleware;
 
@@ -32,6 +32,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * @package CoiSA\ErrorHandler\Test\Functional\Http\Middleware
  *
  * @internal
+ *
+ * @coversNothing
  */
 final class ErrorHandlerCleanupTest extends TestCase
 {
@@ -40,9 +42,8 @@ final class ErrorHandlerCleanupTest extends TestCase
      */
     public function testRestoresHandlersEvenWhenTheResponseFactoryThrows(): void
     {
-        $previousError = static fn (): bool => true;
-        $previousException = static function (\Throwable $error): void {
-        };
+        $previousError = static fn(): bool => true;
+        $previousException = static function (\Throwable $error): void {};
         set_error_handler($previousError, E_USER_NOTICE);
         set_exception_handler($previousException);
         $failure = new \RuntimeException('response factory failed');
@@ -50,48 +51,46 @@ final class ErrorHandlerCleanupTest extends TestCase
             /**
              * Stores synthetic collaborators or failures for this test fixture.
              *
-             * @param \Throwable $failure The synthetic failure to propagate.
+             * @param \Throwable $failure the synthetic failure to propagate
              */
-            public function __construct(private \Throwable $failure)
-            {
-            }
+            public function __construct(private \Throwable $failure) {}
+
             /**
              * Throws the configured rendering failure to exercise callback restoration.
              *
-             * @param \Throwable $throwable The throwable being rendered.
+             * @param \Throwable $throwable the throwable being rendered
              *
-             * @return ResponseInterface The fixture result.
+             * @return ResponseInterface the fixture result
              */
             public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
             {
                 throw $this->failure;
             }
         };
-        $next = new class () implements RequestHandlerInterface {
+        $next = new class implements RequestHandlerInterface {
             /**
              * Executes the synthetic downstream behavior for the requested test route.
              *
-             * @param ServerRequestInterface $request The synthetic incoming request.
+             * @param ServerRequestInterface $request the synthetic incoming request
              *
-             * @return ResponseInterface The fixture result.
+             * @return ResponseInterface the fixture result
              */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 throw new \TypeError('request failed');
             }
         };
-        $reporter = new CallableThrowableHandler(static function (): void {
-        });
+        $reporter = new CallableThrowableHandler(static function (): void {});
         $middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $responses);
+
         try {
             $middleware->process((new Psr17Factory())->createServerRequest('GET', '/'), $next);
             self::fail('Response factory failure must propagate.');
         } catch (\RuntimeException $actual) {
             self::assertSame($failure, $actual);
-            $activeError = set_error_handler(static fn (): bool => true);
+            $activeError = set_error_handler(static fn(): bool => true);
             restore_error_handler();
-            $activeException = set_exception_handler(static function (\Throwable $error): void {
-            });
+            $activeException = set_exception_handler(static function (\Throwable $error): void {});
             restore_exception_handler();
             self::assertSame($previousError, $activeError);
             self::assertSame($previousException, $activeException);

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -14,6 +12,8 @@ declare(strict_types=1);
  * @license   https://opensource.org/licenses/MIT MIT License
  */
 
+declare(strict_types=1);
+
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
@@ -21,28 +21,27 @@ use Interop\Container\ServiceProviderInterface;
 
 use function FastForward\Container\container;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
-$application = new class () implements ServiceProviderInterface {
+$application = new class implements ServiceProviderInterface {
     /**
      * Supplies application service definitions for the integration fixture.
      *
-     * @return array<class-string, callable> Application service factories.
+     * @return array<class-string, callable> application service factories
      */
     public function getFactories(): array
     {
         return [
-            CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
-                new CallableThrowableHandler(static function (Throwable $error): void {
-                    printf("Reported: %s\n", $error->getMessage());
-                }),
+            CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(static function (Throwable $error): void {
+                printf("Reported: %s\n", $error->getMessage());
+            }),
         ];
     }
 
     /**
      * Declares no application service extensions.
      *
-     * @return array<string, callable> An empty extension map.
+     * @return array<string, callable> an empty extension map
      */
     public function getExtensions(): array
     {

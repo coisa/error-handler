@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Handler;
 
@@ -20,7 +20,7 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * Class DispatchErrorEventThrowableHandler
+ * Class DispatchErrorEventThrowableHandler.
  *
  * Handles throwable instances by dispatching them as error events through an event dispatcher.
  * This class SHALL ensure that every throwable is wrapped in an ErrorEvent and dispatched
@@ -31,14 +31,14 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 final class DispatchErrorEventThrowableHandler implements ThrowableHandlerInterface
 {
     /**
-     * @var EventDispatcherInterface The event dispatcher used to dispatch error events.
+     * @var EventDispatcherInterface the event dispatcher used to dispatch error events
      */
     private EventDispatcherInterface $eventDispatcher;
 
     /**
      * Constructs a DispatchErrorEventThrowableHandler instance.
      *
-     * @param EventDispatcherInterface $eventDispatcher The event dispatcher instance used for dispatching error events.
+     * @param EventDispatcherInterface $eventDispatcher the event dispatcher instance used for dispatching error events
      */
     public function __construct(EventDispatcherInterface $eventDispatcher)
     {
@@ -51,9 +51,7 @@ final class DispatchErrorEventThrowableHandler implements ThrowableHandlerInterf
      * This method SHALL wrap the throwable in an ErrorEvent instance
      * and dispatch it using the provided event dispatcher.
      *
-     * @param \Throwable $throwable The throwable instance to handle.
-     *
-     * @return void
+     * @param \Throwable $throwable the throwable instance to handle
      */
     public function handleThrowable(\Throwable $throwable): void
     {

@@ -1,17 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
  *
- * @link https://github.com/coisa/error-handler
+ * @link      https://github.com/coisa/error-handler
+ *
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
- * @license https://opensource.org/licenses/MIT MIT License
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
@@ -23,21 +24,21 @@ use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 
 use function FastForward\Container\container;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
-$phpErrors = new class () implements PhpErrorHandlerInterface {
+$phpErrors = new class implements PhpErrorHandlerInterface {
     /**
-     * @var list<string> Reportable PHP messages received by this application handler.
+     * @var list<string> reportable PHP messages received by this application handler
      */
     public array $messages = [];
 
     /**
      * Records reportable PHP errors without converting them to exceptions.
      *
-     * @param int $code The PHP severity.
-     * @param string $message The PHP message.
-     * @param string $filename The source filename.
-     * @param int $line The source line.
+     * @param int    $code     the PHP severity
+     * @param string $message  the PHP message
+     * @param string $filename the source filename
+     * @param int    $line     the source line
      */
     public function handlePhpError(int $code, string $message, string $filename, int $line): void
     {
@@ -53,12 +54,11 @@ $shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): vo
 });
 
 $application = new ArrayServiceProvider([
-    CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
-        new CallableThrowableHandler(static function (Throwable $error): void {
-            error_log($error->getMessage());
-        }),
-    PhpErrorHandlerInterface::class => static fn (): PhpErrorHandlerInterface => $phpErrors,
-    ShutdownHandlerInterface::class => static fn (): ShutdownHandlerInterface => $shutdown,
+    CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(static function (Throwable $error): void {
+        error_log($error->getMessage());
+    }),
+    PhpErrorHandlerInterface::class => static fn(): PhpErrorHandlerInterface => $phpErrors,
+    ShutdownHandlerInterface::class => static fn(): ShutdownHandlerInterface => $shutdown,
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);

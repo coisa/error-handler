@@ -17,7 +17,8 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 - Write code, public documentation, examples and agent guidance in English.
 - Identify the public consumer skill as `coisa-error-handler`, matching its
   Composer package, and retain the source repository link for copied installs.
-- Target PHP 8.3–8.5; the current branch describes an unreleased major after 2.0.
+- Declare PHP 8.3+ support (`^8.3`); the tested CI matrix is PHP 8.3–8.5.
+  The current branch describes an unreleased major after the published 2.x line.
   Do not present branch behavior as an already published Composer release.
 - Keep core handlers independent of FastForward. The service provider uses
   `Interop\Container\ServiceProviderInterface` and FastForward's reusable factory
@@ -55,7 +56,7 @@ the skill aligned with tested public APIs, without copying the full manual or
 adding host-specific dependencies.
 
 Run fatal-error and process-termination experiments only through bounded child
-fixtures. Reuse the existing fire/HTTP runners and their temporary data. Never
+fixtures. Use the PHPUnit Process suite with the existing bounded fixtures and Symfony Process. Never
 use application credentials, production logs or a real web server as fixtures.
 
 Publishing Pages, merging, releasing or transferring the repository requires
@@ -64,8 +65,9 @@ the owner's corresponding instruction. Preparing a PR does not perform them.
 ## Verification
 
 Use Composer 2 with `--no-plugins --no-scripts` for dependency installation;
-then run `composer --no-plugins check`. This runs formatting, PHPUnit, maximum
-PHPStan, bounded fire tests and loopback HTTP checks. See [testing](docs/testing.md)
+then run `composer --no-plugins check`. This runs formatting, PHPCS, PHPUnit Unit/Functional/Process suites and maximum
+PHPStan over source and tests. Run the existing bounded example verifier and static
+site validator after documentation/example changes. See [testing](docs/testing.md)
 for PHP-version resolution, application dependencies and actual platform evidence.
 Run `php examples/fast-forward.php` after provider changes. Verify a production
 installation without development dependencies still loads the core and provider.
@@ -81,7 +83,9 @@ Check documentation links and inspect the actual CI result for the tested SHA.
   adapters; keep website snippets identical to their example sources.
 - [docs/releases.md](docs/releases.md): pending Changesets, reviewed version PRs,
   immutable release tags and Composer delivery boundaries.
-- [docs/testing.md](docs/testing.md): failure runners, commands and evidence limits.
+- [docs/testing.md](docs/testing.md): PHPUnit/process tests, commands and evidence limits.
+- [CONTRIBUTING.md](CONTRIBUTING.md): dependency resolution and quality entrypoints.
+- [examples/README.md](examples/README.md): executable recipe dependencies and verifier.
 - [docs/migration.md](docs/migration.md): breaking changes from published 2.0.
 - [.agents/skills/coisa-error-handler/SKILL.md](.agents/skills/coisa-error-handler/SKILL.md):
   portable consumer integration procedure; no global installation required.

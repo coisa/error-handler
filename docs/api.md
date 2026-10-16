@@ -1,7 +1,9 @@
 # API and composition
 
 All classes are under `CoiSA\ErrorHandler`. This describes the unreleased next
-major after 2.0. Complete runnable integrations are in the [cookbook](examples.md).
+major after 2.x, not the published 2.x contract. The declared PHP requirement is
+`^8.3`; PHP 8.3–8.5 are the tested versions. Complete runnable integrations are in
+the [cookbook](examples.md).
 
 ## Lifecycle and diagnostic reporting
 
@@ -51,6 +53,8 @@ A reporter failure suppresses retries for the current registration. Recursion
 through the same handler raises LogicException. Independent unregistered direct
 calls retain no failed flag. Unregister/register starts a fresh lifecycle.
 No alternative logger or remote retry is installed implicitly.
+These failure boundaries handle thrown Throwable objects; an application callback
+that calls exit/die or causes a native fatal does not become recoverable.
 
 ## Callable reporters, aggregates and PSR-14
 
@@ -65,6 +69,61 @@ callable listeners adapt application callbacks. `LogErrorEventListener` forwards
 the diagnostic event to an application PSR-3 logger. Stringifying ErrorEvent
 includes private diagnostics and must not produce a public HTTP body.
 See [the complete event/logger example](examples.md#events).
+
+## Direct PSR-3 logging
+
+`Handler\LogThrowableHandler($logger, $logLevel = LogLevel::ERROR, $context = [])`
+retains its compatible 2.x behavior. It calls the application's PSR-3 logger once
+with the configured level, the exact throwable message (including an empty string)
+and the original object under `context['exception']`. That reserved entry replaces
+a caller's exception entry without mutating the caller's array; other context
+values retain their identity and types. Context-key order is not a contract.
+
+The level is forwarded unchanged, without inference from PHP severity, exception
+code or HTTP status. The logger decides which levels it supports. Logger failure
+propagates unchanged; the adapter adds no retry, output or callback registration.
+It is not automatically attached when a logger is available in the container.
+Construct it explicitly or bind `ThrowableHandlerInterface` using the
+[merged-provider override](fast-forward.md#required-overrides).
+
+See [the complete logging example](../examples/logging.php). Unlike this direct
+adapter, `LogErrorEventListener` retains its event-string message policy.
+
+## Conditional reporting
+
+`Handler\FilteringThrowableHandler($reporter, $predicate)` wraps an explicit
+`ThrowableHandlerInterface`. Its required `callable(Throwable): bool` predicate
+runs once per invocation: true forwards the same object once, false skips only
+that delegate. Repeated calls with the same object remain independent deliveries.
+Non-boolean results raise TypeError; predicate and delegate failures propagate
+unchanged, without retry. A failure still stops the default fail-fast aggregate.
+
+No output, default filtering policy, registration or automatic aggregate discovery
+is added. A skipped report does not recover the operation, change PHP suppression
+or choose the HTTP response. In this major, rendering remains a separate public
+boundary regardless of whether a diagnostic reporter forwards the event.
+See [the filtering example](../examples/filtering.php); select PHP severity via
+ErrorException::getSeverity(), not an arbitrary exception code.
+
+## Callable PHP-error policy
+
+`Handler\CallablePhpErrorHandler($callback)` retains its compatible 2.x contract:
+the callback receives `(int $code, string $message, string $filename, int $line)`
+once, unchanged. The interface returns void, so every callback result, including
+false/null, is ignored. Returning false does not delegate to PHP's native handler.
+There is no fifth errcontext argument, automatic mask check, conversion or output.
+
+The callback owns suppression/conversion policy and its failures propagate
+unchanged. Through ErrorHandler, a thrown ErrorException follows the normal
+reporting boundary; other failures propagate. The [complete PHP-error example](../examples/php-errors.php)
+explicitly checks `error_reporting() & $code` before converting an enabled error.
+
+Inject the wrapper as the second ErrorHandler argument, or bind the instance as
+`PhpErrorHandlerInterface` in the application provider. Null keeps the existing
+default. All three ErrorHandler constructor positions still require their typed
+interface instances in this candidate. Bare-callable constructor inputs remain
+[separate major work](https://github.com/coisa/error-handler/issues/70), not an
+implemented API. Construction and discovery never register native callbacks.
 
 ## HTTP: report once, then render explicitly
 
@@ -106,7 +165,7 @@ default. A ready opt-in JSON adapter is [tracked separately](https://github.com/
 ## Optional output-capture adapter
 
 `ThrowableStreamFactory` remains available explicitly for public echo-based
-templates. In that adapter only, output from its injected callable becomes the
+templates. In that adapter only, output from its injected public reporter becomes the
 stream; a JSON callback would need to echo JSON. It is not the provider default.
 
 Pass a separate public renderer, not the diagnostic reporter middleware already

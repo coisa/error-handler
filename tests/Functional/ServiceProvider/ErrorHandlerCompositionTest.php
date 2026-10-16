@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\ServiceProvider;
 
@@ -36,6 +36,7 @@ use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Phly\EventDispatcher\EventDispatcher;
 use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\WithoutErrorHandler;
@@ -55,17 +56,17 @@ use function FastForward\Container\container;
  * @package CoiSA\ErrorHandler\Test\Functional\ServiceProvider
  *
  * @internal
- * @coversNothing
  */
+#[CoversNothing]
 final class ErrorHandlerCompositionTest extends TestCase
 {
     /**
-     * @var array<class-string, object> Application services supplied before resolving the container.
+     * @var array<class-string, object> application services supplied before resolving the container
      */
     private array $services = [];
 
     /**
-     * @var ContainerInterface|null Lazily composed container for the current test.
+     * @var null|ContainerInterface lazily composed container for the current test
      */
     private ?ContainerInterface $container = null;
 
@@ -97,17 +98,40 @@ final class ErrorHandlerCompositionTest extends TestCase
      */
     protected function tearDown(): void
     {
-        if ($this->container !== null) {
-            $this->container->get(ErrorHandler::class)->unregister();
+        if (null !== $this->container) {
+            $this->errorHandler()->unregister();
         }
+    }
+
+    /**
+     * Verifies the configured container advertises every library service.
+     *
+     * @param class-string $service the service identifier under test
+     */
+    #[DataProvider('provideServiceProviderClassNames')]
+    public function testContainerHasProviderServices(string $service): void
+    {
+        self::assertTrue($this->container()->has($service));
+    }
+
+    /**
+     * Verifies service construction with application HTTP and event dependencies.
+     *
+     * @param class-string $service the service identifier under test
+     */
+    #[DataProvider('provideServiceProviderClassNames')]
+    public function testContainerResolvesProviderServices(string $service): void
+    {
+        $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
+        self::assertInstanceOf($service, $this->container()->get($service));
     }
 
     /**
      * Provides service identifiers explicitly declared by the Interop provider.
      *
-     * @return list<array{class-string}> Declared service-identifier cases.
+     * @return list<array{class-string}> declared service-identifier cases
      */
-    public static function provideServiceProviderClassNames(): array
+    public static function provideServiceProviderClassNames(): iterable
     {
         $factories = (new ErrorHandlerServiceProvider())->getFactories();
 
@@ -115,44 +139,34 @@ final class ErrorHandlerCompositionTest extends TestCase
     }
 
     /**
-     * Verifies the configured container advertises every library service.
-     *
-     * @param class-string $service The service identifier under test.
-     */
-    #[DataProvider('provideServiceProviderClassNames')]
-    public function testContainerHasProviderServices(string $service): void
-    {
-        static::assertTrue($this->container()->has($service));
-    }
-
-    /**
-     * Verifies service construction with application HTTP and event dependencies.
-     *
-     * @param class-string $service The service identifier under test.
-     */
-    #[DataProvider('provideServiceProviderClassNames')]
-    public function testContainerResolvesProviderServices(string $service): void
-    {
-        $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
-        static::assertInstanceOf($service, $this->container()->get($service));
-    }
-
-    /**
      * Composes the library provider with application service definitions last.
      *
-     * @return ContainerInterface The shared container for the current test.
+     * @return ContainerInterface the shared container for the current test
      */
     private function container(): ContainerInterface
     {
         $application = new ArrayServiceProvider(array_map(
-            static fn (object $service): \Closure => static fn (): object => $service,
-            $this->services
+            static fn(object $service): \Closure => static fn(): object => $service,
+            $this->services,
         ));
 
         return $this->container ??= container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
-            $application
+            $application,
         ));
+    }
+
+    /**
+     * Resolves and verifies the concrete process handler supplied by the provider.
+     *
+     * @return ErrorHandler the real container-resolved process handler
+     */
+    private function errorHandler(): ErrorHandler
+    {
+        $handler = $this->container()->get(ErrorHandler::class);
+        self::assertInstanceOf(ErrorHandler::class, $handler);
+
+        return $handler;
     }
 
     /**
@@ -163,10 +177,10 @@ final class ErrorHandlerCompositionTest extends TestCase
         $message   = uniqid('test', true);
         $exception = new \InvalidArgumentException($message);
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
-        $this->expectNotToPerformAssertions();
+        $this->expectOutputString('');
         $errorHandler->handleThrowable($exception);
     }
 
@@ -183,7 +197,7 @@ final class ErrorHandlerCompositionTest extends TestCase
         });
         $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -202,7 +216,7 @@ final class ErrorHandlerCompositionTest extends TestCase
         });
         $this->services[CallableThrowableHandler::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -227,7 +241,7 @@ final class ErrorHandlerCompositionTest extends TestCase
         });
 
         $logErrorEventListener = new LogErrorEventListener(
-            new AssertThrowableTestCaseLogger($this, $exception)
+            new AssertThrowableTestCaseLogger($this, $exception),
         );
 
         $errorEventListenerProvider = new ErrorEventListenerProvider($errorEventCallableListener);
@@ -241,7 +255,7 @@ final class ErrorHandlerCompositionTest extends TestCase
 
         $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         $errorHandler->handleThrowable($exception);
@@ -250,21 +264,34 @@ final class ErrorHandlerCompositionTest extends TestCase
     /**
      * Verifies masked PHP notices do not reach the reporter.
      */
+    #[WithoutErrorHandler]
     public function testErrorHandlerRespectErrorReporting(): void
     {
-        $callableThrowableHandler = new CallableThrowableHandler(function ($throwable): void {
-            $this->assertTrue(false);
-        });
+        $received = [];
+        $callableThrowableHandler = new CallableThrowableHandler(
+            /**
+             * Records any delivery that would violate the masked-notice policy.
+             *
+             * @param \Throwable $throwable the converted event, if incorrectly delivered
+             */
+            static function (\Throwable $throwable) use (&$received): void {
+                $received[] = $throwable;
+            },
+        );
         $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         $oldLevel = error_reporting(E_ALL ^ E_USER_NOTICE);
-        trigger_error('Test error reporting', E_USER_NOTICE);
-        error_reporting($oldLevel);
 
-        static::assertTrue(true);
+        try {
+            trigger_error('Test error reporting', E_USER_NOTICE);
+        } finally {
+            error_reporting($oldLevel);
+        }
+
+        self::assertSame([], $received);
     }
 
     /**
@@ -278,7 +305,7 @@ final class ErrorHandlerCompositionTest extends TestCase
         });
         $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         trigger_error('Test user warning', E_USER_WARNING);
@@ -295,24 +322,24 @@ final class ErrorHandlerCompositionTest extends TestCase
         $callableThrowableHandler = new CallableThrowableHandler(
             static function (\Throwable $throwable) use (&$received): void {
                 $received[] = $throwable;
-            }
+            },
         );
         $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         $serverRequest  = (new Psr17Factory())->createServerRequest('GET', '/');
         $requestHandler = new class ($exception) implements RequestHandlerInterface {
             /**
-             * @var \Throwable The downstream failure to propagate.
+             * @var \Throwable the downstream failure to propagate
              */
             private $exception;
 
             /**
              * Stores synthetic collaborators or failures for this test fixture.
              *
-             * @param \Throwable $exception The downstream throwable.
+             * @param \Throwable $exception the downstream throwable
              */
             public function __construct(\Throwable $exception)
             {
@@ -322,9 +349,9 @@ final class ErrorHandlerCompositionTest extends TestCase
             /**
              * Executes the synthetic downstream behavior for the requested test route.
              *
-             * @param ServerRequestInterface $serverRequest The synthetic incoming request.
+             * @param ServerRequestInterface $serverRequest the synthetic incoming request
              *
-             * @return ResponseInterface The fixture result.
+             * @return ResponseInterface the fixture result
              */
             public function handle(ServerRequestInterface $serverRequest): ResponseInterface
             {
@@ -333,13 +360,14 @@ final class ErrorHandlerCompositionTest extends TestCase
         };
 
         $middleware = $this->container()->get(ErrorHandlerMiddleware::class);
+        self::assertInstanceOf(ErrorHandlerMiddleware::class, $middleware);
         $response   = $middleware->process($serverRequest, $requestHandler);
 
-        static::assertInstanceOf(ResponseInterface::class, $response);
-        static::assertSame($exception->getCode(), $response->getStatusCode());
+        self::assertInstanceOf(ResponseInterface::class, $response);
+        self::assertSame($exception->getCode(), $response->getStatusCode());
 
-        static::assertSame('Internal Server Error', (string) $response->getBody());
-        static::assertSame([$exception], $received);
+        self::assertSame('Internal Server Error', (string) $response->getBody());
+        self::assertSame([$exception], $received);
     }
 
     /**
@@ -348,7 +376,7 @@ final class ErrorHandlerCompositionTest extends TestCase
     public function testUnregisteredErrorHandlerHandleShutdownWillDoNothing(): void
     {
         $this->expectOutputString('');
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->handleShutdown();
     }
 
@@ -363,14 +391,14 @@ final class ErrorHandlerCompositionTest extends TestCase
             $this->assertSame($exception, $throwable);
         });
 
-        $callableShutdownHandler = new CallableShutdownHandler(function () use ($exception): void {
+        $callableShutdownHandler = new CallableShutdownHandler(static function () use ($exception): void {
             throw $exception;
         });
 
         $this->services[ThrowableHandlerInterface::class] = $callableThrowableHandler;
         $this->services[ShutdownHandlerInterface::class] = $callableShutdownHandler;
 
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
         $errorHandler->register();
 
         $errorHandler->handleShutdown();
@@ -381,8 +409,32 @@ final class ErrorHandlerCompositionTest extends TestCase
      */
     public function testUnregisterNotRegisteredErrorHandlerShouldNotThrowExceptions(): void
     {
-        $errorHandler = $this->container()->get(ErrorHandler::class);
+        $errorHandler = $this->errorHandler();
+        $before = self::callbacks();
         $errorHandler->unregister();
-        static::assertTrue(true);
+        self::assertSame($before, self::callbacks());
+    }
+
+    /**
+     * Snapshots both callbacks without retaining a probe on either native stack.
+     *
+     * @return array{null|callable, null|callable} current PHP error and exception callbacks
+     */
+    private static function callbacks(): array
+    {
+        /** @return bool A temporary callback that observes the prior error callback. */
+        $error = set_error_handler(static fn(): bool => false);
+        restore_error_handler();
+        $exception = set_exception_handler(
+            /**
+             * Supplies a temporary exception callback without handling a real failure.
+             *
+             * @param \Throwable $error the unused probe input
+             */
+            static function (\Throwable $error): void {},
+        );
+        restore_exception_handler();
+
+        return [$error, $exception];
     }
 }

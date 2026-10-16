@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional\Http\Middleware;
 
@@ -34,6 +34,8 @@ use Psr\Http\Server\RequestHandlerInterface;
  * Verifies reporting and public HTTP rendering remain separate operations.
  *
  * @internal
+ *
+ * @coversNothing
  */
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
@@ -43,32 +45,30 @@ final class ErrorHandlerMiddlewareTest extends TestCase
     public function testReportsOnceBeforeRenderingTheResponse(): void
     {
         $failure = new \RuntimeException('Private database credentials', 503);
-        $events = new \ArrayObject();
+        $events = self::operations();
         $received = [];
         $reporter = new CallableThrowableHandler(
             static function (\Throwable $throwable) use ($events, &$received): void {
                 $events[] = 'report';
                 $received[] = $throwable;
-            }
+            },
         );
         $psr17 = new Psr17Factory();
         $streams = new class ($psr17, $events) implements ThrowableStreamFactoryInterface {
             /**
              * Stores the public stream factory and the observable operation order.
              *
-             * @param StreamFactoryInterface $streams Creates public body streams.
-             * @param \ArrayObject<int, string> $events Receives ordered fixture operations.
+             * @param StreamFactoryInterface    $streams creates public body streams
+             * @param \ArrayObject<int, string> $events  receives ordered fixture operations
              */
-            public function __construct(private StreamFactoryInterface $streams, private \ArrayObject $events)
-            {
-            }
+            public function __construct(private StreamFactoryInterface $streams, private \ArrayObject $events) {}
 
             /**
              * Returns a JSON stream directly without invoking a reporter or writing output.
              *
-             * @param \Throwable $throwable The private failure whose details remain undisclosed.
+             * @param \Throwable $throwable the private failure whose details remain undisclosed
              *
-             * @return StreamInterface The application's controlled public JSON body.
+             * @return StreamInterface the application's controlled public JSON body
              */
             public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
             {
@@ -80,9 +80,10 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $next = self::downstream($failure);
         $middleware = new ErrorHandlerMiddleware(
             new ErrorHandler($reporter),
-            new ThrowableResponseFactory($streams, $psr17)
+            new ThrowableResponseFactory($streams, $psr17),
         );
         ob_start();
+
         try {
             $response = $middleware->process($psr17->createServerRequest('GET', '/'), $next);
             $output = ob_get_contents();
@@ -109,24 +110,22 @@ final class ErrorHandlerMiddlewareTest extends TestCase
             new ErrorHandler(new CallableThrowableHandler(static function () use (&$reports): void {
                 ++$reports;
             })),
-            new ThrowableResponseFactory(new GenericThrowableStreamFactory($psr17), $psr17)
+            new ThrowableResponseFactory(new GenericThrowableStreamFactory($psr17), $psr17),
         );
         $next = new class ($expected) implements RequestHandlerInterface {
             /**
              * Stores the application's successful response.
              *
-             * @param ResponseInterface $response The response that must pass through unchanged.
+             * @param ResponseInterface $response the response that must pass through unchanged
              */
-            public function __construct(private ResponseInterface $response)
-            {
-            }
+            public function __construct(private ResponseInterface $response) {}
 
             /**
              * Returns the application's successful response.
              *
-             * @param ServerRequestInterface $request The synthetic request.
+             * @param ServerRequestInterface $request the synthetic request
              *
-             * @return ResponseInterface The unchanged downstream response.
+             * @return ResponseInterface the unchanged downstream response
              */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
@@ -139,11 +138,21 @@ final class ErrorHandlerMiddlewareTest extends TestCase
     }
 
     /**
+     * Creates an empty operation log shared by reporting and rendering collaborators.
+     *
+     * @return \ArrayObject<int, string> ordered operation labels recorded by the fixture
+     */
+    private static function operations(): \ArrayObject
+    {
+        return new \ArrayObject();
+    }
+
+    /**
      * Creates the failing application used by the rendering regression.
      *
-     * @param \Throwable $failure The exact failure to report and render.
+     * @param \Throwable $failure the exact failure to report and render
      *
-     * @return RequestHandlerInterface The synthetic downstream application.
+     * @return RequestHandlerInterface the synthetic downstream application
      */
     private static function downstream(\Throwable $failure): RequestHandlerInterface
     {
@@ -151,18 +160,16 @@ final class ErrorHandlerMiddlewareTest extends TestCase
             /**
              * Stores the downstream failure.
              *
-             * @param \Throwable $failure The exact throwable to propagate.
+             * @param \Throwable $failure the exact throwable to propagate
              */
-            public function __construct(private \Throwable $failure)
-            {
-            }
+            public function __construct(private \Throwable $failure) {}
 
             /**
              * Throws the private failure for the middleware to handle.
              *
-             * @param ServerRequestInterface $request The synthetic incoming request.
+             * @param ServerRequestInterface $request the synthetic incoming request
              *
-             * @return ResponseInterface The error response supplied by middleware.
+             * @return ResponseInterface the error response supplied by middleware
              */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {

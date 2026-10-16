@@ -12,7 +12,7 @@ This skill belongs to that library and retains its package identity when copied
 into a consuming project.
 
 Use the installed package or selected checkout as the API source. This skill
-describes the PHP 8.3+ development line after 2.0; verify the version before
+describes the unreleased PHP `^8.3` major after 2.x, tested on PHP 8.3–8.5; verify the version before
 using its provider or changed exit-status contract. A future php-fast-forward
 move is not an existing package name or namespace alias.
 
@@ -39,6 +39,27 @@ Load Composer's autoloader first. Direct `handleThrowable()` calls return;
 the registered uncaught-exception callback exits 1 after successful reporting.
 Recoverable warnings are reported and execution continues. The default error
 conversion honors suppression and `error_reporting()`.
+
+## Select explicit adapters
+
+The compatible 2.x adapters remain opt-in. Handler\LogThrowableHandler uses the
+application's PSR-3 logger, ERROR by default or an explicit level, the exact message
+and the original throwable under the reserved exception context key. Logger
+failure propagates; the adapter adds no transport, output or automatic discovery.
+
+Handler\FilteringThrowableHandler($reporter, $predicate) requires a boolean
+predicate: true forwards the original once, false skips only that delegate and a
+non-boolean raises TypeError. Predicate/delegate failure propagates unchanged. A
+filter changes neither recovery nor the public HTTP response policy.
+
+Handler\CallablePhpErrorHandler wraps an explicit four-argument callback and is
+injected as ErrorHandler's second argument, or under PhpErrorHandlerInterface in
+the application provider. Results, including false/null, are ignored; false is
+not native fall-through. The callback owns mask/conversion policy. ErrorException
+follows ErrorHandler's reporting boundary; other failures propagate unchanged.
+The constructor still takes interface instances in this candidate; bare-callable
+inputs remain separate major work. Consult the matching checkout's logging.php,
+filtering.php and php-errors.php examples and docs/api.md for complete recipes.
 
 ## Wire FastForward definitions
 
@@ -138,6 +159,8 @@ failure and restores callbacks without re-rendering through that reporter.
 Independent unregistered direct calls remain usable. A fatal inside another PHP
 shutdown callback can abort the remaining shutdown queue; do not promise recovery
 by re-registering handlers.
+Thrown-Throwable handling also does not recover a callback that calls exit/die
+or causes a native fatal termination.
 
 For complete runnable recipes covering every built-in adapter, consult
 `docs/examples.md` and `docs/index.html#examples` in the matching checkout.

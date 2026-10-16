@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler;
 
 /**
- * Interface ErrorHandlerInterface
+ * Interface ErrorHandlerInterface.
  *
  * Defines the contract for registering and unregistering error handlers.
  * Classes implementing this interface MUST provide mechanisms to handle
@@ -33,8 +33,6 @@ interface ErrorHandlerInterface
      * Implementing classes MUST ensure that this method sets up error,
      * exception, and shutdown handlers. Multiple calls to this method
      * SHOULD NOT result in duplicate registrations.
-     *
-     * @return void
      */
     public function register(): void;
 
@@ -44,8 +42,6 @@ interface ErrorHandlerInterface
      * Implementing classes MUST ensure that this method restores
      * previous error and exception handlers and deactivates shutdown handling.
      * If the handler was never registered, this method SHOULD do nothing.
-     *
-     * @return void
      */
     public function unregister(): void;
 }

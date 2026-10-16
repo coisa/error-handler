@@ -1,17 +1,18 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
  *
- * @link https://github.com/coisa/error-handler
+ * @link      https://github.com/coisa/error-handler
+ *
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
- * @license https://opensource.org/licenses/MIT MIT License
+ * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional;
 
@@ -21,6 +22,7 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -28,6 +30,10 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Covers independent direct deliveries and reporter failure within a middleware scope.
+ *
+ * @internal
+ *
+ * @coversNothing
  */
 final class ErrorHandlerLifecycleTest extends TestCase
 {
@@ -40,11 +46,12 @@ final class ErrorHandlerLifecycleTest extends TestCase
         $failure = new \RuntimeException('Temporary reporter failure');
         $handler = new ErrorHandler(new CallableThrowableHandler(
             static function () use (&$calls, $failure): void {
-                if (++$calls === 1) {
+                if (1 === ++$calls) {
                     throw $failure;
                 }
-            }
+            },
         ));
+
         try {
             $handler->handleThrowable(new \RuntimeException('First delivery'));
             self::fail('The reporter failure must propagate.');
@@ -62,17 +69,19 @@ final class ErrorHandlerLifecycleTest extends TestCase
     {
         $calls = 0;
         $handler = new ErrorHandler(new CallableThrowableHandler(static function () use (&$calls): void {
-            if (++$calls === 1) {
+            if (1 === ++$calls) {
                 throw new \RuntimeException('Reporter failed');
             }
         }));
         $handler->register();
+
         try {
             try {
                 $handler->handleThrowable(new \RuntimeException('First delivery'));
             } catch (\RuntimeException) {
             }
             $second = new \RuntimeException('Suppressed retry');
+
             try {
                 $handler->handleThrowable($second);
                 self::fail('The failed registration must suppress retries.');
@@ -90,39 +99,43 @@ final class ErrorHandlerLifecycleTest extends TestCase
     /**
      * Verifies middleware propagates a failed reporter without rendering through it again.
      */
+    #[WithoutErrorHandler]
     public function testMiddlewareDoesNotRetryReporterAfterPhpWarning(): void
     {
-        $previousError = set_error_handler(static fn (): bool => false);
+        $previousError = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        $previousException = set_exception_handler(static function (): void {
-        });
+        $previousException = set_exception_handler(static function (): void {});
         restore_exception_handler();
         $calls = 0;
         $failure = new \RuntimeException('Reporter failed');
         $reporter = new CallableThrowableHandler(static function () use (&$calls, $failure): void {
             ++$calls;
+
             throw $failure;
         });
         $psr17 = new Psr17Factory();
         $errors = new ErrorHandler($reporter);
         $middleware = new ErrorHandlerMiddleware(
             $errors,
-            new ThrowableResponseFactory(new ThrowableStreamFactory($psr17, $reporter), $psr17)
+            new ThrowableResponseFactory(new ThrowableStreamFactory($psr17, $reporter), $psr17),
         );
-        $downstream = new class () implements RequestHandlerInterface {
+        $downstream = new class implements RequestHandlerInterface {
             /**
              * Triggers a reportable warning inside the active middleware scope.
              *
-             * @param ServerRequestInterface $request The synthetic request.
-             * @return ResponseInterface A response that must never be reached.
+             * @param ServerRequestInterface $request the synthetic request
+             *
+             * @return ResponseInterface a response that must never be reached
              */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 trigger_error('Downstream warning', E_USER_WARNING);
+
                 throw new \LogicException('The warning reporter should have failed.');
             }
         };
         $previousReporting = error_reporting(E_ALL);
+
         try {
             $middleware->process($psr17->createServerRequest('GET', 'https://example.test'), $downstream);
             self::fail('Reporter failure must propagate to the application.');
@@ -132,10 +145,9 @@ final class ErrorHandlerLifecycleTest extends TestCase
             error_reporting($previousReporting);
         }
         self::assertSame(1, $calls);
-        $activeError = set_error_handler(static fn (): bool => false);
+        $activeError = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        $activeException = set_exception_handler(static function (): void {
-        });
+        $activeException = set_exception_handler(static function (): void {});
         restore_exception_handler();
         self::assertSame($previousError, $activeError);
         self::assertSame($previousException, $activeException);

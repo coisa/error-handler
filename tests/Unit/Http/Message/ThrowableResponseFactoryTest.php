@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -13,6 +11,8 @@ declare(strict_types=1);
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\Http\Message;
 
@@ -29,27 +29,18 @@ use PHPUnit\Framework\TestCase;
  * @package CoiSA\ErrorHandler\Test\Unit\Http\Message
  *
  * @internal
+ *
+ * @coversNothing
  */
 final class ThrowableResponseFactoryTest extends TestCase
 {
     /**
-     * Provides HTTP boundary codes and their expected response statuses.
-     *
-     * @return list<array{int, int}> Input and expected HTTP status pairs.
-     */
-    public static function statusCodes(): array
-    {
-        return [[0, 500], [200, 500], [399, 500], [400, 400], [404, 404], [500, 500],
-            [503, 503], [599, 599], [600, 500]];
-    }
-
-    /**
      * Verifies HTTP status mapping, generic bodies and private throwable delivery.
      *
-     * @param int $code The throwable code to map.
-     * @param int $expected The expected HTTP response status.
+     * @param int $code     the throwable code to map
+     * @param int $expected the expected HTTP response status
      */
-    #[DataProvider('statusCodes')]
+    #[DataProvider('provideMapsHttpErrorCodesAndDoesNotDiscloseExceptionDetailsCases')]
     public function testMapsHttpErrorCodesAndDoesNotDiscloseExceptionDetails(int $code, int $expected): void
     {
         $factory = new Psr17Factory();
@@ -68,11 +59,22 @@ final class ThrowableResponseFactoryTest extends TestCase
     }
 
     /**
+     * Provides HTTP boundary codes and their expected response statuses.
+     *
+     * @return list<array{int, int}> input and expected HTTP status pairs
+     */
+    public static function provideMapsHttpErrorCodesAndDoesNotDiscloseExceptionDetailsCases(): iterable
+    {
+        return [[0, 500], [200, 500], [399, 500], [400, 400], [404, 404], [500, 500],
+            [503, 503], [599, 599], [600, 500]];
+    }
+
+    /**
      * Verifies a string PDO SQLSTATE produces HTTP 500 without a secondary type error.
      */
     public function testStringSqlStateFallsBackTo500(): void
     {
-        $error = new class () extends \PDOException {
+        $error = new class extends \PDOException {
             /**
              * Stores synthetic collaborators or failures for this test fixture.
              */
@@ -82,8 +84,7 @@ final class ThrowableResponseFactoryTest extends TestCase
             }
         };
         $factory = new Psr17Factory();
-        $reporter = new CallableThrowableHandler(static function (): void {
-        });
+        $reporter = new CallableThrowableHandler(static function (): void {});
         $responses = new ThrowableResponseFactory(new ThrowableStreamFactory($factory, $reporter), $factory);
         self::assertSame(500, $responses->createResponseFromThrowable($error)->getStatusCode());
     }
@@ -136,12 +137,14 @@ final class ThrowableResponseFactoryTest extends TestCase
             echo 'partial output';
             ob_start();
             echo 'nested output';
+
             throw $failure;
         });
         $streams = new ThrowableStreamFactory(new Psr17Factory(), $reporter);
         ob_start();
         echo 'caller output';
         $level = ob_get_level();
+
         try {
             $streams->createStreamFromThrowable(new \RuntimeException('original'));
             self::fail('Renderer failure must propagate.');
