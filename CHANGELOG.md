@@ -10,6 +10,14 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.3.1
+
+### Patch Changes
+
+- [#77](https://github.com/coisa/error-handler/pull/77) [`d88c6d3`](https://github.com/coisa/error-handler/commit/d88c6d366d337dd99804a66088cfcf916467fe83) - Expand direct PHPUnit class coverage with meaningful contract and failure assertions, remove strictly subsumed legacy tests and scope process isolation to native global state. Document measured coverage and native limits without changing the 2.x runtime or coverage policy.
+
+- [#77](https://github.com/coisa/error-handler/pull/77) [`bac5992`](https://github.com/coisa/error-handler/commit/bac599295f412909d388d261c9a8255ea3d9a439) - Replace standalone failure and HTTP test runners with PHPUnit contracts and bounded Symfony Process fixtures, declaring the development dependency directly and updating the cookbook verifier and testing entrypoints.
+
 ## 2.3.0
 
 ### Minor Changes
