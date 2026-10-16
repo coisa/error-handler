@@ -55,7 +55,21 @@ final class LogThrowableHandlerTest extends TestCase
         $logger->expects(self::once())->method('log')->with(
             LogLevel::ERROR,
             $throwable->getMessage(),
-            ['exception' => $throwable],
+            self::callback(
+                /**
+                 * Require the original object, without constraining context-key order.
+                 *
+                 * @param array<array-key, mixed> $received the logger's default context
+                 *
+                 * @return bool whether the one reserved entry retains its identity
+                 */
+                static function (array $received) use ($throwable): bool {
+                    self::assertCount(1, $received);
+                    self::assertSame($throwable, $received['exception']);
+
+                    return true;
+                },
+            ),
         );
 
         (new LogThrowableHandler($logger))->handleThrowable($throwable);
