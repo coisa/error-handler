@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Container;
 
@@ -21,40 +21,42 @@ use CoiSA\ErrorHandler\Container\Exception\ContainerException;
 use CoiSA\ErrorHandler\Container\Exception\NotFoundException;
 
 /**
- * Class ErrorHandlerContainer
+ * Class ErrorHandlerContainer.
  *
  * A custom container implementation for managing error handler services and dependencies.
  * This container SHALL resolve services using factories, aliases, or delegate resolution
  * to a parent container when configured.
  *
  * @package CoiSA\ErrorHandler\Container
+ *
+ * @phpstan-import-type FactoryClass from ConfigProvider
  */
 final class ErrorHandlerContainer implements ContainerInterface
 {
     /**
-     * @var ContainerInterface|null A parent container for delegation.
+     * @var null|ContainerInterface a parent container for delegation
      */
     private ?ContainerInterface $container;
 
     /**
-     * @var string[] List of factories mapped to their service IDs.
+     * @var array<class-string, FactoryClass> invokable factory classes mapped to service IDs
      */
     private array $factories;
 
     /**
-     * @var string[] List of aliases mapped to their service IDs.
+     * @var array<class-string, class-string> aliases mapped to their target service IDs
      */
     private array $aliases;
 
     /**
-     * @var object[] Cached instances of resolved services.
+     * @var array<string, mixed> cached values returned by service factories or aliases
      */
     private array $instances = [];
 
     /**
      * Constructs an ErrorHandlerContainer.
      *
-     * @param ContainerInterface|null $container An optional parent container for delegation.
+     * @param null|ContainerInterface $container an optional parent container for delegation
      */
     public function __construct(?ContainerInterface $container = null)
     {
@@ -71,15 +73,15 @@ final class ErrorHandlerContainer implements ContainerInterface
      * This method SHALL return true if the service ID can be resolved
      * either by delegation, aliases, or factories.
      *
-     * @param string $id The identifier of the entry to look for.
+     * @param string $id the identifier of the entry to look for
      *
-     * @return bool True if the service ID can be resolved, false otherwise.
+     * @return bool true if the service ID can be resolved, false otherwise
      */
     public function has(string $id): bool
     {
         return ($this->container && $this->container->has($id))
-            || array_key_exists($id, $this->aliases)
-            || array_key_exists($id, $this->factories);
+            || \array_key_exists($id, $this->aliases)
+            || \array_key_exists($id, $this->factories);
     }
 
     /**
@@ -90,12 +92,12 @@ final class ErrorHandlerContainer implements ContainerInterface
      * - Using an alias to resolve the actual service
      * - Instantiating via a factory
      *
-     * @param string $id The identifier of the entry to retrieve.
+     * @param string $id the identifier of the entry to retrieve
      *
-     * @throws ContainerException If an error occurs during instantiation.
-     * @throws NotFoundException If no entry was found for the given identifier.
+     * @return mixed the resolved service instance
      *
-     * @return mixed The resolved service instance.
+     * @throws ContainerException if an error occurs during instantiation
+     * @throws NotFoundException  if no entry was found for the given identifier
      */
     public function get(string $id)
     {
@@ -123,16 +125,16 @@ final class ErrorHandlerContainer implements ContainerInterface
      * - Aliases mapping to another service
      * - Direct mapping to a factory class
      *
-     * @param string $id The identifier of the entry to resolve.
+     * @param string $id the identifier of the entry to resolve
      *
-     * @throws NotFoundException If no factory or alias is found for the given identifier.
+     * @return callable a callable factory responsible for creating the service instance
      *
-     * @return callable A callable factory responsible for creating the service instance.
+     * @throws NotFoundException if no factory or alias is found for the given identifier
      */
     private function getFactory(string $id): callable
     {
         if (!$this->has($id)) {
-            throw new NotFoundException(sprintf('Factory for class %s was not found', $id));
+            throw new NotFoundException(\sprintf('Factory for class %s was not found', $id));
         }
 
         if (isset($this->aliases[$id])) {

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\Listener;
 
@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
 /**
- * Class LogErrorEventListener
+ * Class LogErrorEventListener.
  *
  * Listens to error events and logs them using the provided PSR-3 logger.
  * This listener MUST handle error events consistently and log them
@@ -32,20 +32,20 @@ use Psr\Log\LogLevel;
 final class LogErrorEventListener
 {
     /**
-     * @var LoggerInterface PSR-3 compliant logger instance.
+     * @var LoggerInterface PSR-3 compliant logger instance
      */
     private LoggerInterface $logger;
 
     /**
-     * @var string The log level used when logging the error event.
+     * @var string the log level used when logging the error event
      */
     private string $logLevel;
 
     /**
      * Constructs the LogErrorEventListener.
      *
-     * @param LoggerInterface $logger A PSR-3 compliant logger instance.
-     * @param string $logLevel The log level for the error events. Defaults to LogLevel::ERROR.
+     * @param LoggerInterface $logger   a PSR-3 compliant logger instance
+     * @param string          $logLevel The log level for the error events. Defaults to LogLevel::ERROR.
      */
     public function __construct(
         LoggerInterface $logger,
@@ -60,9 +60,9 @@ final class LogErrorEventListener
      *
      * This method SHALL log the provided error event using the specified log level.
      *
-     * @param ErrorEventInterface $errorEvent The error event to be logged.
+     * @param ErrorEventInterface $errorEvent the error event to be logged
      *
-     * @return ErrorEventInterface The logged error event.
+     * @return ErrorEventInterface the logged error event
      */
     public function __invoke(ErrorEventInterface $errorEvent): ErrorEventInterface
     {

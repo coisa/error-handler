@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\Listener;
 
 /**
- * Class ThrowableCallableListener
+ * Class ThrowableCallableListener.
  *
  * Handles throwable instances using a callable. This listener SHALL execute
  * the provided callable when invoked with a Throwable instance.
@@ -27,14 +27,14 @@ namespace CoiSA\ErrorHandler\EventDispatcher\Listener;
 final class ThrowableCallableListener
 {
     /**
-     * @var callable A callable used to process throwable instances.
+     * @var callable a callable used to process throwable instances
      */
     private $callable;
 
     /**
      * Constructs the ThrowableCallableListener.
      *
-     * @param callable $callable A callable that will handle throwable instances.
+     * @param callable $callable a callable that will handle throwable instances
      */
     public function __construct(callable $callable)
     {
@@ -47,9 +47,9 @@ final class ThrowableCallableListener
      * This method SHALL execute the provided callable with the given throwable.
      * It MUST return the same Throwable instance after processing.
      *
-     * @param \Throwable $throwable The throwable instance to be processed.
+     * @param \Throwable $throwable the throwable instance to be processed
      *
-     * @return \Throwable The processed throwable instance.
+     * @return \Throwable the processed throwable instance
      */
     public function __invoke(\Throwable $throwable): \Throwable
     {

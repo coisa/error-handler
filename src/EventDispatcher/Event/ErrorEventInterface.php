@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,14 +8,16 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\Event;
 
 /**
- * Interface ErrorEventInterface
+ * Interface ErrorEventInterface.
  *
  * Defines the contract for error event handling in the error dispatcher system.
  * Implementing classes MUST provide mechanisms to retrieve and represent
@@ -33,7 +33,7 @@ interface ErrorEventInterface
      * This method SHALL return a string representation of the associated throwable,
      * typically used for debugging or logging purposes.
      *
-     * @return string The string representation of the throwable.
+     * @return string the string representation of the throwable
      */
     public function __toString(): string;
 
@@ -42,7 +42,7 @@ interface ErrorEventInterface
      *
      * This method MUST return the throwable associated with the error event.
      *
-     * @return \Throwable The throwable instance related to the event.
+     * @return \Throwable the throwable instance related to the event
      */
     public function getThrowable(): \Throwable;
 }

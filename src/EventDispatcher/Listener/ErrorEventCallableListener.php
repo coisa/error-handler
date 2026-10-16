@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,16 +8,18 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\Listener;
 
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 
 /**
- * Class ErrorEventCallableListener
+ * Class ErrorEventCallableListener.
  *
  * Represents a listener that handles error events using a callable.
  * This class MUST be used to execute custom logic whenever an error event is dispatched.
@@ -29,14 +29,14 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 final class ErrorEventCallableListener
 {
     /**
-     * @var callable A callable to handle the error event.
+     * @var callable a callable to handle the error event
      */
     private $callable;
 
     /**
      * Constructs the ErrorEventCallableListener.
      *
-     * @param callable $callable A callable that processes the error event.
+     * @param callable $callable a callable that processes the error event
      */
     public function __construct(callable $callable)
     {
@@ -49,9 +49,9 @@ final class ErrorEventCallableListener
      * This method SHALL execute the provided callable with the error event
      * and return the processed event.
      *
-     * @param ErrorEventInterface $errorEvent The error event to be processed.
+     * @param ErrorEventInterface $errorEvent the error event to be processed
      *
-     * @return ErrorEventInterface The processed error event.
+     * @return ErrorEventInterface the processed error event
      */
     public function __invoke(ErrorEventInterface $errorEvent): ErrorEventInterface
     {

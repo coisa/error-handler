@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * This file is part of coisa/error-handler.
  *
@@ -10,9 +8,11 @@ declare(strict_types=1);
  *
  * @link      https://github.com/coisa/error-handler
  *
- * @copyright Copyright (c) 2022-2024 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
  */
+
+declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\EventDispatcher\ListenerProvider;
 
@@ -20,7 +20,7 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
 /**
- * Class ErrorEventListenerProvider
+ * Class ErrorEventListenerProvider.
  *
  * Provides listeners for `ErrorEvent` objects.
  * This class SHALL ensure that only valid listeners are returned
@@ -31,7 +31,7 @@ use Psr\EventDispatcher\ListenerProviderInterface;
 final class ErrorEventListenerProvider implements ListenerProviderInterface
 {
     /**
-     * @var callable[] The list of registered listeners.
+     * @var callable[] the list of registered listeners
      */
     private array $listeners;
 
@@ -50,9 +50,7 @@ final class ErrorEventListenerProvider implements ListenerProviderInterface
      *
      * This method SHALL add a new callable listener to the internal list.
      *
-     * @param callable $listener The listener to attach.
-     *
-     * @return void
+     * @param callable $listener the listener to attach
      */
     public function attach(callable $listener): void
     {
@@ -64,9 +62,9 @@ final class ErrorEventListenerProvider implements ListenerProviderInterface
      *
      * This method SHALL return listeners only if the event is an instance of `ErrorEvent`.
      *
-     * @param object $event The event for which listeners are requested.
+     * @param object $event the event for which listeners are requested
      *
-     * @return iterable The list of applicable listeners.
+     * @return iterable<callable> the list of applicable listeners
      */
     public function getListenersForEvent(object $event): iterable
     {
