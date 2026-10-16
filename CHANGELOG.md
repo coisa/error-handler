@@ -10,6 +10,14 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.0.8
+
+### Patch Changes
+
+- [#60](https://github.com/coisa/error-handler/pull/60) [`2b69625`](https://github.com/coisa/error-handler/commit/2b69625faacc99dd371432bb9c27e126b5cbbf6e) - Add regression coverage for aggregate reporter order, appended handlers and preservation of the original throwable instance.
+
+- [#53](https://github.com/coisa/error-handler/pull/53) [`cde8f16`](https://github.com/coisa/error-handler/commit/cde8f1675bcd980148e84126e41a114608ed0e8f) - Add PHPUnit line-coverage artifacts, overall baseline regression checks and a configurable minimum, with a SHA-aware sticky note for eligible same-repository pull requests. Verify that throwable listeners preserve event identity when callbacks return a replacement.
+
 ## 2.0.7
 
 ### Patch Changes

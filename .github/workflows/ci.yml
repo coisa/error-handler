@@ -140,3 +140,112 @@ jobs:
         run: |
           php tests/Production/container.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
           php tests/Production/alias-factory.php "$RUNNER_TEMP/consumer/vendor/autoload.php"
+
+  coverage:
+    name: PHPUnit coverage / PHP 8.5
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Resolve and record the actual coverage toolchain
+        run: |
+          composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress
+          php --version
+          composer --version
+          composer check-platform-reqs
+          composer show --locked
+
+      - name: Run PHPUnit with Clover and line-coverage reports
+        env:
+          XDEBUG_MODE: coverage
+        run: composer --no-plugins test-coverage -- --coverage-cobertura tests/cobertura.xml
+
+      - name: Upload the raw PHPUnit coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report-php
+          path: |
+            tests/clover.xml
+            tests/cobertura.xml
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+  coverage-report:
+    name: Coverage report
+    needs: coverage
+    if: ${{ !cancelled() && needs.coverage.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Download this run's coverage artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-report-php
+          path: tests
+
+      - name: Create the baseline or check coverage
+        id: coverage-diff
+        uses: clearlyip/code-coverage-report-action@v7
+        with:
+          filename: tests/cobertura.xml
+          artifact_download_workflow_names: PHP CI
+          artifact_name: phpunit-coverage-%name%
+          retention_days: '90'
+          overall_coverage_fail_threshold: ${{ vars.MINIMUM_COVERAGE_THRESHOLD || '0' }}
+          fail_on_negative_difference: 'true'
+          negative_difference_by: overall
+          only_list_changed_files: 'true'
+
+      - name: Identify the tested head and run
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTED_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          printf '\n\nHead: %s. Tested commit: %s. [PHP CI run](%s).\n' \
+            "$HEAD_SHA" "$TESTED_SHA" "$RUN_URL" >> code-coverage-results.md
+
+      - name: Upload the Markdown report
+        if: ${{ !cancelled() && steps.coverage-diff.outputs.file != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-pr-comment
+          path: ${{ steps.coverage-diff.outputs.file }}
+          if-no-files-found: error
+          retention-days: 14
+          overwrite: true
+
+      - name: Update the PR coverage note
+        if: >-
+          !cancelled() &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          !startsWith(github.head_ref, 'dependabot/') &&
+          steps.coverage-diff.outputs.file != ''
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: phpunit-coverage
+          path: ${{ steps.coverage-diff.outputs.file }}
