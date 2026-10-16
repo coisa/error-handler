@@ -114,8 +114,12 @@ describe its real inputs, expected outputs and separate bounded native-fatal
 example. It uses Symfony Process directly and no test helper framework.
 
 Run `php tests/Documentation/site.php` with PHP 7.4+ and DOM to verify displayed
-source excerpts, unique IDs, anchors and links in `docs/index.html`. Browser
-layout, keyboard navigation and accessibility require separate visual evidence.
+source excerpts, unique IDs, anchors and links in `docs/index.html`. It also checks
+every complete recipe in [the 2.x cookbook](examples.md) against executable source,
+omitting only its leading license header. Duplicate, changed or missing recipes
+fail validation; new executable recipes need a matching complete entry. The shared
+bootstrap, assertion helper and verifier are setup tools rather than recipes.
+Browser layout, keyboard navigation and accessibility require separate visual evidence.
 The [documentation workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
 performs these read-only checks on PRs and manual runs. GitHub Pages publishes
 the configured branch's `/docs` folder (currently `master`) through its native
