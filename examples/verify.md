@@ -8,7 +8,7 @@ The verifier reuses `tests/Support/process.php` from the source checkout. It use
 
 Children receive only an explicit environment containing the fixture-only ERROR_HANDLER_BOUNDED_FIXTURE flag and optional ERROR_HANDLER_AUTOLOAD. The guarded native-fatal case cannot run as an ordinary example. The verifier does not mutate its parent's environment; other environment variables are not forwarded.
 
-Successful execution prints eighteen scenario results and the actual PHP version, then exits 0. These include direct PSR-3 logging's exact messages/original context and explicit filtering of synthetic deprecations while preserving the general branch. A failed assertion, unavailable process API, unexpected exit/output or bound violation causes a nonzero verifier exit. No host configuration or application callback is changed in the parent. Children use only synthetic input and their own callbacks/buffers.
+Successful execution prints nineteen scenario results and the actual PHP version, then exits 0. These include callable PHP-error policy, direct PSR-3 logging's exact messages/original context and explicit filtering of synthetic deprecations while preserving the general branch. A failed assertion, unavailable process API, unexpected exit/output or bound violation causes a nonzero verifier exit. No host configuration or application callback is changed in the parent. Children use only synthetic input and their own callbacks/buffers.
 
 The registered uncaught fixture currently reports then exits 0; the native compile fatal reports at shutdown and exits 255. These are observed 2.x contracts, not a general PHP process recovery guarantee.
 

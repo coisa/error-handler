@@ -62,6 +62,7 @@ a real application. Read the guide for your integration:
 - [Core API, callbacks, adapters and events/logging](docs/api.md).
 - [Opt-in direct PSR-3 logging](docs/api.md#direct-psr-3-logging), an additive minor under development; verify that the selected checkout/release contains `LogThrowableHandler`.
 - [Opt-in conditional reporting](docs/api.md#conditional-reporting) and its [runnable filtering example](examples/filtering.php).
+- [Explicit PHP-error callbacks](docs/api.md#callable-php-error-policy) and their [runnable policy example](examples/php-errors.php).
 - [Legacy container, ConfigProvider and application dependencies](docs/container.md).
 - [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
 - [Runnable cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)

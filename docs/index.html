@@ -97,6 +97,7 @@
       <a href="#reporting">Direct reporting</a>
       <a href="#logging">Direct PSR-3 logging</a>
       <a href="#lifecycle">Process lifecycle</a>
+<a href="#php-errors">PHP-error callbacks</a>
       <a href="#adapters">Adapters and events</a>
       <a href="#filtering">Conditional reporting</a>
       <a href="#container">Container integration</a>
@@ -177,6 +178,18 @@ $process-&gt;handleThrowable($failure);</code></pre>
         <p>PHP cannot remove queued shutdown functions. Repeated register/unregister cycles enqueue callbacks. A successfully reported uncaught exception currently exits <code>0</code>; native compile-fatal reporting observes exit <code>255</code> and does not recover execution.</p>
       </section>
 
+      <section id="php-errors" aria-labelledby="php-errors-title">
+        <h2 id="php-errors-title">Supply PHP-error policy explicitly</h2>
+        <p><code>CallablePhpErrorHandler($callback)</code> adapts four unchanged values: code, message, filename and line. Inject the wrapper as the second <code>ErrorHandler</code> argument. The existing constructor remains typed to interfaces; this adapter adds no registration, mask check, conversion, output or automatic discovery.</p>
+        <figure>
+          <figcaption>Application mask/conversion policy from <a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">examples/php-errors.php</a> · explicit reporting installs no callbacks</figcaption>
+          <pre tabindex="0" aria-label="Application PHP-error policy source"><code data-source="examples/php-errors.php">        if (error_reporting() &amp; $code) {
+            throw ErrorException::fromPhpError($message, $code, $code, $filename, $line);
+        }</code></pre>
+        </figure>
+        <p>Callback failures propagate unchanged. The interface returns <code>void</code>: false/null results are ignored and do not restore native PHP fall-through. No fifth error-context argument is supplied. Verify that the selected source contains this additive API, then read <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the full API contract</a>.</p>
+      </section>
+
       <section id="adapters" aria-labelledby="adapters-title">
         <h2 id="adapters-title">Compose adapters deliberately</h2>
         <div class="table-scroll" tabindex="0" role="region" aria-label="Built-in reporting adapters">
@@ -184,6 +197,7 @@ $process-&gt;handleThrowable($failure);</code></pre>
             <thead><tr><th scope="col">Adapter</th><th scope="col">Existing behavior</th></tr></thead>
             <tbody>
               <tr><td><code>CallableThrowableHandler</code></td><td>Invokes one configured reporter.</td></tr>
+              <tr><td><code>CallablePhpErrorHandler</code></td><td>Invokes one four-argument application callback; ignores its return and leaves mask/conversion policy explicit.</td></tr>
               <tr><td><code>LogThrowableHandler</code></td><td>Pending minor: logs the exact message and original exception once through an explicit application PSR-3 logger.</td></tr>
               <tr><td><code>ThrowableHandlerAggregate</code></td><td>Calls reporters in order; a failure stops later deliveries and propagates.</td></tr>
               <tr><td><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Converts enabled PHP errors; honors the reporting mask and suppression.</td></tr>
@@ -242,6 +256,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact/empty messages and original exception context.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">process.php</a><span>Warnings, scoped restoration, uncaught behavior and custom shutdown.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/handlers.php">handlers.php</a><span>Callable/aggregate order, failure propagation, conversion and suppression.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">php-errors.php</a><span>Explicit four-argument callbacks and application-owned PHP-error policy.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">filtering.php</a><span>Explicit severity selection with the same original throwable and a general diagnostic branch.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">events.php</a><span>Raw and wrapped dispatch, providers/listeners and PSR-3 logging.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
