@@ -36,6 +36,11 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ThrowableHandlerAggregateFactory;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use FastForward\Container\Exception\AutowiringException;
+use FastForward\Container\Exception\ContainerException;
+use FastForward\Container\ServiceProviderContainer;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use FastForward\Container\Factory\ServiceFactory;
@@ -272,6 +277,107 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         $handler->handleThrowable($error);
 
         self::assertSame([$error], $received);
+    }
+
+    /** Verifies the native container advertises the optional class without an inferable callback. */
+    public function testTheNativeOptionalCallableIsStructurallyUnavailable(): void
+    {
+        $container = self::services();
+        self::assertTrue($container->has(CallableThrowableHandler::class));
+        $this->expectException(AutowiringException::class);
+
+        $container->get(CallableThrowableHandler::class);
+    }
+
+    /** Verifies real provider-only resolution skips a genuinely absent optional callable. */
+    public function testAMissingOptionalCallableDoesNotPreventProviderOnlyEventDelivery(): void
+    {
+        $events = [];
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::exactly(2))->method('dispatch')->willReturnCallback(
+            /**
+             * Retains both routes without invoking listeners during construction.
+             *
+             * @param object $event the raw throwable or ErrorEvent wrapper
+             *
+             * @return object the unchanged event
+             */
+            static function (object $event) use (&$events): object {
+                $events[] = $event;
+
+                return $event;
+            },
+        );
+        $application = new ArrayServiceProvider([
+            EventDispatcherInterface::class => new ServiceFactory($dispatcher),
+            DispatchThrowableHandler::class => new ServiceFactory(new DispatchThrowableHandler($dispatcher)),
+            DispatchErrorEventThrowableHandler::class => new ServiceFactory(
+                new DispatchErrorEventThrowableHandler($dispatcher),
+            ),
+        ]);
+        $container = new ServiceProviderContainer(new AggregateServiceProvider(
+            new ErrorHandlerServiceProvider(),
+            $application,
+        ));
+        self::assertFalse($container->has(CallableThrowableHandler::class));
+        $reporter = $container->get(ThrowableHandlerInterface::class);
+        self::assertInstanceOf(ThrowableHandlerAggregate::class, $reporter);
+        self::assertCount(0, $events);
+        $original = new \RuntimeException('Provider-only event delivery');
+
+        $reporter->handleThrowable($original);
+
+        self::assertCount(2, $events);
+        self::assertSame($original, $events[0]);
+        self::assertInstanceOf(ErrorEvent::class, $events[1]);
+        self::assertSame($original, $events[1]->getThrowable());
+    }
+
+    /**
+     * Verifies the factory preserves explicit failures while native concrete fallback remains visible.
+     *
+     * @param \Throwable $failure the exact failure from an explicitly configured callable factory
+     */
+    #[DataProvider('provideExplicitCallableFactoryFailuresRetainCausesAndNativeFallbackCases')]
+    public function testExplicitCallableFactoryFailuresRetainCausesAndNativeFallback(\Throwable $failure): void
+    {
+        $attempts = 0;
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::never())->method('dispatch');
+        $application = new ArrayServiceProvider([
+            CallableThrowableHandler::class => static function () use ($failure, &$attempts): never {
+                ++$attempts;
+
+                throw $failure;
+            },
+            EventDispatcherInterface::class => new ServiceFactory($dispatcher),
+        ]);
+        $container = self::withApplication($application);
+
+        try {
+            (new ThrowableHandlerAggregateFactory())($container);
+            self::fail('The aggregate factory must not swallow an explicit callable factory failure.');
+        } catch (ContainerException $caught) {
+            self::assertSame($failure, $caught->getPrevious());
+        }
+        self::assertGreaterThan(0, $attempts);
+
+        // The final container can still replace the failed concrete aggregate with an empty autowired one.
+        $reporter = $container->get(ThrowableHandlerInterface::class);
+        self::assertInstanceOf(ThrowableHandlerAggregate::class, $reporter);
+        self::assertSame($reporter, $container->get(ThrowableHandlerAggregate::class));
+        self::assertSame($reporter, $container->get(ThrowableHandlerInterface::class));
+        $reporter->handleThrowable(new \RuntimeException('Native fallback remains silent'));
+    }
+
+    /** @return iterable<string, array{\Throwable}> Explicit application and structural factory failures. */
+    public static function provideExplicitCallableFactoryFailuresRetainCausesAndNativeFallbackCases(): iterable
+    {
+        yield 'application failure' => [new \LogicException('Explicit callable factory failed')];
+
+        yield 'structural failure thrown by an explicit factory' => [
+            AutowiringException::forUnresolvableParameter(CallableThrowableHandler::class, 'callable', 'callable'),
+        ];
     }
 
     /**

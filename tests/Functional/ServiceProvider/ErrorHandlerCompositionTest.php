@@ -30,7 +30,6 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
-use CoiSA\ErrorHandler\Test\Log\AssertThrowableTestCaseLogger;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -47,6 +46,8 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
 
 use function FastForward\Container\container;
 
@@ -227,28 +228,43 @@ final class ErrorHandlerCompositionTest extends TestCase
      */
     public function testEventDispatcherCallableHandlerWillHandleThrowable(): void
     {
-        $message   = uniqid('test', true);
-        $exception = new \InvalidArgumentException($message);
+        $exception = new \InvalidArgumentException('Default PSR-14 composition');
+        $events = [];
+        $throwables = [];
+        $logger = new class extends AbstractLogger {
+            /** @var list<array{mixed, string}> Synthetic private records collected after delivery. */
+            public array $records = [];
 
-        $errorEventCallableListener = new ErrorEventCallableListener(function ($event) use ($exception): void {
-            $this->assertInstanceOf(ErrorEvent::class, $event);
-            $this->assertSame($exception, $event->getThrowable());
-            $this->assertSame((string) $exception, (string) $event);
-        });
-
-        $throwableListener = new ThrowableCallableListener(function (\Throwable $throwable) use ($exception): void {
-            $this->assertSame($exception, $throwable);
-        });
-
-        $logErrorEventListener = new LogErrorEventListener(
-            new AssertThrowableTestCaseLogger($this, $exception),
+            /**
+             * Retains diagnostics for assertions after the reporter has returned.
+             *
+             * @param mixed                $level   the configured PSR-3 level
+             * @param string|\Stringable   $message the private diagnostic
+             * @param array<string, mixed> $context unused synthetic context
+             */
+            public function log($level, $message, array $context = []): void
+            {
+                $this->records[] = [$level, (string) $message];
+            }
+        };
+        $errorEventCallableListener = new ErrorEventCallableListener(
+            /** @param ErrorEvent $event The wrapper emitted by the default aggregate. */
+            static function (ErrorEvent $event) use (&$events): void {
+                $events[] = $event;
+            },
         );
+        $throwableListener = new ThrowableCallableListener(
+            /** @param \Throwable $throwable The raw diagnostic emitted by the default aggregate. */
+            static function (\Throwable $throwable) use (&$throwables): void {
+                $throwables[] = $throwable;
+            },
+        );
+        $logErrorEventListener = new LogErrorEventListener($logger);
 
         $errorEventListenerProvider = new ErrorEventListenerProvider($errorEventCallableListener);
         $errorEventListenerProvider->attach($logErrorEventListener);
 
         $throwableListenerProvider = new ThrowableListenerProvider($throwableListener);
-        $throwableListenerProvider->attach($throwableListener);
 
         $this->listenerProvider->attach($errorEventListenerProvider);
         $this->listenerProvider->attach($throwableListenerProvider);
@@ -256,9 +272,17 @@ final class ErrorHandlerCompositionTest extends TestCase
         $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
 
         $errorHandler = $this->errorHandler();
-        $errorHandler->register();
+        self::assertCount(0, $throwables);
+        self::assertCount(0, $events);
+        self::assertSame([], $logger->records);
 
         $errorHandler->handleThrowable($exception);
+
+        self::assertSame([$exception], $throwables);
+        self::assertCount(1, $events);
+        self::assertSame($exception, $events[0]->getThrowable());
+        self::assertSame((string) $exception, (string) $events[0]);
+        self::assertSame([[LogLevel::ERROR, (string) $exception]], $logger->records);
     }
 
     /**

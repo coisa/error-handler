@@ -21,6 +21,8 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
+use FastForward\Container\Exception\AutowiringException;
+use FastForward\Container\Exception\ContainerException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -174,17 +176,91 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
     }
 
     /**
-     * Verifies an unconstructible optional callable does not prevent aggregate construction.
+     * Verifies an unavailable optional callable does not prevent either event route.
+     *
+     * @param \Throwable $missing the missing or structurally unconfigured callable failure
      */
-    public function testAnAdvertisedButMissingOptionalCallableIsSkipped(): void
+    #[DataProvider('provideAnUnavailableOptionalCallableDoesNotPreventEventDeliveryCases')]
+    public function testAnUnavailableOptionalCallableDoesNotPreventEventDelivery(\Throwable $missing): void
     {
-        $missing = new class ('Missing callable') extends \RuntimeException implements NotFoundExceptionInterface {
-        };
-        $container = $this->containerFailingWith($missing);
-        $aggregate = (new ThrowableHandlerAggregateFactory())($container);
+        $original = new \RuntimeException('Event-only reporting');
+        $events = [];
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::exactly(2))->method('dispatch')->willReturnCallback(
+            /**
+             * Retains both deliveries for post-invocation identity assertions.
+             *
+             * @param object $event the raw throwable or ErrorEvent wrapper
+             *
+             * @return object the unchanged event
+             */
+            static function (object $event) use (&$events): object {
+                $events[] = $event;
 
-        $this->expectOutputString('');
-        $aggregate->handleThrowable(new \RuntimeException('No reporter'));
+                return $event;
+            },
+        );
+        $raw = new DispatchThrowableHandler($dispatcher);
+        $wrapped = new DispatchErrorEventThrowableHandler($dispatcher);
+        $container = $this->createMock(ContainerInterface::class);
+        $container->expects(self::exactly(4))->method('has')->willReturn(true);
+        $container->expects(self::exactly(3))->method('get')->willReturnCallback(
+            /**
+             * Models optional lookup failure while retaining both configured adapters.
+             *
+             * @param string $id the requested reporter service
+             *
+             * @return DispatchErrorEventThrowableHandler|DispatchThrowableHandler the available adapter
+             */
+            static fn(string $id): DispatchThrowableHandler|DispatchErrorEventThrowableHandler => match ($id) {
+                CallableThrowableHandler::class => throw $missing,
+                DispatchThrowableHandler::class => $raw,
+                DispatchErrorEventThrowableHandler::class => $wrapped,
+                default => throw new \LogicException('Unexpected reporter lookup: ' . $id),
+            },
+        );
+
+        $aggregate = (new ThrowableHandlerAggregateFactory())($container);
+        self::assertCount(0, $events);
+        $aggregate->handleThrowable($original);
+
+        self::assertCount(2, $events);
+        self::assertSame($original, $events[0]);
+        self::assertInstanceOf(ErrorEvent::class, $events[1]);
+        self::assertSame($original, $events[1]->getThrowable());
+    }
+
+    /** @return iterable<string, array{\Throwable}> Optional callable lookup failures that allow event reporting. */
+    public static function provideAnUnavailableOptionalCallableDoesNotPreventEventDeliveryCases(): iterable
+    {
+        yield 'missing service' => [
+            new class ('Missing callable') extends \RuntimeException implements NotFoundExceptionInterface {
+            },
+        ];
+
+        yield 'structurally unconfigured callable' => [
+            AutowiringException::forUnresolvableParameter(CallableThrowableHandler::class, 'callable', 'callable'),
+        ];
+    }
+
+    /** Verifies structural failures outside the optional callable lookup are not skipped. */
+    public function testDispatchAdapterAutowiringFailuresPropagate(): void
+    {
+        $failure = AutowiringException::forUnresolvableParameter(
+            DispatchThrowableHandler::class,
+            'eventDispatcher',
+            EventDispatcherInterface::class,
+        );
+        $container = $this->createMock(ContainerInterface::class);
+        $container->method('has')->willReturnCallback(
+            static fn(string $id): bool => CallableThrowableHandler::class !== $id,
+        );
+        $container->expects(self::once())->method('get')
+            ->with(DispatchThrowableHandler::class)->willThrowException($failure)
+        ;
+        $this->expectExceptionObject($failure);
+
+        (new ThrowableHandlerAggregateFactory())($container);
     }
 
     /**
@@ -196,9 +272,14 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
     public function testConstructionErrorsAreNotHidden(\Throwable $failure): void
     {
         $container = $this->containerFailingWith($failure);
-        $this->expectExceptionObject($failure);
 
-        (new ThrowableHandlerAggregateFactory())($container);
+        try {
+            (new ThrowableHandlerAggregateFactory())($container);
+            self::fail('Unexpectedly swallowed an explicit construction failure.');
+        } catch (\Throwable $caught) {
+            self::assertSame($failure, $caught);
+            self::assertSame($failure->getPrevious(), $caught->getPrevious());
+        }
     }
 
     /**
@@ -214,6 +295,13 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
         ];
 
         yield 'application failure' => [new \LogicException('Reporter initialization failed')];
+
+        yield 'explicit factory structural failure' => [
+            ContainerException::forInvalidService(
+                CallableThrowableHandler::class,
+                AutowiringException::forUnresolvableParameter(CallableThrowableHandler::class, 'callable', 'callable'),
+            ),
+        ];
     }
 
     /**

@@ -143,7 +143,11 @@ echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 <a id="events"></a>
 ## PSR-14 dispatch and PSR-3 event logging
 
-Exercise original Throwable and ErrorEvent notification paths. [Source](../examples/event-dispatcher.php).
+Exercise original Throwable and ErrorEvent notification paths with only an
+application dispatcher. Expect one raw delivery, one wrapped delivery and
+`Private log records: 1`; exit 0 alone does not prove reporting occurred.
+See [optional discovery and fallback](fast-forward.md) before relying on the
+default reporter. [Source](../examples/event-dispatcher.php).
 
 <!-- source: examples/event-dispatcher.php -->
 ```php

@@ -169,10 +169,18 @@ and [PHP-error](../examples/php-errors.php) examples.
 
 Some autowiring containers advertise `CallableThrowableHandler` through `has()`
 even when its required callable cannot be constructed. Optional discovery skips
-only a PSR-11 not-found result from `get()`; other construction exceptions are
-propagated by the factory. Container fallback can still supply another concrete
-instance after construction fails. Use an explicit `ThrowableHandlerInterface`
-binding for a required reporter and the merged-provider composition below.
+a PSR-11 not-found result or FastForward's structural `AutowiringException` only
+for that callable lookup. This lets an application dispatcher receive both event
+routes without a dummy callable. Other callable-construction failures and all
+dispatch-adapter failures propagate from the aggregate factory.
+
+FastForward 1.10.0 wraps an executing provider factory's failure in
+`ContainerException`, retaining its cause; this is not skipped by the optional
+lookup. The final container can nevertheless recover from failed concrete
+aggregate construction by autowiring an empty `ThrowableHandlerAggregate` and
+caching it. Merging maps does not disable that native fallback. Use an explicit
+`ThrowableHandlerInterface` binding for a required reporter and the merged-provider
+composition below; verify delivery and failures in the actual application graph.
 
 ## Required overrides
 

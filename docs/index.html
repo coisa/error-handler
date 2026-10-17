@@ -201,7 +201,7 @@ try {
             </tbody>
           </table>
         </div>
-        <p>The <a href="https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php">event example</a> includes providers, callable listeners and PSR-3 logging. Listener providers select listeners; the application dispatcher executes them. Raw and wrapped routes are separate deliveries. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">API contracts</a> for extension points and failure policy.</p>
+        <p>The <a href="https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php">event example</a> includes providers, callable listeners and PSR-3 logging. Listener providers select listeners; the application dispatcher executes them. Raw and wrapped routes are separate deliveries, and the recipe records one private log entry without configuring a callable reporter. Verify delivery after invocation; see <a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">optional discovery and native fallback</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">API contracts</a> for failure boundaries.</p>
       </section>
 
       <section id="filtering" aria-labelledby="filtering-title">

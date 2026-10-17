@@ -19,6 +19,15 @@ discovers an available `CallableThrowableHandler` and PSR-14 adapters when their
 dispatcher is available. An empty default aggregate is silent. A logger,
 filtering reporter or best-effort aggregate is not automatically attached.
 
+The optional callable lookup skips not-found and FastForward's structural
+`AutowiringException` when no callback can be inferred. A dispatcher alone still
+receives the original throwable and its `ErrorEvent` wrapper. Other construction
+failures leave the aggregate factory; in FastForward 1.10.0 an executing provider
+factory's failure is wrapped with its cause. The final container may still
+autowire and cache an empty concrete aggregate after such a failure. Check actual
+deliveries after invocation, and bind `ThrowableHandlerInterface` explicitly for
+a required reporter; the default aggregate is not a fail-closed boundary.
+
 For a required reporter or renderer interface override, merge definitions in one
 `FastForward\Container\ServiceProvider\AggregateServiceProvider`: library
 first, application last, then pass that provider to `container()`. The bundled

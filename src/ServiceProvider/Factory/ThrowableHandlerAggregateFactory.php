@@ -20,6 +20,7 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use FastForward\Container\Exception\AutowiringException;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -42,6 +43,9 @@ final class ThrowableHandlerAggregateFactory
      * - DispatchThrowableHandler
      * - DispatchErrorEventThrowableHandler
      *
+     * An absent or structurally unconfigured optional callable SHALL be skipped.
+     * Other construction failures SHALL propagate to the calling container.
+     *
      * @param ContainerInterface $container the PSR-11 container instance
      *
      * @return ThrowableHandlerAggregate the configured aggregate handler
@@ -58,6 +62,8 @@ final class ThrowableHandlerAggregateFactory
                 $callableHandler = $container->get(CallableThrowableHandler::class);
                 $handler->attach($callableHandler);
             } catch (NotFoundExceptionInterface) {
+                // The optional reporter entry is absent.
+            } catch (AutowiringException) {
                 // Autowiring may advertise a class whose required callable is not configured.
             }
         }
