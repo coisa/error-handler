@@ -8,12 +8,14 @@ Run the [HTTP example](https://github.com/coisa/error-handler/blob/master/exampl
 
 Read [the setup guide](../examples/README.md#application-dependencies) for a compatible application dependency graph. [PSR-15](https://www.php-fig.org/psr/psr-15/) defines middleware/request-handler contracts; [PSR-17](https://www.php-fig.org/psr/psr-17/) defines HTTP message factories. Their interface packages do not create a concrete request, response body or network server for the application.
 
-Before composing the middleware, identify:
+For the two compositions demonstrated here, identify:
 
 - A private reporter implementing `ThrowableHandlerInterface` and a distinct lifecycle handler for this scope.
 - Application PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` implementations; the recipe uses one Nyholm object for both.
 - A downstream PSR-15 `RequestHandlerInterface` and the application's existing response emitter/server integration.
 - The public status/body/reason policy and the action to take if reporting or response construction fails.
+
+A custom `ThrowableResponseFactoryInterface` implementation may create its PSR-7 `ResponseInterface` differently. PSR-17 factories are dependencies of the demonstrated implementations, rather than a requirement of that library interface.
 
 | Intended response policy | Composition to choose | Reporting owner |
 | --- | --- | --- |

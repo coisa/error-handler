@@ -40,7 +40,7 @@ Start with direct reporting, then add the composition your application needs. Th
 | Container | A parent PSR-11 implementation; the recipe uses Laminas ServiceManager | Overrides, the three aliases/seven factories and cached versus explicitly constructed core identity. Direct core construction needs no container. |
 | HTTP | PSR-17 stream/response factories; the recipe uses Nyholm | Returned response tuples, private reporting and callback restoration. No HTTP response is emitted. |
 
-The library requires `psr/container`, `psr/event-dispatcher`, `psr/http-factory`, `psr/http-server-middleware` and `psr/log` at runtime; Composer also resolves their interface dependencies, including PSR-7/PSR-15 request-handler contracts. These packages define interoperability contracts. Nyholm, Phly and Laminas are implementations used by particular recipes, not mandatory integrations for every application. The installed application's lockfile records the actual dependency versions.
+The library requires `psr/container`, `psr/event-dispatcher`, `psr/http-factory`, `psr/http-server-middleware` and `psr/log` at runtime; Composer also resolves their interface dependencies, including PSR-7 message interfaces and PSR-15 request-handler contracts. These packages define interoperability contracts. Nyholm, Phly and Laminas are implementations used by particular recipes, not mandatory integrations for every application. The installed application's lockfile records the actual dependency versions.
 
 From the source checkout, run `php examples/direct.php` first. Expected output is:
 

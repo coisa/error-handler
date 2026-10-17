@@ -131,7 +131,7 @@ The [complete event/logging example](https://github.com/coisa/error-handler/blob
 
 ## Extend through the existing contracts
 
-The built-in implementations are final. Compose them, adapt callables where supported, or implement the relevant interface in the application. A custom reporter does not need to implement callback registration or HTTP rendering.
+The core `ErrorHandler`, built-in handlers and HTTP adapters are final. Compose them, adapt callables where supported, or implement the relevant interface in the application. A custom reporter does not need to implement callback registration or HTTP rendering.
 
 | Extension point | Required operation | Where to supply it |
 | --- | --- | --- |
