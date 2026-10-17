@@ -47,4 +47,7 @@ Modernize the library for PHP 8.3+ while retaining the package
   PSR ranges and optional Whoops 2.18.4 minimum.
 - Describe the accompanying API without temporary PR or publication status,
   and clarify that diagnostic reporter output remains outside the PSR-7 body.
+- Correct callable-filtering guidance, clarify generic stream and fatal-reporting
+  contracts, and distinguish checkout recipes from bundled application examples.
+  Keep installed documentation links usable and release instructions current.
 - Keep content negotiation under application control.

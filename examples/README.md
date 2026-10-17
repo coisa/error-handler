@@ -4,6 +4,37 @@ These synthetic examples exercise the library's reporting, lifecycle, provider
 and HTTP contracts on PHP `^8.3`. Use examples matching the installed API; follow
 the [migration guide](../docs/migration.md) when upgrading from 2.x.
 
+The top-level `examples/` directory is source-checkout material and is excluded
+from Composer distribution archives. For an installed library, start with the
+[complete bundled application programs](../resources/skills/coisa-error-handler/examples/README.md)
+that ship under `vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/`.
+They accept the application's explicit autoloader and do not need the checkout's
+development autoload map.
+
+To use the cookbook below, select a matching inspected source checkout and keep
+its complete `examples/` directory, including
+[`bootstrap.php`](https://github.com/coisa/error-handler/blob/master/examples/bootstrap.php)
+and [`check.php`](https://github.com/coisa/error-handler/blob/master/examples/check.php).
+The bootstrap selects the Composer autoloader and loads the assertion helper;
+copying only an individual recipe is insufficient. From an existing application,
+run a checkout recipe against that application's graph:
+
+```sh
+ERROR_HANDLER_AUTOLOAD=/absolute/application/vendor/autoload.php php /absolute/source-checkout/examples/reporters.php
+```
+
+Expect exit 0, empty stderr and exactly:
+
+```text
+first: Synthetic failure
+second: Synthetic failure
+```
+
+Use the same autoloader selection for the other individual recipes. When using
+the checkout's own graph, follow its
+[dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md)
+and run commands from that checkout root.
+
 The source checkout supplies application implementations through development
 dependencies. In a disposable application, add
 `nyholm/psr7:^1.8.2` and `phly/phly-event-dispatcher:^1.6` for HTTP/event recipes.

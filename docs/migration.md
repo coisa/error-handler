@@ -68,7 +68,7 @@ no migration of existing adapters is required. The reporter remains required;
 the second and third arguments still default to null and retain the original PHP
 error and fatal-shutdown policies. Callable results are ignored, including false
 from the four-argument PHP callback. Construction remains inert. See the
-[complete callback recipe](../examples/php-errors.php).
+[complete callback recipe](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php).
 
 Before upgrading a real application, run the [documented checks](testing.md) and application-level tests for the actual reporter, middleware stack and PHP SAPI. These isolated fixtures do not establish reliability of third-party loggers, remote services or production infrastructure.
 

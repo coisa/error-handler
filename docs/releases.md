@@ -7,7 +7,7 @@ Composer consumers do not execute Node/npm scripts.
 Implementation PRs carry an English pending Changeset describing their
 consumer-visible change. Use patch for compatible fixes, minor for compatible
 additions and major for approved breaking changes. The
-[Changesets procedure](../.changeset/README.md) covers note creation, dependency
+[Changesets procedure](https://github.com/coisa/error-handler/blob/master/.changeset/README.md) covers note creation, dependency
 automation, validation, version PRs, provenance and GitHub publication.
 
 ```sh

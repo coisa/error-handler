@@ -22,7 +22,7 @@ codes 400–599 and otherwise uses 500, including SQLSTATE strings. It leaves re
 phrases to PSR-17 instead of copying exception messages.
 
 Implement a pure stream/response factory for an application-specific representation;
-the [custom JSON-stream recipe](../examples/http-rendering.php) returns a stream
+the [custom JSON-stream recipe](https://github.com/coisa/error-handler/blob/master/examples/http-rendering.php) returns a stream
 directly. `ThrowableStreamFactory` remains an explicit adapter for a separate
 public echo-based renderer. Its output becomes the response stream: `0` is
 preserved, and empty output uses the generic body. A private reporter is not that
@@ -32,7 +32,7 @@ Capture cleans reachable removable renderer-owned buffers after success and
 failure. It stops at protected buffers or no progress and retains the first
 cleanup failure; the original renderer failure takes precedence. Renderers must
 not close caller-owned buffers. Callback exit/die/fatal effects remain native
-limitations. See the [capture recipe](../examples/output-capture.php).
+limitations. See the [capture recipe](https://github.com/coisa/error-handler/blob/master/examples/output-capture.php).
 
 ## Opt-in JSON responses and explicit reporting
 
@@ -42,7 +42,7 @@ with `Content-Type: application/json`. Integer exception codes 400–599 are
 preserved; other integers and string codes use 500. Reason phrases come from
 PSR-17. No report, output capture or emission occurs inside this factory.
 
-The [complete JSON recipe](../examples/http-json.php) constructs an `ErrorHandler`
+The [complete JSON recipe](https://github.com/coisa/error-handler/blob/master/examples/http-json.php) constructs an `ErrorHandler`
 with a private reporter, then passes the JSON factory directly to middleware.
 Middleware delivers the identical original once before rendering. A reporter
 failure prevents rendering; renderer and PSR-17 failures propagate after callback
@@ -67,7 +67,7 @@ Install `filp/whoops:^2.18.4` in the application wherever diagnostic HTML is
 selected. `WhoopsThrowableResponseFactory($responses, $streams, $pageFactory)`
 takes a callable returning `Whoops\Handler\PrettyPageHandler`, invoked lazily for
 each render. The manual signature is unchanged from 2.5.0. Pass this pure renderer
-directly to middleware; see [manual selection](../examples/http-whoops.php).
+directly to middleware; see [manual selection](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php).
 
 Each render owns a fresh, unregistered `Whoops\Run`, response and body. Whoops
 returns HTML without writing output, sending headers or terminating the process.
@@ -77,7 +77,7 @@ service for sequential renders: current diagnostic data is replaced while page
 configuration remains. That page retains its latest diagnostic and does not
 provide concurrent-request isolation.
 
-The [Whoops provider recipe](../examples/provider-whoops.php) composes independent
+The [Whoops provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php) composes independent
 base, Whoops and application maps in one aggregate. The profile has no constructor:
 override the `PrettyPageHandler` service through an application `ServiceFactory`.
 The page is lazy and cached; middleware scopes and runs are fresh. See

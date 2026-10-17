@@ -58,7 +58,7 @@ CI exports the committed Git archive, verifies development-file exclusions and
 installs it into a fresh consumer with `--no-dev --no-plugins --no-scripts`.
 Production jobs run PHP 8.3–8.5; lower-bound runtime graphs run on 8.3 and 8.5.
 The consumer requires only this library, so FastForward/Interop/PSR dependencies
-must resolve transitively. See [production checks](../tests/Production/README.md).
+must resolve transitively. See [production checks](https://github.com/coisa/error-handler/blob/master/tests/Production/README.md).
 The archive gate also requires every file of the canonical consumer skill,
 including nested examples and its license, with exact source bytes. Functional
 PHPUnit cases reject missing, changed and unrelated resource assets; the bundled

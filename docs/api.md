@@ -17,7 +17,7 @@ try {
 ```
 
 For process-wide uncaught handling, keep the handler registered through termination,
-as in [the CLI example](../examples/cli.php). PHP executes finally before dispatching
+as in [the CLI example](https://github.com/coisa/error-handler/blob/master/examples/cli.php). PHP executes finally before dispatching
 an uncaught exception, so unregistering there returns responsibility to the previous
 handler. Direct `handleThrowable()` delivers the original object and returns; the
 registered uncaught callback exits 1 when reporting returns normally.
@@ -49,7 +49,7 @@ Callbacks receive one Throwable, four PHP-error arguments, or no shutdown
 arguments respectively; their return values are ignored. Explicit adapter objects
 remain useful when another API requires an interface. Null and omitted options
 retain the default policies below, including shutdown reporting through the same
-ErrorHandler. The [complete callback recipe](../examples/php-errors.php) supplies
+ErrorHandler. The [complete callback recipe](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php) supplies
 all three callables and pairs active shutdown notification with cleanup.
 
 The default `ThrowErrorExceptionPhpErrorHandler` honors `error_reporting()` and
@@ -73,16 +73,26 @@ that calls exit/die or causes a native fatal does not become recoverable.
 
 ## Callable reporters, aggregates and PSR-14
 
-`CallableThrowableHandler` adapts `callable(Throwable): void`.
+`CallableThrowableHandler` adapts `callable(Throwable): mixed` and ignores its
+return value.
 `ThrowableHandlerAggregate` accepts variadic reporters and `attach()`, delivering
 the same object in order and stopping on the first failure.
 
 `DispatchThrowableHandler` dispatches the original throwable through PSR-14.
 `DispatchErrorEventThrowableHandler` dispatches an `ErrorEvent` wrapper.
-The two listener providers select Throwable objects or the built-in ErrorEvent;
-callable listeners adapt application callbacks. `LogErrorEventListener` forwards
-the diagnostic event to an application PSR-3 logger. Stringifying ErrorEvent
-includes private diagnostics and must not produce a public HTTP body.
+Under `CoiSA\ErrorHandler\EventDispatcher`,
+`ListenerProvider\ThrowableListenerProvider` selects Throwable objects;
+`ListenerProvider\ErrorEventListenerProvider` selects the concrete built-in
+`Event\ErrorEvent`, not arbitrary implementations of `ErrorEventInterface`.
+Both accept variadic callable listeners and `attach()` in order; lookup selects
+listeners without invoking them. The application dispatcher performs delivery.
+
+`Listener\ThrowableCallableListener` and `Listener\ErrorEventCallableListener`
+invoke their callbacks, ignore callback results and return the same throwable or
+event respectively. Their callback failures propagate. `LogErrorEventListener`
+forwards the diagnostic event to an application PSR-3 logger.
+`ErrorEvent::getThrowable()` preserves the original object; stringifying the
+event includes private diagnostics and must not produce a public HTTP body.
 See [the complete event/logger example](examples.md#events).
 
 ## Direct PSR-3 logging
@@ -101,7 +111,7 @@ It is not automatically attached when a logger is available in the container.
 Construct it explicitly or bind `ThrowableHandlerInterface` using the
 [merged-provider override](fast-forward.md#required-overrides).
 
-See [the complete logging example](../examples/logging.php). Unlike this direct
+See [the complete logging example](https://github.com/coisa/error-handler/blob/master/examples/logging.php). Unlike this direct
 adapter, `LogErrorEventListener` retains its event-string message policy.
 
 ## Conditional reporting
@@ -117,7 +127,7 @@ No output, default filtering policy, registration or automatic aggregate discove
 is added. A skipped report does not recover the operation, change PHP suppression
 or choose the HTTP response. Rendering remains a separate public
 boundary regardless of whether a diagnostic reporter forwards the event.
-See [the filtering example](../examples/filtering.php); select PHP severity via
+See [the filtering example](https://github.com/coisa/error-handler/blob/master/examples/filtering.php); select PHP severity via
 ErrorException::getSeverity(), not an arbitrary exception code.
 
 ## Callable PHP-error policy
@@ -130,7 +140,7 @@ There is no fifth errcontext argument, automatic mask check, conversion or outpu
 
 The callback owns suppression/conversion policy and its failures propagate
 unchanged. Through ErrorHandler, a thrown ErrorException follows the normal
-reporting boundary; other failures propagate. The [complete PHP-error example](../examples/php-errors.php)
+reporting boundary; other failures propagate. The [complete PHP-error example](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php)
 explicitly checks `error_reporting() & $code` before converting an enabled error.
 
 Pass the callable directly as the second ErrorHandler argument, or keep the
@@ -139,6 +149,11 @@ handler factory also accepts either form under `PhpErrorHandlerInterface`;
 use FastForward's `ServiceFactory` to bind a callback as a value rather than a
 construction factory. Null keeps the existing default. Construction and discovery
 never register native callbacks.
+
+`Exception\ErrorException::fromPhpError($message, $code, $severity, $filename, $line, $previous)`
+keeps exception code and PHP severity independent and preserves the original
+previous throwable. Omitted or null location values become an empty filename
+and line 0; the factory does not invent a source location or previous cause.
 
 ## HTTP: report once, then render explicitly
 
@@ -225,7 +240,7 @@ If any reporter throws, including partial success, one
 returns the nonempty ordered list of identical reporter failures. Its constructor
 requires the original, one failure and optional remaining failures. The summary is
 fixed, but stored causes/failures and exception strings remain private diagnostics.
-Use the [complete recipe](../examples/best-effort.php) for explicit terminal handling.
+Use the [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/best-effort.php) for explicit terminal handling.
 
 No retry, deduplication, reentry guard or durable transport is added. Native
 termination can prevent later attempts. Default provider composition stays

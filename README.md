@@ -62,7 +62,7 @@ application's private diagnostic sink.
 
 All three constructor inputs accept the matching handler interface or a callable;
 omitted PHP-error and shutdown inputs retain their defaults. Existing interface
-objects keep their identity. See the [complete three-callback recipe](examples/php-errors.php).
+objects keep their identity. See the [complete three-callback recipe](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php).
 
 ## 🧰 Choose an integration
 
@@ -74,10 +74,10 @@ objects keep their identity. See the [complete three-callback recipe](examples/p
 | Filter or fan out | [Filtering][link-filtering], [aggregates][link-aggregates] and [best effort][link-best-effort]. |
 | Use a container | [Interop/FastForward provider, overrides and fresh scopes](docs/fast-forward.md). |
 | Return an HTTP response | [PSR-15 middleware and PSR-17 composition](docs/http.md). |
-| Return JSON with one private report | [Opt-in JSON rendering](docs/http.md#opt-in-json-responses-and-explicit-reporting) and [complete recipe](examples/http-json.php). |
-| Use Interop/FastForward providers | [JSON profile](docs/fast-forward.md#json-profile) and [complete provider recipe](examples/provider-json.php). |
-| Render development HTML | [Optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [manual recipe](examples/http-whoops.php). |
-| Configure Whoops services | [Whoops profile](docs/fast-forward.md#development-html-profile) and [complete provider recipe](examples/provider-whoops.php). |
+| Return JSON with one private report | [Opt-in JSON rendering](docs/http.md#opt-in-json-responses-and-explicit-reporting) and [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/http-json.php). |
+| Use Interop/FastForward providers | [JSON profile](docs/fast-forward.md#json-profile) and [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php). |
+| Render development HTML | [Optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [manual recipe](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php). |
+| Configure Whoops services | [Whoops profile](docs/fast-forward.md#development-html-profile) and [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php). |
 
 JSON and Whoops adapters introduced in 2.5.0 use the same representation APIs.
 Middleware reports once before the pure renderer; do not add the 2.x reporting
@@ -108,9 +108,9 @@ failure propagation, callback ownership and output-buffer limits.
 
 ## 📚 Guides and examples
 
-- [Complete cookbook](docs/examples.md), [application setup](examples/README.md)
-  and [bounded example verification](examples/verify.md).
-- [Source documentation](docs/index.html), [web documentation][link-docs] and
+- [Complete cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
+  and [bounded example verification](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
+- [Source documentation](https://github.com/coisa/error-handler/blob/master/docs/index.html), [web documentation][link-docs] and
   [API reference](docs/api.md).
 - [Portable `coisa-error-handler` consumer skill](resources/skills/coisa-error-handler/SKILL.md)
   with complete application examples; [optional installation](docs/agent-skill.md)
@@ -120,9 +120,9 @@ failure propagation, callback ownership and output-buffer limits.
 
 ## 🤝 Contributing
 
-Follow the [contributor guide](CONTRIBUTING.md) for dependency setup and
+Follow the [contributor guide](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for dependency setup and
 `composer --no-plugins check`. See [testing](docs/testing.md) for process fixtures
-and platform evidence, and [Changesets](.changeset/README.md) for release notes.
+and platform evidence, and [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md) for release notes.
 Node.js is used only by development release tooling.
 
 ## License

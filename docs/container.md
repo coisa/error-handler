@@ -9,7 +9,10 @@ FastForward caches services. Resolve and invoke the provider's explicit factory
 services when a fresh handler/middleware scope is required. Discovery does not
 install native PHP callbacks; applications choose when to register the process
 handler. Merge application overrides after library definitions in one aggregate
-provider. See the [complete example](../examples/fast-forward.php).
+provider as shown under [required overrides](fast-forward.md#required-overrides).
+The [bundled required-reporter program](../resources/skills/coisa-error-handler/examples/container.php)
+provides complete setup; the short optional-discovery recipe uses a different
+composition.
 
 The best-effort aggregate is also explicit: construct it with application reporters
 and bind the required reporting interface in the merged map. No factory, alias or

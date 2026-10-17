@@ -39,10 +39,11 @@ Using the configured reporter from the ordinary setup:
 
 ```php
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\FilteringThrowableHandler;
 
 $selected = new FilteringThrowableHandler(
-    $configuration['reporter'],
+    new CallableThrowableHandler($configuration['reporter']),
     /**
      * Route PHP warnings by severity, without interpreting exception codes.
      *

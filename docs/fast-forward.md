@@ -22,7 +22,7 @@ successful Composer resolution as a complete runtime check. See
 [test evidence](testing.md#coverage-and-current-evidence).
 
 The development checkout includes it in `require`. After installing
-the checkout dependencies, run the complete [example](../examples/fast-forward.php):
+the checkout dependencies, run the complete [example](https://github.com/coisa/error-handler/blob/master/examples/fast-forward.php):
 
 ```sh
 php examples/fast-forward.php
@@ -32,7 +32,7 @@ It reports one warning and restores the prior PHP callbacks. Pass the library
 provider class and application provider directly to `container()`. This example
 adds a callable reporter for the library's optional reporter discovery. Its
 `bootstrap.php` selects the checkout or application autoloader as described in
-[example setup](../examples/README.md):
+[example setup](https://github.com/coisa/error-handler/blob/master/examples/README.md):
 
 ```php
 <?php
@@ -163,8 +163,8 @@ The explicit ErrorHandlerFactory remains responsible for optional defaults and
 fresh scopes; this does not require a container to autowire arbitrary union types.
 Interface instances take precedence over their callable capability. No callback
 is executed or registered during construction. See [adapter contracts](api.md#callable-php-error-policy)
-and the [logging](../examples/logging.php), [filtering](../examples/filtering.php)
-and [PHP-error](../examples/php-errors.php) examples.
+and the [logging](https://github.com/coisa/error-handler/blob/master/examples/logging.php), [filtering](https://github.com/coisa/error-handler/blob/master/examples/filtering.php)
+and [PHP-error](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php) examples.
 
 Some autowiring containers advertise `CallableThrowableHandler` through `has()`
 even when its required callable cannot be constructed. Optional discovery skips
@@ -232,7 +232,7 @@ support constructor autowiring, as FastForward's `container()` does.
 The [usage cookbook](examples.md) exposes complete examples for every built-in adapter:
 PSR-14 dispatch and PSR-3 logging, private HTTP reporting, controlled JSON rendering,
 custom PHP/shutdown handlers, direct reporter composition and nested scopes.
-The cookbook includes each complete program. The [documentation site](index.html#examples)
+The cookbook includes each complete program. The [documentation site](https://coisa.github.io/error-handler/#examples)
 links the same sources and displays checked excerpts.
 
 ## HTTP scopes and fresh instances
@@ -326,7 +326,7 @@ $services = container(new AggregateServiceProvider(
 Later aggregate definitions win. A trusted debug choice can be read from
 FastForward Config before constructing `new JsonErrorHandlerServiceProvider($debug)`.
 Pass a real boolean from a strict caller; the provider does not detect environment
-or request state. The [complete recipe](../examples/provider-json.php) shows public
+or request state. The [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php) shows public
 and debug modes, the application map and a fresh middleware scope. JSON is pure;
 the scoped middleware handler supplies the one private report.
 
@@ -347,7 +347,7 @@ response interface alias. Its lazy page callback resolves the application's
 do not create a page or register native callbacks.
 
 Use one `AggregateServiceProvider` in base, Whoops, application order, as in the
-[complete default/configured recipe](../examples/provider-whoops.php). An optional
+[complete default/configured recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php). An optional
 package's absence can otherwise fall through between separate providers after a
 PSR-11 error. The aggregate selects the intended binding and retains an install
 hint through the container's failure chain; it is not a general guarantee that
