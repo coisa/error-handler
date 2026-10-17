@@ -6,7 +6,7 @@ select the major provider/lifecycle/HTTP contracts.
 
 The source checkout supplies application implementations through development
 dependencies. In a disposable application using that path package, add
-`nyholm/psr7:^1.8` and `phly/phly-event-dispatcher:^1.0` for HTTP/event recipes.
+`nyholm/psr7:^1.8.2` and `phly/phly-event-dispatcher:^1.6` for HTTP/event recipes.
 Add optional `filp/whoops:^2.18.4` wherever the development HTML recipes are used.
 FastForward Container and PSR interfaces resolve from the library's runtime graph.
 No framework-specific container is required. Keep application locks/caches outside
@@ -17,7 +17,7 @@ or the checkout's autoloader and installs no callbacks. To run the bounded verif
 with an external application autoloader, install its development-only process tool:
 
 ```sh
-composer require --dev 'symfony/process:^5.4 || ^6.4 || ^7.4 || ^8.0' --no-plugins --no-scripts --no-interaction
+composer require --dev 'symfony/process:^7.4 || ^8.1' --no-plugins --no-scripts --no-interaction
 ERROR_HANDLER_AUTOLOAD=/absolute/application/vendor/autoload.php php examples/verify.php
 ```
 

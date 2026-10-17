@@ -16,7 +16,7 @@ composer install --no-plugins --no-scripts
 ```
 
 Use Composer 2 in this reviewed source checkout on PHP `^8.3`; CI targets
-PHP 8.3–8.5. FastForward Container `^1.6` is a runtime dependency. Applications supply
+PHP 8.3–8.5. FastForward Container `^1.10` is a runtime dependency. Applications supply
 their logger, dispatcher, HTTP factories and response emitter as needed.
 
 This branch describes the unreleased next major after published 2.5.0. It does

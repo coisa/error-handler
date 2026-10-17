@@ -17,7 +17,7 @@ php -r 'require "vendor/autoload.php"; if (!class_exists("CoiSA\\ErrorHandler\\H
 For providers, also verify `ServiceProvider\ErrorHandlerServiceProvider`,
 `ServiceProvider\JsonErrorHandlerServiceProvider` and
 `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` under the
-`CoiSA\ErrorHandler` namespace. FastForward `^1.6` is a required runtime dependency
+`CoiSA\ErrorHandler` namespace. FastForward `^1.10` is a required runtime dependency
 of this source. Class discovery alone does not distinguish the 2.5 renderer APIs
 from this major's lifecycle and middleware contracts. Follow the matching
 source and skill; do not upgrade a consumer automatically to fit this route.

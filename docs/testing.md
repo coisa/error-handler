@@ -99,16 +99,18 @@ No runtime exclusions, merged child coverage or artificial coverage ignores are
 introduced by this reconciliation. PHPStan's output-buffer stub supplies analysis
 metadata only and is never loaded by the runtime/autoloader/test suite.
 
-The reconciled local graph uses PHP 8.5.11, PHPUnit 13.4.2, FastForward 1.8.0
-and Whoops 2.18.6 on macOS arm64. Coverage is measured separately with PHP 8.5.11 and Xdebug 3.5.3.
-These observations do not prove PHP 8.3 or every permitted dependency combination.
-The declared FastForward `^1.6` floor includes an older graph with PHP-DI 7.0
-that emitted implicit-nullability deprecations under PHP 8.5/E_ALL despite exit 0.
-That earlier observation is a dependency diagnostic limit, not a clean result for
-the reconciled candidate. Keep its evidence separate from current-graph checks.
-The PR evidence records test totals, native uncovered lines and hosted SHAs.
-Earlier PR #3 results using 75 tests, custom runners or PSR-12-only formatting are
-historical; the current checkout uses the merged CoiSA 3.x preset and PHPUnit suites.
+Resolve development dependencies on the actual PHP runtime. PHP 8.3 uses the
+admitted PHPUnit `^12.5` line; PHPUnit `^13.4` requires PHP 8.4.1 or later.
+Symfony Process similarly admits `^7.4` for PHP 8.3 and `^8.1` for PHP 8.4.1+.
+The manifest retains both compatible lines without raising the library's PHP floor.
+Native coverage requires the recorded Xdebug or PCOV version; a lockfile or
+successful resolution alone does not prove execution on another PHP version.
+
+FastForward Container `^1.10` requires Config `^1.6`, removing PHP-DI and
+DotAccessData from that runtime graph. The Nyholm development minimum is 1.8.2,
+which includes its PHP 8.5 nullable-parameter fixes. Applications select their
+own PSR-17 implementation. Keep dependency diagnostics under `E_ALL` visible and
+record the graph, test totals, native uncovered lines and hosted SHA in PR evidence.
 
 ## Limits
 

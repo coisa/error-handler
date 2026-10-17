@@ -5,7 +5,7 @@
 Prepare the unreleased PHP 8.3+ major while retaining the package
 `coisa/error-handler` and namespace `CoiSA\ErrorHandler`.
 - Require PHP `^8.3`, with a tested CI matrix of PHP 8.3–8.5.
-- Require FastForward Container and expose the Interop service provider as the
+- Require FastForward Container `^1.10` and expose the Interop service provider as the
   container entrypoint. Remove the standalone Container/ConfigProvider APIs,
   their package-specific exceptions and constructor-only factories. Keep explicit
   lifecycle/composition factories under `ServiceProvider\Factory`.
@@ -41,5 +41,9 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   existing adapters. Preserve interface identity and precedence, required reporter,
   optional null defaults, inert construction and the existing reporting policies.
   Keep explicit provider factories for cached services and fresh scopes.
+- Refresh Composer development-tool ranges to the current stable lines, retaining
+  PHP 8.3 support through PHPUnit 12.5 and Symfony Process 7.4 alternatives.
+  Require Nyholm 1.8.2 in development for its PHP 8.5 fixes; retain the compatible
+  PSR ranges and optional Whoops 2.18.4 minimum.
 - Keep the current 2.x manifest version and published changelog unchanged. Content
   negotiation remains separate work; this note does not perform a release.

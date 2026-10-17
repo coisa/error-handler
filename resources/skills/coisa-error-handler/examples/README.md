@@ -49,7 +49,7 @@ callbacks; register only at the actual process/request boundary.
 
 ## FastForward container
 
-The library requires FastForward `^1.6` at runtime. Run with the selected major
+The library requires FastForward `^1.10` at runtime. Run with the selected major
 source:
 
 ```sh
@@ -75,7 +75,7 @@ Supply Nyholm as the application's PSR-17 implementation if it has not selected
 one already:
 
 ```sh
-composer require 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'nyholm/psr7:^1.8.2' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/http.php ./vendor/autoload.php
 ```
 

@@ -7,22 +7,20 @@ remains the current API; a possible future move to php-fast-forward has not happ
 
 ## Installation and bootstrap
 
-The library requires `fast-forward/container:^1.6` and the
+The library requires `fast-forward/container:^1.10` and the
 `container-interop/service-provider:^0.4` interface package at runtime.
 Composer installs them for consumers. The provider reuses FastForward's
 `AliasFactory::get()`, `InvokableFactory` and `CallableFactory`; it does not ship a second container.
 To install the container explicitly in an application:
 
 ```sh
-composer require fast-forward/container:^1.6
+composer require fast-forward/container:^1.10
 ```
 
-
-The `^1.6` requirement is the declared lower bound, not evidence that every
-permitted dependency graph is warning-free. A prior PHP 8.5/E_ALL run with
-FastForward 1.6 and PHP-DI 7.0 emitted upstream implicit-nullability deprecations
-despite exiting 0. Record the actual PHP and locked versions, and assess those
-diagnostics separately from successful resolution; see [test evidence](testing.md#coverage-and-current-evidence).
+FastForward 1.10 requires Config `^1.6`; these lines no longer use PHP-DI or
+DotAccessData. Record the actual PHP and locked versions rather than treating a
+successful Composer resolution as a complete runtime check. See
+[test evidence](testing.md#coverage-and-current-evidence).
 
 The development checkout includes it in `require`. After installing
 the checkout dependencies, run the complete [example](../examples/fast-forward.php):
@@ -130,7 +128,7 @@ composition and fresh middleware scopes; autowiring alone does not replace those
 contracts. The factory-object services use FastForward's `InvokableFactory`.
 
 Bind a required custom renderer through `ThrowableStreamFactoryInterface` or
-`ThrowableResponseFactoryInterface`. FastForward 1.6.0 can discard a concrete
+`ThrowableResponseFactoryInterface`. FastForward can discard a concrete
 class definition's PSR-11 construction failure and fall back to autowiring that
 class. The same failure on an explicitly bound interface prevents construction,
 because the interface has no autowire fallback. Successful concrete overrides
@@ -172,15 +170,14 @@ and [PHP-error](../examples/php-errors.php) examples.
 Some autowiring containers advertise `CallableThrowableHandler` through `has()`
 even when its required callable cannot be constructed. Optional discovery skips
 only a PSR-11 not-found result from `get()`; other construction exceptions are
-propagated. FastForward 1.6.0 can itself translate a failed concrete dependency
-into not-found, so the library cannot distinguish that from an absent optional
-reporter. Use an explicit `ThrowableHandlerInterface` binding for a required
-reporter and the merged-provider composition below.
+propagated by the factory. Container fallback can still supply another concrete
+instance after construction fails. Use an explicit `ThrowableHandlerInterface`
+binding for a required reporter and the merged-provider composition below.
 
 ## Required overrides
 
 The short bootstrap above adds optional reporters and external dependencies.
-FastForward 1.6.0 and 1.8.0 search separate providers in the supplied order;
+FastForward 1.10 searches separate providers in the supplied order;
 they do not merge their factory maps. In
 `container(ErrorHandlerServiceProvider::class, $application)`, a duplicate
 `ThrowableHandlerInterface` definition in the application is shadowed by the
@@ -204,12 +201,12 @@ $services = container(
 Here `$application` binds the required reporter or renderer interface.
 `AggregateServiceProvider` uses its last definition for each service ID. This
 replaces the library default and makes required-reporter failures fail
-construction of both process handler and middleware. FastForward still
-translates PSR failures to not-found; it does not preserve their original cause.
-Container 1.6.0 propagates ordinary application exceptions directly; newer
-versions such as 1.8.0 normalize those too. The supported contract is failed
-construction after reaching the required factory, without silent fallback;
-it does not guarantee exception type, message or cause preservation.
+construction of both process handler and middleware. FastForward normalizes
+construction failures into PSR-11 exceptions; its aggregate retains the first
+construction failure when no source succeeds. The supported contract is failed
+construction after reaching the required factory, without silent fallback to the
+library's default reporter. Do not depend on a particular wrapper type or message;
+inspect the available cause chain when diagnosing a failed resolution.
 Container resolution may attempt a failing construction more than once while
 trying its delegates and autowiring. Application factories must tolerate those
 attempts; this differs from the handler's no-retry contract after reporting fails.
@@ -278,9 +275,9 @@ an explicit package/namespace decision,
 release and migration guidance; this provider is not a claim that those changes
 have already been made.
 
-Sources: [FastForward Container 1.6.0](https://github.com/php-fast-forward/container/tree/v1.6.0),
+Sources: [FastForward Container 1.10.0](https://github.com/php-fast-forward/container/tree/v1.10.0),
 [provider contract](https://github.com/container-interop/service-provider/tree/v0.4.1),
-[factory lifetime pattern](https://github.com/php-fast-forward/container/blob/v1.6.0/docs/advanced/special-patterns.rst).
+[cached provider services](https://github.com/php-fast-forward/container/blob/v1.10.0/src/ServiceProviderContainer.php).
 
 If the built-in handler's reporter fails during a request warning, middleware
 propagates that failure and restores callbacks without rendering it through the

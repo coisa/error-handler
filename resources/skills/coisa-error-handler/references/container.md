@@ -4,14 +4,13 @@ Read when an application uses the Interop service provider. The complete
 [container program](../examples/container.php) and its
 [setup instructions](../examples/README.md#fastforward-container) supply a private
 reporter, resolve a cached handler and create a distinct scope. FastForward
-Container `^1.6` is required at runtime by this major; do not restore the removed
+Container `^1.10` is required at runtime by this major; do not restore the removed
 `ErrorHandlerContainer`, `ConfigProvider` or Laminas metadata.
 
-Some versions admitted by the minimum dependency graph emit PHP 8.5 deprecations
-under `E_ALL`. Inspect the actual locked FastForward/PHP-DI versions and runtime
-result; Composer resolution alone does not establish a warning-free graph.
-Do not suppress diagnostics or change application constraints merely to fit an
-example. Keep that dependency evidence separate from the library's own behavior.
+FastForward 1.10 requires Config `^1.6`; these versions no longer use PHP-DI or
+DotAccessData. Inspect the actual locked graph and runtime result; Composer
+resolution alone does not establish a warning-free application. Keep diagnostics
+under `E_ALL` visible and separate dependency evidence from the library's behavior.
 
 For optional reporter discovery and external PSR implementations, ordinary
 composition uses `container(ErrorHandlerServiceProvider::class, $application)`

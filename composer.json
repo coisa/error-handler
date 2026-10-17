@@ -17,7 +17,7 @@
     "require": {
         "php": "^8.3",
         "container-interop/service-provider": "^0.4",
-        "fast-forward/container": "^1.6",
+        "fast-forward/container": "^1.10",
         "psr/container": "^1.1 || ^2.0",
         "psr/http-server-middleware": "^1.0",
         "psr/http-factory": "^1.1",
@@ -41,17 +41,17 @@
     "require-dev": {
         "coisa/php-cs-fixer": "^3.0",
         "filp/whoops": "^2.18.4",
-        "jangregor/phpstan-prophecy": "^2.1",
-        "nyholm/psr7": "^1.8",
+        "jangregor/phpstan-prophecy": "^2.3",
+        "nyholm/psr7": "^1.8.2",
         "nyholm/psr7-server": "^1.1",
-        "phly/phly-event-dispatcher": "^1.0",
-        "phpspec/prophecy": "^1.20",
-        "phpspec/prophecy-phpunit": "^2.1",
-        "phpstan/phpstan": "^2.1",
-        "phpstan/phpstan-strict-rules": "^2.0",
-        "phpunit/phpunit": "^12.5 || ^13.0",
+        "phly/phly-event-dispatcher": "^1.6",
+        "phpspec/prophecy": "^1.26",
+        "phpspec/prophecy-phpunit": "^2.5",
+        "phpstan/phpstan": "^2.3",
+        "phpstan/phpstan-strict-rules": "^2.1",
+        "phpunit/phpunit": "^12.5 || ^13.4",
         "squizlabs/php_codesniffer": "^4.0",
-        "symfony/process": "^5.4 || ^6.4 || ^7.4 || ^8.0"
+        "symfony/process": "^7.4 || ^8.1"
     },
     "scripts": {
         "check": [

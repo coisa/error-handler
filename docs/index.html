@@ -120,9 +120,9 @@
       <section id="install" aria-labelledby="install-title">
         <h2 id="install-title">Set up the selected major source</h2>
         <code class="install-command">composer install --no-plugins --no-scripts</code>
-        <p>Use Composer 2 in the reviewed checkout or an application selecting that exact path package. The declared PHP constraint is <code>^8.3</code>; the CI matrix targets PHP 8.3–8.5. FastForward Container <code>^1.6</code> and the Interop provider contract are runtime dependencies.</p>
+        <p>Use Composer 2 in the reviewed checkout or an application selecting that exact path package. The declared PHP constraint is <code>^8.3</code>; the CI matrix targets PHP 8.3–8.5. FastForward Container <code>^1.10</code> and the Interop provider contract are runtime dependencies.</p>
         <p>Applications supply loggers, dispatchers, PSR-17 implementations and their emitter as needed. The development checkout supplies Nyholm and Phly for its synthetic recipes; optional <code>filp/whoops:^2.18.4</code> is needed only where development HTML is selected.</p>
-        <p>Read <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">example setup</a> for the selected autoloader and verifier dependencies. Resolve with the actual PHP runtime and retain application lockfiles. The declared FastForward minimum has a <a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">documented dependency-graph limitation</a>; a permitted constraint is not proof that every combination is clean.</p>
+        <p>Read <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">example setup</a> for the selected autoloader and verifier dependencies. Resolve with the actual PHP runtime and retain application lockfiles. Consult the <a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">recorded test evidence</a>; a permitted constraint is not proof that every combination is clean.</p>
       </section>
 
       <section id="reporting" aria-labelledby="reporting-title">

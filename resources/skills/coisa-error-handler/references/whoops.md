@@ -74,7 +74,7 @@ First verify that the selected installation contains
 `ServiceProvider\WhoopsErrorHandlerServiceProvider`, the base
 `ServiceProvider\ErrorHandlerServiceProvider` and
 `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`. The application must
-run PHP 8.3+; FastForward `^1.6` is required by this source at runtime.
+run PHP 8.3+; FastForward `^1.10` is required by this source at runtime.
 
 The [complete provider program](../examples/provider-whoops.php) supplies the
 PSR-17 interfaces and private reporter through its application provider. Compose
