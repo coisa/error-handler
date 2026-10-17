@@ -15,12 +15,12 @@
 declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
-use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use FastForward\Container\Factory\ServiceFactory;
 
 use function FastForward\Container\container;
 
@@ -49,9 +49,11 @@ $phpErrors = new class implements PhpErrorHandlerInterface {
 };
 
 $shutdowns = 0;
-$shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): void {
+
+/** Records the explicit notification on the active lifecycle scope. */
+$shutdown = static function () use (&$shutdowns): void {
     ++$shutdowns;
-});
+};
 
 $application = new ArrayServiceProvider([
     CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
@@ -65,7 +67,7 @@ $application = new ArrayServiceProvider([
         },
     ),
     PhpErrorHandlerInterface::class => static fn(): PhpErrorHandlerInterface => $phpErrors,
-    ShutdownHandlerInterface::class => static fn(): ShutdownHandlerInterface => $shutdown,
+    ShutdownHandlerInterface::class => new ServiceFactory($shutdown),
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);

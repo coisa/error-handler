@@ -37,6 +37,22 @@ for nested scopes. These stacks do not provide concurrent-request/fiber isolatio
 | `PhpErrorHandlerInterface` | Apply policy to PHP severity/message/file/line |
 | `ShutdownHandlerInterface` | Handle a shutdown notification |
 
+The required `$throwableHandler` constructor argument accepts
+`ThrowableHandlerInterface|callable`. Optional `$phpErrorHandler` and
+`$shutdownHandler` accept their matching interface, a callable or null. The
+parameter names and order are unchanged. Interface instances retain their identity
+and take precedence over `__invoke()` when an object supports both contracts.
+Other callables are wrapped with the existing `CallableThrowableHandler`,
+`CallablePhpErrorHandler` or `CallableShutdownHandler`, without being invoked
+during construction. Invalid non-callable inputs raise TypeError at that boundary.
+
+Callbacks receive one Throwable, four PHP-error arguments, or no shutdown
+arguments respectively; their return values are ignored. Explicit adapter objects
+remain useful when another API requires an interface. Null and omitted options
+retain the default policies below, including shutdown reporting through the same
+ErrorHandler. The [complete callback recipe](../examples/php-errors.php) supplies
+all three callables and pairs active shutdown notification with cleanup.
+
 The default `ThrowErrorExceptionPhpErrorHandler` honors `error_reporting()` and
 suppression, converts reportable errors and lets the outer handler report them.
 Recoverable warnings continue. The default `PhpLastErrorShutdownHandler` inspects
@@ -118,12 +134,12 @@ unchanged. Through ErrorHandler, a thrown ErrorException follows the normal
 reporting boundary; other failures propagate. The [complete PHP-error example](../examples/php-errors.php)
 explicitly checks `error_reporting() & $code` before converting an enabled error.
 
-Inject the wrapper as the second ErrorHandler argument, or bind the instance as
-`PhpErrorHandlerInterface` in the application provider. Null keeps the existing
-default. All three ErrorHandler constructor positions still require their typed
-interface instances in this candidate. Bare-callable constructor inputs remain
-[separate major work](https://github.com/coisa/error-handler/issues/70), not an
-implemented API. Construction and discovery never register native callbacks.
+Pass the callable directly as the second ErrorHandler argument, or keep the
+explicit wrapper when an interface instance is needed. The provider's explicit
+handler factory also accepts either form under `PhpErrorHandlerInterface`;
+use FastForward's `ServiceFactory` to bind a callback as a value rather than a
+construction factory. Null keeps the existing default. Construction and discovery
+never register native callbacks.
 
 ## HTTP: report once, then render explicitly
 

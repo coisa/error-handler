@@ -42,14 +42,17 @@ final class ConsumerSkillExamplesTest extends TestCase
 {
     /**
      * Configuration overrides select the actual reporter before creating a fresh scope.
+     *
+     * @param bool $callback whether to select the reporter's first-class method callable
      */
-    public function testExplicitOverridesWinAndFactoryScopesAreDistinct(): void
+    #[DataProvider('provideExplicitOverridesWinAndFactoryScopesAreDistinctCases')]
+    public function testExplicitOverridesWinAndFactoryScopesAreDistinct(bool $callback): void
     {
         $default = new RecordingThrowableHandler();
         $selected = new RecordingThrowableHandler();
         $factory = new ConfiguredErrorHandlerFactory();
         $configuration = ['reporter' => $default];
-        $overrides = ['reporter' => $selected];
+        $overrides = ['reporter' => $callback ? $selected->handleThrowable(...) : $selected];
 
         $first = $factory($configuration, $overrides);
         $second = $factory($configuration, $overrides);
@@ -64,6 +67,12 @@ final class ConsumerSkillExamplesTest extends TestCase
         self::assertSame([], $default->getThrowables());
         self::assertSame([$failure, $failure], $selected->getThrowables());
         self::assertSame($default, $configuration['reporter']);
+    }
+
+    /** @return array<string, array{bool}> interface and callable application override forms */
+    public static function provideExplicitOverridesWinAndFactoryScopesAreDistinctCases(): iterable
+    {
+        return ['interface' => [false], 'callable' => [true]];
     }
 
     /**

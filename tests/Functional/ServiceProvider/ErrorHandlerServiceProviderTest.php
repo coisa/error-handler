@@ -38,11 +38,14 @@ use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use FastForward\Container\Factory\ServiceFactory;
 use Interop\Container\ServiceProviderInterface;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\WithoutErrorHandler;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Container\ContainerExceptionInterface;
@@ -55,6 +58,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 use function FastForward\Container\container;
+use function FastForward\Config\config;
 
 /**
  * Verifies real FastForward wiring, reporting failures and independent middleware scopes.
@@ -398,6 +402,117 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         self::assertNotSame($first, $second);
         self::assertNotSame($first, $process);
         self::assertSame($process, $container->get(ErrorHandlerInterface::class));
+    }
+
+    /** Real configuration can bind callbacks without replacing the provider's explicit scope factories. */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testConfiguredCallbacksPreserveOverridesCachingAndFreshScopes(): void
+    {
+        $reports = [];
+        $phpErrors = [];
+        $shutdowns = 0;
+
+        /** @param \Throwable $event the original private diagnostic */
+        $reportCallback = static function (\Throwable $event) use (&$reports): void {
+            $reports[] = $event;
+        };
+
+        /**
+         * Records native metadata while returning a value the void adapter ignores.
+         *
+         * @param int    $code     the exact PHP severity
+         * @param string $message  the exact PHP diagnostic
+         * @param string $filename the actual diagnostic source
+         * @param int    $line     the actual source line
+         *
+         * @return false no request for native fall-through is implied
+         */
+        $phpErrorCallback = static function (
+            int $code,
+            string $message,
+            string $filename,
+            int $line,
+        ) use (&$phpErrors): false {
+            $phpErrors[] = [$code, $message, $filename, $line];
+
+            return false;
+        };
+
+        /** Records the explicitly notified active scope. */
+        $shutdownCallback = static function () use (&$shutdowns): void {
+            ++$shutdowns;
+        };
+        $settings = config(['callbacks' => [
+            'reporter' => $reportCallback,
+            'php_errors' => $phpErrorCallback,
+            'shutdown' => $shutdownCallback,
+        ]]);
+        $reporter = $settings->get('callbacks.reporter');
+        $phpCallback = $settings->get('callbacks.php_errors');
+        $shutdown = $settings->get('callbacks.shutdown');
+        self::assertIsCallable($reporter);
+        self::assertIsCallable($phpCallback);
+        self::assertIsCallable($shutdown);
+        $messages = new Psr17Factory();
+        $application = new ArrayServiceProvider([
+            ThrowableHandlerInterface::class => new ServiceFactory($reporter),
+            PhpErrorHandlerInterface::class => new ServiceFactory($phpCallback),
+            ShutdownHandlerInterface::class => new ServiceFactory($shutdown),
+            ResponseFactoryInterface::class => new ServiceFactory($messages),
+            StreamFactoryInterface::class => new ServiceFactory($messages),
+        ]);
+        $before = self::callbacks();
+        $services = self::withApplication($application);
+        $process = $services->get(ErrorHandler::class);
+        self::assertInstanceOf(ErrorHandler::class, $process);
+        self::assertSame($process, $services->get(ErrorHandlerInterface::class));
+        self::assertSame($reporter, $services->get(ThrowableHandlerInterface::class));
+        $factory = $services->get(ErrorHandlerFactory::class);
+        self::assertInstanceOf(ErrorHandlerFactory::class, $factory);
+        $first = $factory($services);
+        $second = $factory($services);
+        self::assertNotSame($first, $second);
+        self::assertNotSame($process, $first);
+        $middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
+        self::assertInstanceOf(ErrorHandlerMiddlewareFactory::class, $middlewareFactory);
+        $middleware = $services->get(ErrorHandlerMiddleware::class);
+        self::assertInstanceOf(ErrorHandlerMiddleware::class, $middleware);
+        self::assertSame($middleware, $services->get(ErrorHandlerMiddleware::class));
+        self::assertNotSame($middleware, $middlewareFactory($services));
+        self::assertSame([[], [], 0], [$reports, $phpErrors, $shutdowns]);
+        self::assertSame($before, self::callbacks());
+        $original = new \RuntimeException('Configured private diagnostic', 503);
+        $process->handleThrowable($original);
+        $process->register();
+
+        try {
+            $outer = self::callbacks();
+            $first->register();
+
+            try {
+                self::assertNotSame($outer, self::callbacks());
+                $line = __LINE__ + 1;
+                trigger_error('Configured callback warning', E_USER_WARNING);
+                $first->handleShutdown();
+            } finally {
+                $first->unregister();
+            }
+
+            self::assertSame($outer, self::callbacks());
+            $response = $middleware->process(self::request(), self::failsWith($original));
+            self::assertSame(503, $response->getStatusCode());
+            self::assertSame('Internal Server Error', (string) $response->getBody());
+            self::assertSame($outer, self::callbacks());
+        } finally {
+            $process->unregister();
+        }
+
+        self::assertSame([$original, $original], $reports);
+        self::assertSame([[E_USER_WARNING, 'Configured callback warning', __FILE__, $line]], $phpErrors);
+        self::assertSame(1, $shutdowns);
+        self::assertSame($process, $services->get(ErrorHandler::class));
+        self::assertSame($before, self::callbacks());
     }
 
     /**

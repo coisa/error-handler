@@ -21,19 +21,18 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $case = $argv[1] ?? '';
-$reporter = new CallableThrowableHandler(
-    /**
-     * Records actual events delivered by native exception/shutdown callbacks.
-     *
-     * @param Throwable $event the event supplied by the real handler
-     */
-    static function (Throwable $event): void {
-        echo json_encode([
-            'event' => 'error', 'class' => $event::class,
-            'severity' => $event instanceof ErrorException ? $event->getSeverity() : null,
-        ], JSON_THROW_ON_ERROR) . "\n";
-    },
-);
+
+/**
+ * Records native exception/shutdown events through the constructor's callable adapter.
+ *
+ * @param Throwable $event the event supplied by the real handler
+ */
+$reporter = static function (Throwable $event): void {
+    echo json_encode([
+        'event' => 'error', 'class' => $event::class,
+        'severity' => $event instanceof ErrorException ? $event->getSeverity() : null,
+    ], JSON_THROW_ON_ERROR) . "\n";
+};
 $handler = new ErrorHandler($reporter);
 
 switch ($case) {

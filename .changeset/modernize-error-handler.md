@@ -37,6 +37,9 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   2.5.0. Compose independent response providers with pure renderer aliases after
   the major middleware report; retain trusted debug configuration, lazy page
   overrides and fresh middleware scopes without a second diagnostic delivery.
-- Keep the current 2.x manifest version and published changelog unchanged. Native
-  callable constructor unions and content negotiation remain separate work; this
-  note does not claim their implementation or perform a release.
+- Accept matching callables in all three ErrorHandler constructor inputs using
+  existing adapters. Preserve interface identity and precedence, required reporter,
+  optional null defaults, inert construction and the existing reporting policies.
+  Keep explicit provider factories for cached services and fresh scopes.
+- Keep the current 2.x manifest version and published changelog unchanged. Content
+  negotiation remains separate work; this note does not perform a release.

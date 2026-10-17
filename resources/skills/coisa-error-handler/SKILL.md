@@ -29,8 +29,9 @@ selected source and autoloader; do not install or upgrade dependencies solely
 to fit these instructions. No published next-major Composer version is assumed.
 
 Use the application's configuration and secret mechanisms. Error Handler accepts
-objects; it does not load application configuration files or environment values
-automatically. FastForward Container is a runtime dependency; the Interop service
+handler interfaces or matching callables; it does not load application
+configuration files or environment values automatically. FastForward Container
+is a runtime dependency; the Interop service
 provider is the container integration entrypoint. The old container and
 `ConfigProvider` are removed in this source contract.
 
@@ -47,14 +48,13 @@ composition is verified.
 declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
 require __DIR__ . '/vendor/autoload.php';
 
 $reports = [];
 
 $configuration = [
-    'reporter' => new CallableThrowableHandler(
+    'reporter' =>
         /**
          * Retain the original synthetic failure without public output.
          *
@@ -63,7 +63,6 @@ $configuration = [
         static function (Throwable $error) use (&$reports): void {
             $reports[] = $error;
         },
-    ),
 ];
 
 $errors = new ErrorHandler($configuration['reporter']);
@@ -88,8 +87,9 @@ For configuration split across files, use the complete
 `config/error-handler.php` supplies the reporter, the application factory applies
 explicit overrides with `array_replace`, and `configured.php` loads the selected
 consumer autoloader. Override keys win; missing or wrong-type reporters fail
-before construction. These keys and the example factory belong to the example
-application, not to a library configuration API.
+before construction. Either an interface instance or a callable can be selected;
+interface instances retain identity and win over `__invoke()`. These keys and the
+example factory belong to the example application, not to a library configuration API.
 
 ```sh
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/configured.php ./vendor/autoload.php

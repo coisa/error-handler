@@ -400,12 +400,12 @@ Supply explicit interface implementations and a shutdown callback. [Source](../e
 declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
-use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use FastForward\Container\Factory\ServiceFactory;
 
 use function FastForward\Container\container;
 
@@ -434,9 +434,11 @@ $phpErrors = new class implements PhpErrorHandlerInterface {
 };
 
 $shutdowns = 0;
-$shutdown = new CallableShutdownHandler(static function () use (&$shutdowns): void {
+
+/** Records the explicit notification on the active lifecycle scope. */
+$shutdown = static function () use (&$shutdowns): void {
     ++$shutdowns;
-});
+};
 
 $application = new ArrayServiceProvider([
     CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
@@ -450,7 +452,7 @@ $application = new ArrayServiceProvider([
         },
     ),
     PhpErrorHandlerInterface::class => static fn(): PhpErrorHandlerInterface => $phpErrors,
-    ShutdownHandlerInterface::class => static fn(): ShutdownHandlerInterface => $shutdown,
+    ShutdownHandlerInterface::class => new ServiceFactory($shutdown),
 ]);
 
 $services = container(ErrorHandlerServiceProvider::class, $application);
@@ -736,7 +738,8 @@ echo 'explicit filtering, severity selection and original-object delivery passed
 <a id="php-errors"></a>
 ## Callable PHP-error conversion
 
-Keep four original arguments and application-owned mask policy. [Source](../examples/php-errors.php).
+Pass three callbacks directly to ErrorHandler, retaining four original PHP-error arguments,
+application-owned mask policy and explicit active shutdown notification. [Source](../examples/php-errors.php).
 
 <!-- source: examples/php-errors.php -->
 ```php
@@ -746,16 +749,23 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Exception\ErrorException;
-use CoiSA\ErrorHandler\Handler\CallablePhpErrorHandler;
-use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
 require __DIR__ . '/bootstrap.php';
 
 $calls = [];
 $reports = [];
-$phpErrors = new CallablePhpErrorHandler(
+$shutdowns = 0;
+$errors = new ErrorHandler(
     /**
-     * Own conversion and suppression explicitly; the adapter adds neither policy.
+     * Record a converted synthetic failure without output or a real transport.
+     *
+     * @param Throwable $error the callback's converted error
+     */
+    static function (Throwable $error) use (&$reports): void {
+        $reports[] = $error;
+    },
+    /**
+     * Own conversion and suppression explicitly; normalization adds neither policy.
      *
      * @param int    $code     the synthetic PHP severity
      * @param string $message  the synthetic diagnostic message
@@ -770,19 +780,13 @@ $phpErrors = new CallablePhpErrorHandler(
             throw ErrorException::fromPhpError($message, $code, $code, $filename, $line);
         }
     },
-);
-$errors = new ErrorHandler(new CallableThrowableHandler(
-    /**
-     * Record a converted synthetic failure without output or a real transport.
-     *
-     * @param Throwable $error the callback's converted error
-     */
-    static function (Throwable $error) use (&$reports): void {
-        $reports[] = $error;
+    /** Count explicit active shutdown notifications without recovering or terminating a process. */
+    static function () use (&$shutdowns): void {
+        ++$shutdowns;
     },
-), $phpErrors);
+);
 
-exampleCheck([] === $calls && [] === $reports, 'Construction invoked a callback.');
+exampleCheck([] === $calls && [] === $reports && 0 === $shutdowns, 'Construction invoked a callback.');
 $previous = error_reporting(E_ALL);
 
 try {
@@ -802,6 +806,18 @@ exampleCheck(
     'Explicit mask/conversion policy changed.',
 );
 exampleCheck('Synthetic enabled input' === $reports[0]->getMessage(), 'Converted diagnostic metadata was lost.');
+
+$errors->handleShutdown();
+exampleCheck(0 === $shutdowns, 'An inactive handler invoked the shutdown policy.');
+$errors->register();
+
+try {
+    $errors->handleShutdown();
+} finally {
+    $errors->unregister();
+}
+
+exampleCheck(1 === $shutdowns, 'The active shutdown callback was not invoked once.');
 
 echo 'callable PHP errors: four arguments, explicit mask policy and conversion passed' . PHP_EOL;
 ```
@@ -1434,4 +1450,4 @@ Middleware requires lifecycle and reporting on one scoped object. It reports onc
 
 Unregister in reverse order and use distinct nested instances. Failed-reporter suppression applies within a registered lifecycle; independent direct calls remain usable. Arbitrary exit/die, engine fatals, callback side effects and concurrent native callback scopes are not recovered. See [provider](fast-forward.md), [API](api.md), [migration](migration.md) and [testing](testing.md).
 
-The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. The JSON/developer-HTML adapters and independent profiles delivered in 2.5.0 are retained with pure renderers after this major's middleware report. Native callable constructor inputs remain planned in #70.
+The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. The JSON/developer-HTML adapters and independent profiles delivered in 2.5.0 are retained with pure renderers after this major's middleware report. ErrorHandler accepts matching callables directly while preserving interface precedence, default policies and explicit lifecycle ownership.

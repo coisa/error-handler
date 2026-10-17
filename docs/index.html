@@ -181,7 +181,8 @@ try {
             throw ErrorException::fromPhpError($message, $code, $code, $filename, $line);
         }</code></pre>
         </figure>
-        <p>The void interface ignores false/null callback results; they do not restore native PHP fall-through. There is no fifth error-context argument. The default adapter honors suppression. All three core constructor inputs are still interface-typed in this candidate; <a href="https://github.com/coisa/error-handler/issues/70">bare-callable constructor inputs</a> remain separate unimplemented work.</p>
+        <p>All three core constructor inputs accept their matching interface or a callable. Existing interface objects retain identity and take precedence over <code>__invoke()</code>. The reporter is required; omitted or null PHP-error and shutdown inputs keep their defaults. Construction invokes no callback and installs nothing.</p>
+        <p>The void interface ignores false/null callback results; they do not restore native PHP fall-through. There is no fifth error-context argument. A custom PHP callback owns suppression/conversion; the default adapter honors suppression. The complete PHP-error recipe supplies all three callbacks and pairs active shutdown notification with cleanup.</p>
       </section>
 
       <section id="adapters" aria-labelledby="adapters-title">

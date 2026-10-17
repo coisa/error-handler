@@ -16,6 +16,9 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler;
 
+use CoiSA\ErrorHandler\Handler\CallablePhpErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\PhpLastErrorShutdownHandler;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
@@ -87,22 +90,40 @@ final class ErrorHandler implements
     private \Closure $exceptionCallback;
 
     /**
-     * Constructs the ErrorHandler.
+     * Injects interface implementations or normalizes callables without invoking them.
      *
-     * @param ThrowableHandlerInterface $throwableHandler handles throwable exceptions
-     * @param ?PhpErrorHandlerInterface $phpErrorHandler  Handles PHP errors.
-     *                                                    Defaults to ThrowErrorExceptionPhpErrorHandler.
-     * @param ?ShutdownHandlerInterface $shutdownHandler  Handles shutdown events.
-     *                                                    Defaults to PhpLastErrorShutdownHandler.
+     * Supplied interfaces take precedence over an object's callable capability and
+     * retain their identity. Callback results are ignored by the matching adapters.
+     * Native PHP registration remains explicit; default shutdown routes through this
+     * handler, preserving its reporting and PHP-error policy.
+     *
+     * @param callable|ThrowableHandlerInterface     $throwableHandler the required reporter
+     * @param null|callable|PhpErrorHandlerInterface $phpErrorHandler  null keeps the default PHP-error policy
+     * @param null|callable|ShutdownHandlerInterface $shutdownHandler  null keeps default shutdown reporting
+     *
+     * @phpstan-param ThrowableHandlerInterface|(callable(\Throwable): mixed) $throwableHandler
+     * @phpstan-param PhpErrorHandlerInterface|(callable(int, string, string, int): mixed)|null $phpErrorHandler
+     * @phpstan-param ShutdownHandlerInterface|(callable(): mixed)|null $shutdownHandler
      */
     public function __construct(
-        ThrowableHandlerInterface $throwableHandler,
-        ?PhpErrorHandlerInterface $phpErrorHandler = null,
-        ?ShutdownHandlerInterface $shutdownHandler = null,
+        ThrowableHandlerInterface|callable $throwableHandler,
+        PhpErrorHandlerInterface|callable|null $phpErrorHandler = null,
+        ShutdownHandlerInterface|callable|null $shutdownHandler = null,
     ) {
-        $this->throwableHandler = $throwableHandler;
-        $this->phpErrorHandler = $phpErrorHandler ?? new ThrowErrorExceptionPhpErrorHandler();
-        $this->shutdownHandler = $shutdownHandler ?? new PhpLastErrorShutdownHandler($this);
+        $this->throwableHandler = $throwableHandler instanceof ThrowableHandlerInterface
+            ? $throwableHandler
+            : new CallableThrowableHandler($throwableHandler);
+
+        $phpErrorHandler ??= new ThrowErrorExceptionPhpErrorHandler();
+        $this->phpErrorHandler = $phpErrorHandler instanceof PhpErrorHandlerInterface
+            ? $phpErrorHandler
+            : new CallablePhpErrorHandler($phpErrorHandler);
+
+        $shutdownHandler ??= new PhpLastErrorShutdownHandler($this);
+        $this->shutdownHandler = $shutdownHandler instanceof ShutdownHandlerInterface
+            ? $shutdownHandler
+            : new CallableShutdownHandler($shutdownHandler);
+
         $this->errorCallback = $this->onPhpError(...);
         $this->exceptionCallback = $this->onUncaughtThrowable(...);
     }

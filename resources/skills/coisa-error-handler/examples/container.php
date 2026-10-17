@@ -34,7 +34,7 @@ $configuration = require __DIR__ . '/config/error-handler.php';
 $reporter = $configuration['reporter'];
 
 $application = new ArrayServiceProvider([
-    ThrowableHandlerInterface::class => new ServiceFactory($reporter),
+    ThrowableHandlerInterface::class => new ServiceFactory($reporter->handleThrowable(...)),
 ]);
 
 $services = container(new AggregateServiceProvider(

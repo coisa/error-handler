@@ -28,8 +28,9 @@ The [cookbook](../docs/examples.md) contains all seventeen complete sources, inc
 imports and every executable branch, with only the leading license header omitted.
 Its exact source parity and recipe inventory are checked alongside the
 [site](../docs/index.html#examples). The four explicit logging/filtering/PHP-error/
-best-effort adapters are preserved from delivered 2.x APIs; callable constructor
-unions remain planned.
+best-effort adapters are preserved from delivered 2.x APIs. The PHP-error recipe
+passes three callbacks directly to ErrorHandler while retaining explicit mask
+policy and active-scope shutdown ownership.
 
 The recipes do not start a server, emit HTTP to clients or deliver real logs.
 Applications own transports, private diagnostics and emission.

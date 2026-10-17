@@ -35,22 +35,19 @@ Create `report.php` beside your application's `vendor/` directory:
 declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
 require __DIR__ . '/vendor/autoload.php';
 
 $reports = [];
 
-$reporter = new CallableThrowableHandler(
-    /**
-     * Retain the synthetic failure without public diagnostic output.
-     *
-     * @param Throwable $error the failure to report
-     */
-    static function (Throwable $error) use (&$reports): void {
-        $reports[] = $error;
-    },
-);
+/**
+ * Retain the synthetic failure without public diagnostic output.
+ *
+ * @param Throwable $error the failure to report
+ */
+$reporter = static function (Throwable $error) use (&$reports): void {
+    $reports[] = $error;
+};
 
 $errors = new ErrorHandler($reporter);
 $failure = new RuntimeException('Example failure');
@@ -64,6 +61,10 @@ Run `php report.php`; it prints `1 report; execution continued`. Construction
 installs no PHP callbacks, and direct reporting returns when the reporter
 returns. Reporter failures propagate. Replace the in-memory reporter with your
 application's private diagnostic sink.
+
+All three constructor inputs accept the matching handler interface or a callable;
+omitted PHP-error and shutdown inputs retain their defaults. Existing interface
+objects keep their identity. See the [complete three-callback recipe](examples/php-errors.php).
 
 ## 🧰 Choose an integration
 

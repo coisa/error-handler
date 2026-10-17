@@ -62,8 +62,13 @@ keeps the exact message and reserved exception context; filtering skips only an
 explicit delegate; PHP-error callbacks retain four arguments, ignored returns and
 application-owned mask policy. They are not automatically discovered or attached
 to the default aggregate. See [their API contracts](api.md#direct-psr-3-logging).
-The constructor remains interface-typed in this candidate; accepting bare
-callables directly is [tracked separately in #70](https://github.com/coisa/error-handler/issues/70).
+All three ErrorHandler constructor inputs now also accept callables. Existing
+interface instances keep their identity and take precedence over `__invoke()`;
+no migration of existing adapters is required. The reporter remains required;
+the second and third arguments still default to null and retain the original PHP
+error and fatal-shutdown policies. Callable results are ignored, including false
+from the four-argument PHP callback. Construction remains inert. See the
+[complete callback recipe](../examples/php-errors.php).
 
 Before upgrading a real application, run the [documented checks](testing.md) and application-level tests for the actual reporter, middleware stack and PHP SAPI. These isolated fixtures do not establish reliability of third-party loggers, remote services or production infrastructure.
 

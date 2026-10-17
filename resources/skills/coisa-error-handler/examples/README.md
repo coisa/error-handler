@@ -34,9 +34,10 @@ autoloader. Expect exit 0 and
 `configured reporting: original delivered once`.
 
 `config/error-handler.php` selects a `RecordingThrowableHandler`.
-`ConfiguredErrorHandlerFactory` applies flat explicit overrides after that
-configuration, rejects absent/invalid reporters and returns a fresh
-`ErrorHandler`. The program verifies original-object identity and one delivery.
+`ConfiguredErrorHandlerFactory` accepts interface or callable reporters and
+applies flat explicit overrides after that configuration, rejects absent/invalid
+reporters and returns a fresh `ErrorHandler`. The program verifies original-object
+identity and one delivery for the configured interface and a callable override.
 The factory and its keys are application example code, not library APIs.
 
 To integrate in an application, copy those named files into its own source/config
@@ -59,8 +60,9 @@ The source-checkout equivalent replaces `vendor/coisa/error-handler/` with
 `./`. Expect exit 0 and
 `Interop provider: application reporter, caching and fresh scope passed`.
 
-The application maps its required `ThrowableHandlerInterface` through
-FastForward's `ServiceFactory`. One `AggregateServiceProvider` merges library
+The application maps its required `ThrowableHandlerInterface` to the reporter's
+first-class method callable through FastForward's `ServiceFactory`.
+One `AggregateServiceProvider` merges library
 definitions first and application definitions last, so the explicit reporter wins.
 The program checks cached core identity and invokes the reusable
 `ServiceProvider\Factory\ErrorHandlerFactory` service for a distinct scope.

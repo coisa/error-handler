@@ -154,13 +154,18 @@ ThrowableHandlerInterface using the merged-provider pattern below. Neither adapt
 is added to the optional discovery list. A logger binding alone does not opt into
 direct logging, and a filter does not change the separate public HTTP renderer.
 
-For an explicit PHP-error policy, construct CallablePhpErrorHandler and bind its
-instance under PhpErrorHandlerInterface. ErrorHandlerFactory passes that optional
-interface into process and fresh middleware handlers, preserving four arguments,
-ignored callback results and the callback's own mask/conversion policy. It adds no
-factory or automatic registration. The three constructor inputs remain typed
-interfaces; [bare-callable inputs](https://github.com/coisa/error-handler/issues/70)
-are separate pending major work. See [adapter contracts](api.md#callable-php-error-policy)
+For an explicit PHP-error policy, bind an interface instance or callable under
+PhpErrorHandlerInterface. ErrorHandlerFactory passes the configured value into
+process and fresh middleware handlers, preserving four arguments, ignored callback
+results and the callback's own mask/conversion policy. The same choice is available
+under ThrowableHandlerInterface and ShutdownHandlerInterface. Bind callbacks as
+values with `ServiceFactory($callback)`; a raw callable in a factory map describes
+service construction instead. Required overrides use the aggregate below.
+
+The explicit ErrorHandlerFactory remains responsible for optional defaults and
+fresh scopes; this does not require a container to autowire arbitrary union types.
+Interface instances take precedence over their callable capability. No callback
+is executed or registered during construction. See [adapter contracts](api.md#callable-php-error-policy)
 and the [logging](../examples/logging.php), [filtering](../examples/filtering.php)
 and [PHP-error](../examples/php-errors.php) examples.
 

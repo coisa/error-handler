@@ -16,16 +16,23 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Exception\ErrorException;
-use CoiSA\ErrorHandler\Handler\CallablePhpErrorHandler;
-use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
 require __DIR__ . '/bootstrap.php';
 
 $calls = [];
 $reports = [];
-$phpErrors = new CallablePhpErrorHandler(
+$shutdowns = 0;
+$errors = new ErrorHandler(
     /**
-     * Own conversion and suppression explicitly; the adapter adds neither policy.
+     * Record a converted synthetic failure without output or a real transport.
+     *
+     * @param Throwable $error the callback's converted error
+     */
+    static function (Throwable $error) use (&$reports): void {
+        $reports[] = $error;
+    },
+    /**
+     * Own conversion and suppression explicitly; normalization adds neither policy.
      *
      * @param int    $code     the synthetic PHP severity
      * @param string $message  the synthetic diagnostic message
@@ -40,19 +47,13 @@ $phpErrors = new CallablePhpErrorHandler(
             throw ErrorException::fromPhpError($message, $code, $code, $filename, $line);
         }
     },
-);
-$errors = new ErrorHandler(new CallableThrowableHandler(
-    /**
-     * Record a converted synthetic failure without output or a real transport.
-     *
-     * @param Throwable $error the callback's converted error
-     */
-    static function (Throwable $error) use (&$reports): void {
-        $reports[] = $error;
+    /** Count explicit active shutdown notifications without recovering or terminating a process. */
+    static function () use (&$shutdowns): void {
+        ++$shutdowns;
     },
-), $phpErrors);
+);
 
-exampleCheck([] === $calls && [] === $reports, 'Construction invoked a callback.');
+exampleCheck([] === $calls && [] === $reports && 0 === $shutdowns, 'Construction invoked a callback.');
 $previous = error_reporting(E_ALL);
 
 try {
@@ -72,5 +73,17 @@ exampleCheck(
     'Explicit mask/conversion policy changed.',
 );
 exampleCheck('Synthetic enabled input' === $reports[0]->getMessage(), 'Converted diagnostic metadata was lost.');
+
+$errors->handleShutdown();
+exampleCheck(0 === $shutdowns, 'An inactive handler invoked the shutdown policy.');
+$errors->register();
+
+try {
+    $errors->handleShutdown();
+} finally {
+    $errors->unregister();
+}
+
+exampleCheck(1 === $shutdowns, 'The active shutdown callback was not invoked once.');
 
 echo 'callable PHP errors: four arguments, explicit mask policy and conversion passed' . PHP_EOL;
