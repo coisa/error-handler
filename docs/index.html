@@ -113,6 +113,7 @@
         <p class="lead">Compose diagnostic reporting, native PHP callbacks and HTTP responses with explicit application boundaries.</p>
         <p>The library supplies handlers and PSR adapters. Your application chooses reporters, PSR implementations, callback installation and HTTP emission.</p>
         <div class="version-note">This guide describes the existing 2.x API and compatible maintenance on <code>master</code>. Check your installed version and matching source. A pending Changeset is not a published release.</div>
+        <p>New to the library? Follow <a href="#install">installation</a>, run <a href="#reporting">direct reporting</a>, then choose <a href="#lifecycle">process callbacks</a> or an explicit <a href="#http">HTTP response policy</a>. Add <a href="#container">container integration</a> when the application needs service lookup.</p>
       </div>
 
       <section id="install" aria-labelledby="install-title">
@@ -120,6 +121,7 @@
         <code class="install-command">composer require 'coisa/error-handler:^2.0'</code>
         <p>The package declares PHP <code>^7.4 || ^8.0</code>. Composer installs PSR interfaces; applications supply concrete dispatchers, loggers and HTTP factories when those integrations are used.</p>
         <p>For the runnable recipes, use the <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">cookbook's explicit application dependencies</a>. Resolve them with the actual PHP runtime and retain the application's lockfile.</p>
+        <p>Composer 2 and the application's <code>vendor/autoload.php</code> are the starting point. Direct reporting needs no container or HTTP implementation. Nyholm, Phly and Laminas are used only by their respective recipes; install compatible versions for the selected integration. The bounded verifier also needs the documented Symfony Process development dependency.</p>
       </section>
 
       <section id="reporting" aria-labelledby="reporting-title">
@@ -143,6 +145,7 @@ $errors-&gt;handleThrowable(new RuntimeException('Example failure'));
 echo 'continued' . PHP_EOL;</code></pre>
         </figure>
         <p>This synthetic reporter prints so its behavior can be verified. Use an appropriate private diagnostic destination in a real application.</p>
+        <p>After setup, run <code>php examples/direct.php</code> from the source checkout. Expect <code>reported: Example failure</code>, then <code>continued</code>. A reporter delivers diagnostics; the core connects it to explicit calls or PHP callbacks. See the <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">API guide</a> for responsibilities and application extension contracts.</p>
       </section>
 
       <section id="logging" aria-labelledby="logging-title">
@@ -252,6 +255,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
         </figure>
         <p><code>ConfigProvider</code> retains aliases, factories and Laminas discovery metadata. ServiceManager is an optional application integration, with a version compatible with that application's PHP.</p>
         <p>Services are cached. Calling <code>ErrorHandlerFactory</code> explicitly creates a new core handler; a fresh middleware wrapper can still resolve the cached handler. Discovery and construction do not call <code>register()</code>.</p>
+        <p>The three service aliases select the throwable aggregate, captured-output stream factory and throwable response factory. They redirect container IDs; they do not create PHP class aliases or global singletons. Parent services take priority and retain the parent's lifetime. The <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container guide</a> maps every alias and factory, explains required/optional overrides and provides service-resolution troubleshooting.</p>
         <p>The <a href="https://github.com/coisa/error-handler/issues/90">container-cause repair</a> preserves the original throwable through factory/alias wrapper chains. The two public exception factories copy integer codes and use <code>0</code> for string codes, retaining the original SQLSTATE on the cause. Check the selected source/release and the <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container guide</a> before relying on this repair.</p>
       </section>
 
@@ -269,6 +273,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
             );</code></pre>
         </figure>
         <p>The application supplies PSR-17 factories, private diagnostic delivery and its emitter. The built-in status policy accepts integer codes from <code>400</code> through <code>500</code> inclusive; other integers and all string codes, including SQLSTATE, become <code>500</code>. Use application-owned mapping for domain errors.</p>
+        <p>For a fixed public response, choose the complete recipe's <code>safe</code> mode: its application response factory reports privately once, then creates the response. The middleware does not add that report. If the reporter or PSR-17 factory throws, response creation fails after callback restoration; the application owns the terminal policy.</p>
         <p>See <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">the HTTP guide</a> for success/failure restoration, capture limitations and the complete application composition.</p>
       </section>
 
@@ -288,6 +293,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>
         </ul>
         <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
+        <p>Choose recipes by their application prerequisites in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">cookbook</a>. The full verifier reports twenty bounded scenarios and the actual PHP version; recording reporters and returned response objects do not establish real transport delivery.</p>
       </section>
 
       <section id="sources" aria-labelledby="sources-title">
