@@ -4,6 +4,25 @@ These guides describe the existing 2.x API, including compatible maintenance on 
 
 The declared runtime is PHP `^7.4 || ^8.0`. This is a dependency contract, not evidence that every PHP/dependency combination has been tested. Application integrations can impose narrower requirements.
 
+## Start with one reporting path
+
+A **reporter** receives a `Throwable` and delivers diagnostics to an application-selected destination. The core `ErrorHandler` connects that reporter to explicit calls or native PHP callbacks. An HTTP response factory has a separate job: creating the response that a client may see.
+
+1. Follow the [application setup](../examples/README.md#application-dependencies), then run the [complete direct-reporting recipe](examples.md#direct-throwable-reporting). It needs no container, logger implementation or callback registration. Expect `reported: Example failure`, then `continued`.
+2. Replace the synthetic output callback with the application's private reporter. Use [direct PSR-3 logging](#direct-psr-3-logging) when the application already has a logger, or [events](#events-and-logging) when its dispatcher owns delivery.
+3. Choose [native callbacks](#native-callbacks) only when warnings or uncaught failures should enter that reporting path. Construction and direct reporting do not install them.
+4. For a web application, choose its [public HTTP response policy](http.md#a-safe-application-response) before connecting the middleware. Private diagnostics and client-visible content need separate decisions.
+
+| Responsibility | Library boundary | Application supplies or decides |
+| --- | --- | --- |
+| Diagnostic delivery | `Handler\ThrowableHandlerInterface` and built-in adapters | Destination, redaction, transport and reporter-failure policy |
+| PHP callback lifetime | `ErrorHandlerInterface::register()` / `unregister()` | Bootstrap location, distinct nested scopes and process exit policy |
+| Service composition | `Container\ErrorHandlerContainer`, `Container\ConfigProvider`, factories and optional Interop providers | External implementations and required service overrides |
+| HTTP response creation | `Http\Message\ThrowableResponseFactoryInterface` | Public content, application status mapping and PSR-17 implementations |
+| HTTP delivery | A returned PSR-7 response | Server integration and response emitter |
+
+The [cookbook](examples.md) contains every complete executable recipe. Read [container integration](container.md) for service lookup, aliases and factories; read [testing](testing.md) for what the repository's checks actually establish.
+
 ## Choose a reporter and scope
 
 `ThrowableHandlerInterface::handleThrowable(Throwable): void` is the reporting boundary. Applications choose the destination, redaction and delivery policy. `CallableThrowableHandler` adapts a callable; its return value is ignored. For logging through the built-in event adapter, see [events and logging](#events-and-logging).
@@ -111,6 +130,34 @@ The [adapter example](https://github.com/coisa/error-handler/blob/master/example
 The [complete event/logging example](https://github.com/coisa/error-handler/blob/master/examples/events.php) uses an application-installed Phly dispatcher, both providers and callable listeners, plus an in-memory PSR-3 logger. Raw and wrapped dispatch are separate deliveries; configure both only when both are intended.
 
 For explicit public JSON responses, use the separate [pure JSON renderer and reporting decorator](http.md#opt-in-json-responses-and-explicit-reporting). Diagnostic reporters retain their void contract and private-output responsibility; this opt-in composition changes no process lifecycle or existing middleware/default behavior.
+
+## Extend through the existing contracts
+
+The core `ErrorHandler`, built-in handlers and HTTP adapters are final. Compose them, adapt callables where supported, or implement the relevant interface in the application. A custom reporter does not need to implement callback registration or HTTP rendering.
+
+| Extension point | Required operation | Where to supply it |
+| --- | --- | --- |
+| [ThrowableHandlerInterface](../src/Handler/ThrowableHandlerInterface.php) | `handleThrowable(\Throwable): void` | First `ErrorHandler` constructor argument, an aggregate slot or an explicit reporter decorator |
+| [PhpErrorHandlerInterface](../src/Handler/PhpErrorHandlerInterface.php) | `handlePhpError(int, string, string, int): void` | Second constructor argument; owns PHP-error conversion/mask policy |
+| [ShutdownHandlerInterface](../src/Handler/ShutdownHandlerInterface.php) | `handleShutdown(): void` | Third constructor argument; owns shutdown observation |
+| [ErrorHandlerInterface](../src/ErrorHandlerInterface.php) | `register(): void` and `unregister(): void` | Middleware lifecycle argument; this interface alone has no reporting method |
+| [ThrowableStreamFactoryInterface](../src/Http/Message/ThrowableStreamFactoryInterface.php) | `createStreamFromThrowable(\Throwable): StreamInterface` | Built-in response factory's stream dependency |
+| [ThrowableResponseFactoryInterface](../src/Http/Message/ThrowableResponseFactoryInterface.php) | `createResponseFromThrowable(\Throwable): ResponseInterface` | Middleware response dependency; owns reporting policy for its caught throwable in 2.x |
+
+The HTTP return types above are PSR-7 interfaces. Container factories consume the same contracts; select overrides under the IDs they actually request, as shown in [the alias and factory map](container.md#factory-map-and-scopes). There is no library-wide static accessor or automatic discovery of arbitrary reporter classes.
+
+For events, implement or reuse an application [PSR-14 dispatcher](https://www.php-fig.org/psr/psr-14/) and select its listeners. The library's listener providers return listeners; they do not execute them. For logging, supply a [PSR-3 logger](https://www.php-fig.org/psr/psr-3/) with a configured private destination.
+
+## Troubleshoot the reporting path
+
+| Observation | Check next |
+| --- | --- |
+| Calling `handleThrowable()` reports but the program keeps running | This is the direct-call contract. Put recovery or termination in the application; reporting alone does not select either. |
+| A warning is absent from diagnostics | Check `error_reporting()` and suppression, then whether the handler is registered or called explicitly. A custom PHP-error adapter owns its own mask policy. |
+| An uncaught exception is absent after a scoped operation | Check whether an unwinding `finally` unregistered the handler before PHP invoked the exception callback. Use the [process recipe](examples.md#process-callbacks-and-scoped-restoration) through its bounded verifier. |
+| Later reporters are never reached | The default aggregate stops on the first reporter failure. Inspect that failure or explicitly select [best-effort reporting](#best-effort-reporting) and its terminal policy. |
+
+For missing services or unexpected shared instances, use [container troubleshooting](container.md#troubleshoot-service-resolution). For leaked response text or repeated HTTP delivery, use [HTTP troubleshooting](http.md#troubleshoot-http-composition).
 
 Continue with [container composition](container.md), [HTTP composition](http.md), and the [executable cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md).
 
