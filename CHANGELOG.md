@@ -10,6 +10,14 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.5.2
+
+### Patch Changes
+
+- [#114](https://github.com/coisa/error-handler/pull/114) [`e00b98c`](https://github.com/coisa/error-handler/commit/e00b98c76e36b44c2e33dbbcbdbfbc0aeba94cd3) - Preserve caller-owned output buffers when a capture reporter closes the factory's buffer and returns normally. Use the existing diagnostic fallback without consuming caller bytes or invoking their output callbacks; retain empty-output and `"0"` fallback behavior.
+
+- [#116](https://github.com/coisa/error-handler/pull/116) [`f5e985f`](https://github.com/coisa/error-handler/commit/f5e985fcd1cb95a08df5f84f763189db2082af40) - Document security support for the latest stable release and the existing private reporting channel. Include the security policy in Composer distributions and link it from the README and consumer skill.
+
 ## 2.5.1
 
 ### Patch Changes
