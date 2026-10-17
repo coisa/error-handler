@@ -120,6 +120,9 @@ failure propagation, callback ownership and output-buffer limits.
 
 ## 🤝 Contributing
 
+For suspected vulnerabilities, follow the [security policy](SECURITY.md) and use
+the private reporting channel. Ordinary bugs and feature requests belong in issues.
+
 Follow the [contributor guide](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for dependency setup and
 `composer --no-plugins check`. See [testing](docs/testing.md) for process fixtures
 and platform evidence, and [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md) for release notes.

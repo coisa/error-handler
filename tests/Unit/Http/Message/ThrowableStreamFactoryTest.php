@@ -234,37 +234,60 @@ final class ThrowableStreamFactoryTest extends TestCase
     }
 
     /**
-     * Uses a generic body when the renderer closes capture without throwing.
+     * Uses a generic body after capture closes without reading or invoking the caller's buffer.
      */
     public function testDoesNotCaptureCallerOutputWhenRendererClosesCapture(): void
     {
+        $original = new \RuntimeException('Private failure');
+        $received = null;
+        $callerCalls = 0;
+
         /**
          * Closes only the factory buffer, then returns without producing a body.
          *
          * @param \Throwable $throwable the reported event
          */
-        $reporter = new CallableThrowableHandler(static function (\Throwable $throwable): void {
+        $reporter = new CallableThrowableHandler(static function (\Throwable $throwable) use (&$received): void {
+            $received = $throwable;
             ob_end_clean();
         });
         $entryLevel = ob_get_level();
-        ob_start();
+        ob_start(
+            /**
+             * Records premature callback invocation without modifying caller-owned bytes.
+             *
+             * @param string $buffer the caller's private bytes
+             *
+             * @return string the same caller-owned bytes
+             */
+            static function (string $buffer) use (&$callerCalls): string {
+                ++$callerCalls;
+
+                return $buffer;
+            },
+        );
         echo 'private caller output';
         $callerLevel = ob_get_level();
 
         try {
             $stream = (new ThrowableStreamFactory(new Psr17Factory(), $reporter))
-                ->createStreamFromThrowable(new \RuntimeException('Private failure'))
+                ->createStreamFromThrowable($original)
             ;
 
+            self::assertSame($original, $received);
             self::assertSame('Internal Server Error', (string) $stream);
             self::assertStringNotContainsString('private caller output', (string) $stream);
             self::assertSame($callerLevel, ob_get_level());
             self::assertSame('private caller output', ob_get_contents());
+            self::assertSame(0, $callerCalls);
         } finally {
             while (ob_get_level() > $entryLevel) {
                 ob_end_clean();
             }
         }
+
+        self::assertSame(1, $callerCalls);
+        self::assertSame($entryLevel, ob_get_level());
     }
 
     /** Verifies successful unbalanced rendering discards all reachable renderer-owned buffers. */

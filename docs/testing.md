@@ -45,6 +45,7 @@ application logs. They do not merge child coverage into PHPUnit's parent report.
 | Default fail-fast aggregate | The identical reporter failure stops later slots; a subsequent independent invocation can complete |
 | Generic HTTP rendering | One diagnostic report, then a separate renderer; status 400–599 and standard reason phrases |
 | Output capture | Exact nonempty bytes including `0`, generic fallback for empty/closed capture without reading caller output, cleanup on success/failure, primary failure precedence |
+| Capture closed at native depth zero | Generic fallback with no missing-buffer warning, through the existing bounded child rather than closing PHPUnit-owned buffers |
 | Protected/terminating output handlers | Externally bounded Process cases preserve caller ownership and show native termination limits |
 | Fatal in an earlier shutdown callback | Fresh and reused handlers both receive no event; PHP aborts the remaining queue |
 

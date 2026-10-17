@@ -22,6 +22,29 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $case = $argv[1] ?? '';
 $original = new RuntimeException('incoming event');
+
+if ('closed-capture-without-caller' === $case) {
+    $entry = ob_get_level();
+    $reporter = new CallableThrowableHandler(
+        /**
+         * Removes capture before returning to the factory with no caller buffer available.
+         *
+         * @param Throwable $event the synthetic reporting event
+         */
+        static function (Throwable $event): void {
+            ob_end_clean();
+        },
+    );
+    $stream = (new ThrowableStreamFactory(new Psr17Factory(), $reporter))->createStreamFromThrowable($original);
+    echo json_encode([
+        'entryLevel' => $entry,
+        'remaining' => ob_get_level(),
+        'body' => (string) $stream,
+    ], JSON_THROW_ON_ERROR) . "\n";
+
+    return;
+}
+
 $primary = new RuntimeException('reporter failure');
 $secondary = new RuntimeException('output callback failure');
 $callbacks = 0;

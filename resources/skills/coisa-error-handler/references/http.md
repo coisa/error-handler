@@ -44,6 +44,12 @@ without invoking a reporter. `ThrowableResponseFactory` preserves integer codes
 phrase to the application's PSR-17 implementation; exception messages are never
 the reason phrase.
 
+If an explicit public renderer closes capture and returns, the capture factory
+uses the generic body without reading or closing caller-owned buffers or
+invoking their output callbacks. Missing capture at native depth zero also uses
+that body. Renderers still own balanced buffer use: the factory cannot undo
+their own writes, flushes or buffer changes.
+
 The retained `ThrowableStreamFactory` is an explicit compatibility adapter for
 deliberately public echo-based rendering. Its injected public renderer's output
 becomes the stream: empty output becomes `Internal Server Error`, while `"0"`

@@ -29,7 +29,11 @@ preserved, and empty output uses the generic body. A private reporter is not tha
 public renderer and must not be invoked again during rendering.
 
 If rendering returns with no buffer above the caller's entry depth, capture uses
-the generic body instead of reading the caller's existing output.
+the generic body instead of reading the caller's existing output. The factory
+does not read or close a caller-owned buffer or invoke its output callback.
+Missing capture at native depth zero also returns the generic body without a
+missing-buffer warning. This cannot undo the renderer's own writes, flushes or
+buffer changes.
 Capture cleans reachable removable renderer-owned buffers after success and
 failure. It stops at protected buffers or no progress and retains the first
 cleanup failure; the original renderer failure takes precedence. Renderers must

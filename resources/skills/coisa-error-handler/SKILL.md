@@ -147,3 +147,7 @@ executed checks and concrete limits. Shipping files, copying the package,
 discovery after a session refresh and successful agent use are separate results.
 This procedure does not authorize deployment, publication, global installation
 or production diagnostics.
+
+For suspected security issues, follow the source repository's
+[security policy](https://github.com/coisa/error-handler/security/policy) and use
+its private reporting channel. Use ordinary issues for non-security bugs and features.

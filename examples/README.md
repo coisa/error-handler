@@ -85,3 +85,9 @@ JSON accepts an explicit debug bool; Whoops page customization is an application
 service override. A cached configured page is reused sequentially, with fresh
 Whoops runs, HTTP bodies and middleware scopes. No recipe emits a response or
 enables diagnostics from client input. See [HTTP boundaries](../docs/http.md).
+
+Explicit public renderers must balance their own output buffers. If a renderer
+closes capture and returns, the stream factory uses the generic body while
+leaving caller bytes, depth and output callbacks alone. It cannot undo the
+renderer's own writes, flushes or buffer changes. PHPUnit verifies this boundary
+with native buffers; no additional recipe runner is required.

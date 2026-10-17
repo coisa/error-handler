@@ -1,6 +1,6 @@
 {
   "name": "@coisa/error-handler",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "private": true,
   "description": "Development-only release tooling for the coisa/error-handler Composer package",
   "scripts": {

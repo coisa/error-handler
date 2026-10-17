@@ -90,6 +90,7 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 
 ## Child DOX Index
 
+- [SECURITY.md](SECURITY.md): latest-stable security support and private vulnerability reporting; ordinary bugs remain public issues.
 - [README.md](README.md): installation and entrypoints for consumers.
 - [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
 - [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
