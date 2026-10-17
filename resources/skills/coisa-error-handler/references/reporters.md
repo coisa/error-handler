@@ -84,8 +84,11 @@ adapter or attach it to the default aggregate.
 Supply the application's real `Psr\EventDispatcher\EventDispatcherInterface` to
 `DispatchThrowableHandler` for the original throwable, or to
 `DispatchErrorEventThrowableHandler` for an `ErrorEvent`.
-`CallableThrowableListenerProvider` supplies its configured listener for
-throwables; `CallableErrorEventListenerProvider` selects ErrorEvent listeners.
+`CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider`
+supplies its configured listeners for throwables;
+`CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider`
+selects listeners for ErrorEvent objects. Both constructors accept variadic
+callable listeners.
 `LogErrorEventListener` logs ErrorEvent data through the supplied PSR-3 logger.
 Configuring both raw and wrapped adapters causes separate deliveries; choose that
 deliberately. Dispatcher/listener failures propagate and are not retried.

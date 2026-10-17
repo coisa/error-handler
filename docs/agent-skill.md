@@ -73,10 +73,13 @@ composer skills:update coisa/error-handler
 ```
 
 Naming a donor explicitly selects/trusts it for that run; it does not prove the
-unfiltered automatic policy. With Composer 2.10.3 and llm/skills 1.15.0,
-`--no-scripts` alone does not prevent the plugin's automatic copy. Use
-`auto-sync:false` to disable automatic synchronization or `--no-plugins` to
-prevent loading the plugin. Inspect both the report and destination bytes.
+unfiltered automatic policy. Composer's
+[`--no-scripts`](https://getcomposer.org/doc/03-cli.md#global-options) skips
+scripts defined in `composer.json`; plugin event listeners can still run.
+With Composer 2.10.3 and llm/skills 1.15.0, automatic copying still ran with that
+flag. Use `auto-sync:false` to disable only this tool's automatic synchronization.
+`--no-plugins` prevents loading all Composer plugins, including unrelated ones.
+Inspect both the report and destination bytes.
 
 ## Updates, removal and recovery
 
