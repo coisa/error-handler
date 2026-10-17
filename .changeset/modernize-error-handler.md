@@ -20,9 +20,11 @@ Modernize the library for PHP 8.3+ while retaining the package
   default, standard reason phrases and integer HTTP error statuses through 599.
 - Keep explicit public output capture as an opt-in renderer adapter. Preserve `0`,
   use a generic empty body, clean reachable buffers after success and failure,
-  and retain renderer-failure precedence over cleanup failures.
+  and retain renderer-failure precedence over cleanup failures. If no capture
+  remains above the caller's entry depth, use the generic fallback without reading caller output.
 - Retain delivered 2.x handlers and native release tooling. Add distribution checks
-  and organized PHPUnit Unit/Functional/Process coverage.
+  and organized PHPUnit Unit/Functional/Process coverage. Cover partial callback
+  ownership, fail-fast reporter identity and native fatal diagnostic metadata.
   Preserve the configurable 80% overall coverage floor and real comparisons;
   retire the prototype Fire/HTTP/Python parents and custom release publisher.
 - Check all complete cookbook recipes against executable source, retaining

@@ -304,7 +304,7 @@ $middleware = new ErrorHandlerMiddleware($errors, $renderer);</code></pre>
 
 $streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);</code></pre>
         </figure>
-        <p>This explicit stream adapter captures deliberately public output; it must not invoke the private reporter again. Empty output uses the generic body and <code>"0"</code> is preserved. Cleanup removes reachable removable scopes, stops without progress/protected buffers and preserves a primary renderer failure. Native exit/fatal effects remain unrecoverable. The application owns response emission and terminal policy; see <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP boundaries</a>.</p>
+        <p>This explicit stream adapter captures deliberately public output; it must not invoke the private reporter again. Empty output uses the generic body and <code>"0"</code> is preserved. If no buffer remains above the caller's entry depth, it uses the generic body instead of reading existing caller output. Cleanup removes reachable removable scopes, stops without progress/protected buffers and preserves a primary renderer failure. Native exit/fatal effects remain unrecoverable. The application owns response emission and terminal policy; see <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP boundaries</a>.</p>
       </section>
 
       <section id="examples" aria-labelledby="examples-title">

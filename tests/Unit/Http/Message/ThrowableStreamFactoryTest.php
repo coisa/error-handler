@@ -233,6 +233,40 @@ final class ThrowableStreamFactoryTest extends TestCase
         }
     }
 
+    /**
+     * Uses a generic body when the renderer closes capture without throwing.
+     */
+    public function testDoesNotCaptureCallerOutputWhenRendererClosesCapture(): void
+    {
+        /**
+         * Closes only the factory buffer, then returns without producing a body.
+         *
+         * @param \Throwable $throwable the reported event
+         */
+        $reporter = new CallableThrowableHandler(static function (\Throwable $throwable): void {
+            ob_end_clean();
+        });
+        $entryLevel = ob_get_level();
+        ob_start();
+        echo 'private caller output';
+        $callerLevel = ob_get_level();
+
+        try {
+            $stream = (new ThrowableStreamFactory(new Psr17Factory(), $reporter))
+                ->createStreamFromThrowable(new \RuntimeException('Private failure'))
+            ;
+
+            self::assertSame('Internal Server Error', (string) $stream);
+            self::assertStringNotContainsString('private caller output', (string) $stream);
+            self::assertSame($callerLevel, ob_get_level());
+            self::assertSame('private caller output', ob_get_contents());
+        } finally {
+            while (ob_get_level() > $entryLevel) {
+                ob_end_clean();
+            }
+        }
+    }
+
     /** Verifies successful unbalanced rendering discards all reachable renderer-owned buffers. */
     public function testUnbalancedSuccessCleansRendererBuffers(): void
     {

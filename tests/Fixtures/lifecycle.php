@@ -23,7 +23,7 @@ require dirname(__DIR__, 2) . '/vendor/autoload.php';
 $case = $argv[1] ?? '';
 
 /**
- * Records native exception/shutdown events through the constructor's callable adapter.
+ * Records native events and their last-error snapshot without altering diagnostic metadata.
  *
  * @param Throwable $event the event supplied by the real handler
  */
@@ -31,6 +31,8 @@ $reporter = static function (Throwable $event): void {
     echo json_encode([
         'event' => 'error', 'class' => $event::class,
         'severity' => $event instanceof ErrorException ? $event->getSeverity() : null,
+        'message' => $event->getMessage(), 'file' => $event->getFile(), 'line' => $event->getLine(),
+        'lastError' => error_get_last(),
     ], JSON_THROW_ON_ERROR) . "\n";
 };
 $handler = new ErrorHandler($reporter);

@@ -28,6 +28,8 @@ public echo-based renderer. Its output becomes the response stream: `0` is
 preserved, and empty output uses the generic body. A private reporter is not that
 public renderer and must not be invoked again during rendering.
 
+If rendering returns with no buffer above the caller's entry depth, capture uses
+the generic body instead of reading the caller's existing output.
 Capture cleans reachable removable renderer-owned buffers after success and
 failure. It stops at protected buffers or no progress and retains the first
 cleanup failure; the original renderer failure takes precedence. Renderers must

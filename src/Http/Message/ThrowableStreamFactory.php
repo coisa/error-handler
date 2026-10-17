@@ -62,6 +62,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      * its output into a PSR-7 compatible stream.
      * It SHALL preserve the body "0" and use a generic fallback for empty output.
      * Renderers MUST balance removable buffers and MUST NOT close caller-owned buffers.
+     * Output SHALL be read only when a buffer remains above the caller's entry depth.
      *
      * @param \Throwable $throwable the throwable instance to process
      *
@@ -79,7 +80,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
 
         try {
             $this->throwableHandler->handleThrowable($throwable);
-            $buffer = ob_get_contents();
+            $buffer = ob_get_level() > $initialLevel ? ob_get_contents() : false;
         } catch (\Throwable $rendererFailure) {
             $failure = $rendererFailure;
         } finally {

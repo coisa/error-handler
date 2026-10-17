@@ -204,6 +204,8 @@ stream; a JSON callback would need to echo JSON. It is not the provider default.
 
 Pass a separate public renderer, not the diagnostic reporter middleware already
 called. Empty captured output becomes `Internal Server Error`; `0` remains valid.
+Before reading output, the adapter checks that a buffer remains above the caller's
+entry depth. If none remains, it uses the generic body instead of reading a caller buffer.
 The adapter cleans reachable removable buffers after success and failure and preserves a
 renderer failure over cleanup failure. Cleanup stops at a non-removable buffer
 or lack of progress. Renderers must balance their own removable buffers and never

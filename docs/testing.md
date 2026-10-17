@@ -39,11 +39,12 @@ application logs. They do not merge child coverage into PHPUnit's parent report.
 | --- | --- |
 | Warnings, masking and suppression | Direct native warnings, severity/identity metadata and continuation |
 | Uncaught Exception, Error, TypeError and ParseError | Bounded child reports original type and exits 1 |
-| Compile/allocation fatals, nested handler | Native failure remains fatal; only the active owner reports |
-| Re-registration and callback restoration | One retained shutdown callback, stable closure identities and reverse-order ownership |
+| Compile/allocation fatals, nested handler | Native failure remains fatal; only the active owner reports; compile cases preserve message/file/line against the native snapshot and fixture source |
+| Re-registration and callback restoration | One retained shutdown callback, stable closure identities, reverse-order ownership and rejection of either callback's isolated replacement without altering native masks |
 | Failed or recursive reporter | Propagation without retry during registration; direct reuse and lifecycle reset tested separately |
+| Default fail-fast aggregate | The identical reporter failure stops later slots; a subsequent independent invocation can complete |
 | Generic HTTP rendering | One diagnostic report, then a separate renderer; status 400–599 and standard reason phrases |
-| Output capture | Exact nonempty bytes including `0`, generic empty fallback, cleanup on success/failure, primary failure precedence |
+| Output capture | Exact nonempty bytes including `0`, generic fallback for empty/closed capture without reading caller output, cleanup on success/failure, primary failure precedence |
 | Protected/terminating output handlers | Externally bounded Process cases preserve caller ownership and show native termination limits |
 | Fatal in an earlier shutdown callback | Fresh and reused handlers both receive no event; PHP aborts the remaining queue |
 

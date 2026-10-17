@@ -97,6 +97,26 @@ final class ProcessBehaviorTest extends TestCase
         if (null !== $severity) {
             self::assertSame($severity, $observed[0]['severity'] ?? null);
         }
+        if (\in_array($case, ['compile-fatal', 'nested-fatal'], true)) {
+            $fatal = $observed[0];
+            $lastError = $fatal['lastError'] ?? null;
+            self::assertIsArray($lastError);
+            self::assertSame(E_COMPILE_ERROR, $lastError['type']);
+            self::assertSame($lastError['message'], $fatal['message']);
+            self::assertSame($lastError['file'], $fatal['file']);
+            self::assertSame($lastError['line'], $fatal['line']);
+
+            $fixture = \dirname(__DIR__) . '/Fixtures/compile-fatal.inc';
+            $lines = file($fixture, FILE_IGNORE_NEW_LINES);
+            self::assertIsArray($lines);
+            $declaration = array_search('class FireInvalidSubclass extends FireFinalClass {}', $lines, true);
+            self::assertIsInt($declaration);
+            self::assertSame($fixture, $fatal['file']);
+            self::assertSame($declaration + 1, $fatal['line']);
+            self::assertIsString($fatal['message']);
+            self::assertStringContainsString('FireInvalidSubclass', $fatal['message']);
+            self::assertStringContainsString('FireFinalClass', $fatal['message']);
+        }
         if ($native) {
             self::assertNotSame('', $process->getErrorOutput());
         } else {

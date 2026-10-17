@@ -23,6 +23,7 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\Attributes\WithoutErrorHandler;
@@ -112,6 +113,125 @@ final class ErrorHandlerTest extends TestCase
         }
 
         self::assertSame($before, self::callbacks());
+    }
+
+    /**
+     * Reject partial ownership loss without changing callback identities or their native masks.
+     *
+     * @param bool $replaceError whether the foreign integration replaces only the error callback
+     */
+    #[DataProvider('providePartialCallbackReplacementPreservesOwnershipAndMasksCases')]
+    #[WithoutErrorHandler]
+    public function testPartialCallbackReplacementPreservesOwnershipAndMasks(bool $replaceError): void
+    {
+        $before = self::callbacks();
+        $mask = error_reporting(E_ALL & ~E_USER_WARNING);
+        $previousEvents = [];
+        $foreignEvents = [];
+        $ownedEvents = [];
+        set_error_handler(
+            /**
+             * Observe delivery through the original callback's restricted mask.
+             *
+             * @param int $code the delivered PHP severity
+             *
+             * @return bool suppress the native diagnostic after recording it
+             */
+            static function (int $code) use (&$previousEvents): bool {
+                $previousEvents[] = $code;
+
+                return true;
+            },
+            E_USER_NOTICE,
+        );
+        set_exception_handler(
+            /** @param \Throwable $error an unused input on the original exception callback */
+            static function (\Throwable $error): void {
+            },
+        );
+        $previous = self::callbacks();
+        $reporter = $this->createMock(ThrowableHandlerInterface::class);
+        $reporter->expects(self::never())->method('handleThrowable');
+        $shutdown = $this->createMock(ShutdownHandlerInterface::class);
+        $shutdown->expects(self::never())->method('handleShutdown');
+        $handler = new ErrorHandler(
+            $reporter,
+            /** @param int $code the severity delivered through the handler's unrestricted native mask */
+            static function (int $code) use (&$ownedEvents): void {
+                $ownedEvents[] = $code;
+            },
+            $shutdown,
+        );
+        $handler->register();
+
+        if ($replaceError) {
+            set_error_handler(
+                /**
+                 * Record the foreign callback without accepting severities outside its own mask.
+                 *
+                 * @param int $code the delivered PHP severity
+                 *
+                 * @return bool suppress the native diagnostic after recording it
+                 */
+                static function (int $code) use (&$foreignEvents): bool {
+                    $foreignEvents[] = $code;
+
+                    return true;
+                },
+                E_USER_NOTICE,
+            );
+        } else {
+            set_exception_handler(
+                /** @param \Throwable $error an unused input on the foreign exception callback */
+                static function (\Throwable $error): void {
+                },
+            );
+        }
+
+        try {
+            try {
+                $foreign = self::callbacks();
+
+                try {
+                    $handler->unregister();
+                    self::fail('Losing either callback must prevent unregistering the active scope.');
+                } catch (\LogicException) {
+                    self::assertSame($foreign, self::callbacks());
+                }
+                $handler->handleShutdown();
+                self::assertSame($foreign, self::callbacks());
+                self::assertSame(E_ALL & ~E_USER_WARNING, error_reporting());
+                trigger_error('Observe current notice mask', E_USER_NOTICE);
+                trigger_error('Observe current warning mask', E_USER_WARNING);
+                self::assertSame($replaceError ? [E_USER_NOTICE] : [], $foreignEvents);
+                self::assertSame($replaceError ? [] : [E_USER_NOTICE, E_USER_WARNING], $ownedEvents);
+                self::assertSame([], $previousEvents);
+            } finally {
+                if ($replaceError) {
+                    restore_error_handler();
+                } else {
+                    restore_exception_handler();
+                }
+                $handler->unregister();
+            }
+
+            self::assertSame($previous, self::callbacks());
+            trigger_error('Observe restored notice mask', E_USER_NOTICE);
+            trigger_error('Observe restored warning mask', E_USER_WARNING);
+            self::assertSame([E_USER_NOTICE], $previousEvents);
+        } finally {
+            restore_error_handler();
+            restore_exception_handler();
+            error_reporting($mask);
+        }
+
+        self::assertSame($before, self::callbacks());
+    }
+
+    /** @return array<string, array{bool}> independent replacement of each native callback */
+    public static function providePartialCallbackReplacementPreservesOwnershipAndMasksCases(): iterable
+    {
+        return ['only error callback' => [true], 'only exception callback' => [false]];
     }
 
     /** Verifies a poisoned registration skips shutdown and resets only after a completed scope. */
@@ -390,6 +510,8 @@ final class ErrorHandlerTest extends TestCase
      * Snapshots both callback identities without retaining a probe on either native stack.
      *
      * @return array{null|callable, null|callable} the current PHP error and exception callbacks
+     *
+     * @phpstan-impure
      */
     private static function callbacks(): array
     {

@@ -50,6 +50,8 @@ becomes the stream: empty output becomes `Internal Server Error`, while `"0"`
 remains a valid body. Never inject the private reporter middleware already called.
 The built-in JSON and Whoops response factories return their own bodies directly.
 
+Capture reads only when a buffer remains above the caller's entry depth; otherwise
+it uses the generic body without reading the caller's existing output.
 Capture cleanup removes reachable removable buffers above the caller's entry
 level. It stops at protected buffers or no progress, retaining the first cleanup
 failure. A renderer failure takes precedence; otherwise a cleanup failure
