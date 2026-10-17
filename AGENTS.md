@@ -38,6 +38,7 @@ and verification continue to follow this AGENTS.md.
 
 ## Child DOX Index
 
+- [SECURITY.md](SECURITY.md): latest-stable security support and private vulnerability reporting; ordinary bugs remain public issues.
 - [README.md](README.md): consumer installation, quick start and guide navigation; distinguishes API family from pending release state.
 - [docs/api.md](docs/api.md): reporters, core lifecycle and process behavior; no recovery or exit guarantees.
 - [docs/container.md](docs/container.md): legacy container, ConfigProvider, factories and cached scopes; applications supply external implementations.
