@@ -1,0 +1,32 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled, closed]
+
+  push:
+
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  changelog:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      statuses: write
+
+    # The upstream release line currently has no major tag; pin its reviewed runtime.
+    uses: php-fast-forward/changelog/.github/workflows/changelog.yml@ddcbe0fab5009d8c5c5e504a6a7b9a20682e6d32
+
+    with:
+      source: tags
+      comment-mode: always
+      version-pr-title: 'chore(release): prepare {next_version} for publication'
+      prepare-release: true
+      publish: true

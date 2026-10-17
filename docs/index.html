@@ -113,7 +113,7 @@
         <h1>Error Handler 2.x</h1>
         <p class="lead">Compose diagnostic reporting, native PHP callbacks and HTTP responses with explicit application boundaries.</p>
         <p>The library supplies handlers and PSR adapters. Your application chooses reporters, PSR implementations, callback installation and HTTP emission.</p>
-        <div class="version-note">This guide describes the existing 2.x API and compatible maintenance on <code>master</code>. Check your installed version and matching source. A pending Changeset is not a published release.</div>
+        <div class="version-note">This guide describes the 2.x API. Check your installed version and matching source.</div>
         <p>New to the library? Follow <a href="#install">installation</a>, run <a href="#reporting">direct reporting</a>, then choose <a href="#lifecycle">process callbacks</a> or an explicit <a href="#http">HTTP response policy</a>. Add <a href="#container">container integration</a> when the application needs service lookup.</p>
       </div>
 
@@ -223,7 +223,7 @@ $process-&gt;handleThrowable($failure);</code></pre>
           <figcaption>Severity selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">examples/filtering.php</a> · the example also retains a general diagnostic branch</figcaption>
           <pre tabindex="0" aria-label="Application filtering predicate PHP source"><code data-source="examples/filtering.php">    static fn(Throwable $error): bool =&gt; $error instanceof ErrorException &amp;&amp; E_USER_DEPRECATED === $error-&gt;getSeverity(),</code></pre>
         </figure>
-        <p>This opt-in adapter requires a source version containing the additive API; a pending Changeset is not a published release. It adds no discovery, output, callback registration, recursion guard or response policy. A nonmatch is not recovery or redaction: built-in empty capture still falls back to diagnostic text. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the API guide</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP composition</a>.</p>
+        <p>This opt-in adapter adds no discovery, output, callback registration, recursion guard or response policy. A nonmatch is not recovery or redaction: built-in empty capture still falls back to diagnostic text. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the API guide</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP composition</a>.</p>
       </section>
 
       <section id="best-effort" aria-labelledby="best-effort-title">
@@ -362,6 +362,7 @@ $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Native checks, bounded probes and evidence limits</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/resources/skills/coisa-error-handler/SKILL.md">Portable consumer skill</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/agent-skill.md">optional installation</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/CHANGELOG.md">Published release history</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/releases.md">Release fragments, reviewed version PRs and publication</a></li>
         </ul>
       </section>
       <footer>Source-backed guidance for <a href="https://github.com/coisa/error-handler">coisa/error-handler</a>, under the <a href="https://github.com/coisa/error-handler/blob/master/LICENSE">MIT license</a>. Choose the source version matching your installed package.</footer>

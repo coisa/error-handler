@@ -1,6 +1,6 @@
 # Core API and lifecycle in 2.x
 
-These guides describe the existing 2.x API, including compatible maintenance on `master`. Confirm the installed version with `composer show coisa/error-handler` and consult its matching source. A pending Changeset is not a published Composer version. The PSR-11 metadata and PHP 7.4 alias corrections are tracked in [#13](https://github.com/coisa/error-handler/issues/13) and [#40](https://github.com/coisa/error-handler/issues/40); container recipes on PHP 7.4 need a checkout or release containing both.
+These guides describe the 2.x API. Confirm the installed version with `composer show coisa/error-handler` and consult its matching source. The PSR-11 metadata and PHP 7.4 alias corrections are tracked in [#13](https://github.com/coisa/error-handler/issues/13) and [#40](https://github.com/coisa/error-handler/issues/40); container recipes on PHP 7.4 need a checkout or release containing both.
 
 The declared runtime is PHP `^7.4 || ^8.0`. This is a dependency contract, not evidence that every PHP/dependency combination has been tested. Application integrations can impose narrower requirements.
 
@@ -57,11 +57,11 @@ The [complete logging example](https://github.com/coisa/error-handler/blob/maste
 
 The predicate must return a boolean: truthy/false-like non-booleans raise `TypeError`. Predicate and delegate failures propagate unchanged, without retry. To invert a condition, supply a predicate that returns its boolean negation. A skipped branch does not recover an operation, change PHP suppression or imply a successful HTTP response; a failure still stops later aggregate reporters.
 
-The [filtering example](https://github.com/coisa/error-handler/blob/master/examples/filtering.php) routes synthetic PHP deprecations to a selected branch while keeping the general branch. Inspect `ErrorException::getSeverity()` for PHP severity; arbitrary exception codes do not carry that meaning. Use a callable directly for one-off application logic, and the decorator when wrapping an existing reporter or aggregate. This is an additive, opt-in 2.x API: use a source version containing it; a pending minor Changeset is not a published release.
+The [filtering example](https://github.com/coisa/error-handler/blob/master/examples/filtering.php) routes synthetic PHP deprecations to a selected branch while keeping the general branch. Inspect `ErrorException::getSeverity()` for PHP severity; arbitrary exception codes do not carry that meaning. Use a callable directly for one-off application logic, and the decorator when wrapping an existing reporter or aggregate.
 
 ## Best-effort reporting
 
-`new Handler\BestEffortThrowableHandlerAggregate($first, $second, ...)` is an explicit alternative to the existing fail-fast `ThrowableHandlerAggregate`. It takes a fixed constructor list of `ThrowableHandlerInterface` reporters. Construction invokes nothing and installs no callbacks. Use a checkout/release containing these new classes; a pending minor Changeset does not make them available in older 2.x installations.
+`new Handler\BestEffortThrowableHandlerAggregate($first, $second, ...)` is an explicit alternative to the existing fail-fast `ThrowableHandlerAggregate`. It takes a fixed constructor list of `ThrowableHandlerInterface` reporters. Construction invokes nothing and installs no callbacks.
 
 Each `handleThrowable($original)` invocation attempts every constructor slot once, in order, with the identical original object. A reporter's `Throwable` failure is retained while later slots run. Duplicate slots remain deliberate separate attempts. Zero reporters and all-success passes return normally. If any reporter fails, including partial success, one `Exception\AggregateReportingException` escapes after all attempts.
 
