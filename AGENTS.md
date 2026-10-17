@@ -26,6 +26,16 @@ Check local links, quoted-example parity and the actual CI result for the exact 
 
 Merging, releasing, tagging, transferring the repository, publishing Pages or deploying requires the owner's corresponding instruction. Preparing a PR or passing CI does not perform those actions.
 
+## Bundled consumer skill
+
+Read [the consumer skill](resources/skills/coisa-error-handler/SKILL.md) when
+changing application integration examples, consumer guides or the skill. Keep
+its supported version contract, references and executable examples aligned with
+the public API. The canonical published package is under `resources/skills`;
+`.agents/skills` is a consumer discovery destination, not a second source copy.
+This source link needs no installed copy or host alias. Repository maintenance
+and verification continue to follow this AGENTS.md.
+
 ## Child DOX Index
 
 - [README.md](README.md): consumer installation, quick start and guide navigation; distinguishes API family from pending release state.
@@ -39,6 +49,7 @@ Merging, releasing, tagging, transferring the repository, publishing Pages or de
 - [docs/testing.md](docs/testing.md): direct PHPUnit contracts, isolated native process cases, installed-package checks and honest coverage limits; no custom test runner.
 - [CONTRIBUTING.md](CONTRIBUTING.md): library dependency resolution and clean production-container checks.
 - [.changeset/README.md](.changeset/README.md): pending notes, reviewed version PRs and separate publication authority.
-- [.agents/skills/coisa-error-handler/SKILL.md](.agents/skills/coisa-error-handler/SKILL.md): portable consumer integration procedure; keeps its own package entrypoint and source identity.
+- [docs/agent-skill.md](docs/agent-skill.md): optional project/global skill distribution, trust and lifecycle; copying does not establish host activation.
+- [resources/skills/coisa-error-handler/SKILL.md](resources/skills/coisa-error-handler/SKILL.md): portable consumer integration procedure, bundled examples and supported API contract; keeps its own package entrypoint and source identity.
 
 No subtree needs an additional AGENTS.md. Guides and the skill retain their own procedures without duplicating repository authority.
