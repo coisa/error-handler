@@ -27,6 +27,30 @@ The displayed PHP retains imports, declarations, spacing and every executable br
 | [container.php](#existing-container-and-configprovider-integration) | Existing container and ConfigProvider integration |
 | [http.php](#http-responses-output-capture-and-a-safe-application-adapter) | HTTP responses, output capture and a safe application adapter |
 
+## Choose a recipe and its prerequisites
+
+Start with direct reporting, then add the composition your application needs. The adapters can be combined: a filter can wrap a logger, an aggregate can contain multiple reporters, and the core can use that aggregate. Decide whether one reporter failure should stop later deliveries before choosing the fail-fast or best-effort aggregate.
+
+| Recipes | Additional application implementation | What success establishes |
+| --- | --- | --- |
+| Direct, handlers, PHP errors, filtering and best-effort | None beyond the library and Composer autoloader; their reporters use synthetic callbacks | The selected delivery, ordering, conversion or failure contract in memory. |
+| Direct logging | A PSR-3 logger; the recipe provides a recording implementation | Exact message, selected level and original throwable in context, without a real log transport. |
+| Process callbacks | No additional implementation for the built-in defaults | Native callback behavior and restoration in bounded child processes; fatal observation does not establish recovery. |
+| Events | A PSR-14 dispatcher; the recipe uses Phly | Raw and wrapped dispatch, listener selection and recording-log delivery. |
+| Container | A parent PSR-11 implementation; the recipe uses Laminas ServiceManager | Overrides, the three aliases/seven factories and cached versus explicitly constructed core identity. Direct core construction needs no container. |
+| HTTP | PSR-17 stream/response factories; the recipe uses Nyholm | Returned response tuples, private reporting and callback restoration. No HTTP response is emitted. |
+
+The library requires `psr/container`, `psr/event-dispatcher`, `psr/http-factory`, `psr/http-server-middleware` and `psr/log` at runtime; Composer also resolves their interface dependencies, including PSR-7 message interfaces and PSR-15 request-handler contracts. These packages define interoperability contracts. Nyholm, Phly and Laminas are implementations used by particular recipes, not mandatory integrations for every application. The installed application's lockfile records the actual dependency versions.
+
+From the source checkout, run `php examples/direct.php` first. Expected output is:
+
+```text
+reported: Example failure
+continued
+```
+
+Run `php examples/verify.php` for the full set after completing setup. It prints each passed scenario and ends with `20 bounded example scenarios passed on PHP` followed by the executed PHP version. A passing recording example verifies the composition shown; configure and test the application's real transport and emitter separately. If setup fails, check the selected autoloader, actual PHP version and recipe-specific implementations before changing the library's requirements.
+
 ## Direct throwable reporting
 
 Construct the handler explicitly and report without registering native callbacks. The call returns normally so the application can continue.

@@ -4,6 +4,26 @@ The library implements PSR-15 middleware and consumes application-owned PSR-17 f
 
 Run the [HTTP example](https://github.com/coisa/error-handler/blob/master/examples/http.php) through the [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md). It supplies Nyholm's Psr17Factory, a synthetic downstream RequestHandlerInterface and application callbacks. No real server is needed.
 
+## Prepare the application boundary
+
+Read [the setup guide](../examples/README.md#application-dependencies) for a compatible application dependency graph. [PSR-15](https://www.php-fig.org/psr/psr-15/) defines middleware/request-handler contracts; [PSR-17](https://www.php-fig.org/psr/psr-17/) defines HTTP message factories. Their interface packages do not create a concrete request, response body or network server for the application.
+
+For the two compositions demonstrated here, identify:
+
+- A private reporter implementing `ThrowableHandlerInterface` and a distinct lifecycle handler for this scope.
+- Application PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` implementations; the recipe uses one Nyholm object for both.
+- A downstream PSR-15 `RequestHandlerInterface` and the application's existing response emitter/server integration.
+- The public status/body/reason policy and the action to take if reporting or response construction fails.
+
+A custom `ThrowableResponseFactoryInterface` implementation may create its PSR-7 `ResponseInterface` differently. PSR-17 factories are dependencies of the demonstrated implementations, rather than a requirement of that library interface.
+
+| Intended response policy | Composition to choose | Reporting owner |
+| --- | --- | --- |
+| Fixed public error response with private diagnostics | Application `ThrowableResponseFactoryInterface`, as in the complete recipe's `safe` mode | The application response factory reports once, then creates the fixed response. |
+| Deliberate use of existing captured reporter output | Built-in `ThrowableResponseFactory` with `ThrowableStreamFactory` | The stream factory invokes its reporter while capturing output; empty/false-like output exposes diagnostic fallback. |
+
+Select this policy explicitly before using the [default container aliases](container.md#factory-map-and-scopes). A private reporter alone does not make the captured-output composition suitable for public responses.
+
 ## Current middleware contract
 
 `new ErrorHandlerMiddleware($errors, $responses)` takes `ErrorHandlerInterface` and `ThrowableResponseFactoryInterface`. `ErrorHandlerInterface` is a lifecycle contract only; no intersection with `ThrowableHandlerInterface` is required by the 2.x constructor.
@@ -53,10 +73,22 @@ An explicitly configured `BestEffortThrowableHandlerAggregate` attempts all its 
 
 The `safe` mode uses an application implementation of `ThrowableResponseFactoryInterface`. It calls a private, non-output diagnostic reporter once, then creates a fixed 500 response with `Internal Server Error` through the supplied PSR-17 implementation. It does not copy exception messages, stack traces or database codes into the public body or reason phrase.
 
+Read the [complete HTTP recipe](examples.md#http-responses-output-capture-and-a-safe-application-adapter) for its imports, synthetic request handler, application response adapter and assertions. Through the bounded verifier, the safe case checks one private report, the fixed 500 status/body and restored callbacks. A reporter failure propagates before the fixed response is created; PSR-17 failures propagate too. The application still needs a terminal failure policy for its chosen server/runtime.
+
 This is an explicit application adapter. The built-in renderer remains the capture/fallback adapter described above. A proposed future pure renderer, JSON API or content negotiation policy is not an existing 2.x default.
 
 An explicit `FilteringThrowableHandler` may select the private diagnostic branch in this application adapter. Both match and nonmatch still lead to its fixed public response; filtering does not select status, body or reason. Predicate/delegate failure propagates after middleware restores callbacks. Do not use a silent nonmatch as redaction inside the built-in capture adapter: no output still falls back to the original diagnostic text. Filtering starts after PHP-error conversion and preserves the existing reporting mask/suppression rules.
 
 Keep emission after response creation in the application's existing PSR-7 emitter/server integration. This library does not call header(), echo a response to a client or select an emitter package. Output captured by the diagnostic adapter is an input to a response body, not HTTP emission.
+
+## Troubleshoot HTTP composition
+
+| Observation | Check next |
+| --- | --- |
+| A stack trace or exception message appears in the body despite private logging | The built-in capture adapter falls back to diagnostic text for empty output or `"0"`. Select the explicit application response adapter and assert the exact public body. |
+| One downstream failure reaches a reporter twice | Inspect raw/wrapped event routes, manual reporting and the response factory's policy. The 2.x middleware delegates to the response factory; adding another diagnostic call before the built-in capture renderer duplicates reporting. |
+| A PDO or domain error produces an unexpected status/reason | The built-in mapping uses integer 400–500 only and can preserve a valid diagnostic message as reason. Provide application response mapping and test status, reason and body together. |
+| No response reaches the client after `process()` returns | Pass the returned PSR-7 response to the application's emitter. Creating a response object does not send headers or a body. |
+| Response creation throws instead of returning a fallback | Reporter and renderer failures propagate after callback restoration. Inspect the original private failure and apply the application's terminal policy. Best-effort reporting also throws when any reporter slot fails. |
 
 See [core callback behavior](api.md) and [container dependencies](container.md) before integrating the middleware into a process that already has handlers.
