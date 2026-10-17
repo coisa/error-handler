@@ -94,7 +94,7 @@ before construction. These keys and the example factory belong to the example
 application, not to a library configuration API.
 
 ```sh
-php resources/skills/coisa-error-handler/examples/configured.php ./vendor/autoload.php
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/configured.php ./vendor/autoload.php
 ```
 
 When running a copied skill, use that copy's `examples/configured.php` and the
