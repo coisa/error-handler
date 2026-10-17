@@ -63,14 +63,13 @@ final class WhoopsErrorHandlerServiceProvider implements ServiceProviderInterfac
                     /** @var StreamFactoryInterface $streams the application's PSR-17 factory */
                     $streams = $container->get(StreamFactoryInterface::class);
 
+                    /** @var \Closure(): PrettyPageHandler $pageFactory resolves the configured page only during rendering */
+                    $pageFactory = static fn() => $container->get(PrettyPageHandler::class);
+
                     return new WhoopsThrowableResponseFactory(
                         $responses,
                         $streams,
-                        /** @return PrettyPageHandler the configured, container-owned page */
-                        static function () use ($container): PrettyPageHandler {
-                            /** @var PrettyPageHandler the application's page service */
-                            return $container->get(PrettyPageHandler::class);
-                        },
+                        $pageFactory,
                     );
                 },
             ),
