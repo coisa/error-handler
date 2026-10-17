@@ -10,6 +10,13 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.4.4
+
+### Patch Changes
+
+- [#103](https://github.com/coisa/error-handler/pull/103) [`e77e590`](https://github.com/coisa/error-handler/commit/e77e5908718f009260938ba29179c9812926de3e) - Make the 2.x README easier to use with a complete quick start, focused integration
+  guides and explicit lifecycle and HTTP boundaries.
+
 ## 2.4.3
 
 ### Patch Changes
