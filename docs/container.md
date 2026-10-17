@@ -118,32 +118,50 @@ Use `declare(strict_types=1)` in the application entrypoint, as the complete rec
 Select `WhoopsErrorHandlerServiceProvider` only after the application's trusted development and HTML-format decision. Install optional `filp/whoops:^2.18.4` where that renderer is used. With the same application PSR-17 and private reporter definitions, the default form is:
 
 ```php
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 
-$services = container(WhoopsErrorHandlerServiceProvider::class, $application);
+$services = container(new AggregateServiceProvider(
+    new ErrorHandlerServiceProvider(),
+    new WhoopsErrorHandlerServiceProvider(),
+    $application,
+));
 ```
 
-The profile composes the base lifecycle definitions, declares its pure `WhoopsThrowableResponseFactory` and selects `ReportingThrowableResponseFactory` for the 2.x middleware. It does not select JSON or install callbacks. Resolving services creates no page; each rendering creates a fresh default `PrettyPageHandler`. Choosing this diagnostic profile is the explicit opt-in, so it has no additional debug boolean or request/Accept detection.
+The Whoops profile has no constructor arguments. It declares only `PrettyPageHandler`, its pure `WhoopsThrowableResponseFactory`, the reporting decorator and the selected response alias. It does not instantiate or merge the base provider. The application composes the independent maps in one aggregate, ordered base, Whoops, application; the last definition wins. The profile does not select JSON or install callbacks. Provider discovery, renderer resolution and scope construction create no default page; rendering resolves the page service lazily. Choosing this diagnostic profile is the explicit opt-in, so it has no additional debug boolean or request/Accept detection.
 
-For page configuration, pass a `callable(): Whoops\Handler\PrettyPageHandler` to the constructor. Config values are captured by the application callback before container construction, not hydrated by the container. Return a new page on each invocation:
+For page configuration, override `PrettyPageHandler::class` in the application's factory map. The default uses FastForward's `InvokableFactory`. This example reads application Config and prepares the page before composition, then exposes it through `ServiceFactory`. Configuration failures therefore occur outside container lookup:
 
 ```php
-$profile = new WhoopsErrorHandlerServiceProvider(
-    /** @return Whoops\Handler\PrettyPageHandler a fresh application-configured page */
-    static function (): Whoops\Handler\PrettyPageHandler {
-        $page = new Whoops\Handler\PrettyPageHandler();
-        $page->setPageTitle('Application diagnostics');
+use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Whoops\Handler\PrettyPageHandler;
 
-        return $page;
-    },
-);
+use function FastForward\Config\config;
 
-$services = container($profile, $application);
+$settings = config(['development' => ['page_title' => 'Application diagnostics']]);
+$page = new PrettyPageHandler();
+
+$page->setPageTitle($settings->get('development.page_title'));
+$factories[PrettyPageHandler::class] = new ServiceFactory($page);
+
+$application = new ArrayServiceProvider($factories);
+
+$services = container(new AggregateServiceProvider(
+    new ErrorHandlerServiceProvider(),
+    new WhoopsErrorHandlerServiceProvider(),
+    $application,
+));
 ```
 
-The callback remains a constructor value even if a callable string has the same name as a service ID. It is called once per render, not during provider discovery or middleware construction. A private reporter runs once before the page; reporter failure prevents rendering, and page/renderer failures propagate without another report. The concrete renderer remains pure when resolved directly. Whoops stays optional: loading and constructing the profile without it is inert; selecting the renderer requires the package and supplies installation guidance if it is absent.
+FastForward caches the page service. Sequential renders reuse configuration while Whoops replaces its exception, inspector and generated template data; each render creates a fresh Run, PSR response and stream. The shared page retains its latest diagnostic until the next render. This does not promise concurrent reuse or behavior of arbitrary subclasses. A private reporter runs once before page lookup; reporter failure prevents rendering, and failures escaping the page callback or renderer propagate without another report. The concrete renderer remains pure when resolved directly. Whoops stays optional: loading and constructing the profile without it is inert; selecting the renderer checks the dependency before page lookup and supplies installation guidance if it is absent.
 
-The [complete provider recipe](../examples/provider-whoops.php) exercises default and configured pages with two fresh middleware scopes. Default pages expose diagnostic data; hiding selected keys does not redact messages, traces, source excerpts or every secret. Read the [HTML disclosure and failure contract](http.md#opt-in-development-html-with-whoops) before enabling this profile. The following scope and override rules apply to either renderer profile.
+Container resolution remains FastForward's responsibility. The aggregate fixes definition precedence; it does not disable autowiring fallback after a concrete page factory throws. With FastForward 1.9.1, a failing `PrettyPageHandler` factory can be replaced by an autowired default page, losing that intended configuration. A returned incompatible service produces `TypeError`; a page's `handle()` failure escapes unchanged. Preparing the configured page before composition avoids putting its configuration failure inside lookup; it does not change the semantics of factories that throw during `get()`.
+
+Separate providers have a different boundary: their first successful resolution wins. With Whoops installed, Whoops before base selects HTML; base first selects legacy capture. Without Whoops, the separate Whoops/base/application route can fall back to a reporting decorator around legacy capture and report the same original twice. Use the aggregate above for this profile: in the real no-Whoops consumer it retains the missing-dependency cause and hint instead of returning that fallback. These observed container paths are not adapter retries.
+
+The [complete provider recipe](../examples/provider-whoops.php) exercises default and configured services with two fresh middleware scopes and one cached configured page. Default pages expose diagnostic data; hiding selected keys does not redact messages, traces, source excerpts or every secret. Read the [HTML disclosure and failure contract](http.md#opt-in-development-html-with-whoops) before enabling this profile. The following scope rules apply to either renderer profile. Aggregate definitions use the opposite precedence from separate providers.
 
 ### Cached services and fresh HTTP scopes
 
@@ -184,4 +202,4 @@ Applications decide when a resolved process handler calls `register()`. For HTTP
 
 ## Optional development HTML composition
 
-For manual or legacy-container composition, supply application PSR-17 factories and a callable creating a fresh `Whoops\Handler\PrettyPageHandler` per render, then compose private reporting with `ReportingThrowableResponseFactory` in 2.x. The renderer adds no legacy aliases or ConfigProvider bindings; the separate opt-in [Whoops Interop profile](#development-html-profile) supplies its own map. The renderer can be cached with configuration; do not capture a current request or reuse a page. Construct it only after the application's trusted development/format decision. Core/container installation does not require Whoops; choosing the adapter without installing `filp/whoops:^2.18.4` raises `LogicException`. See [the HTML guide](http.md#opt-in-development-html-with-whoops) and [manual recipe](../examples/http-whoops.php). Existing container/discovery/middleware defaults remain unchanged.
+For manual or legacy-container composition, supply application PSR-17 factories and a callable supplying `Whoops\Handler\PrettyPageHandler`, then compose private reporting with `ReportingThrowableResponseFactory` in 2.x. The renderer adds no legacy aliases or ConfigProvider bindings; the separate opt-in [Whoops Interop profile](#development-html-profile) supplies its own map. The renderer can be cached with configuration; do not capture a current request. A manual callback may create a fresh page or reuse one for sequential rendering under the state limits above. Construct it only after the application's trusted development/format decision. Core/container installation does not require Whoops; choosing the adapter without installing `filp/whoops:^2.18.4` raises `LogicException`. See [the HTML guide](http.md#opt-in-development-html-with-whoops) and [manual recipe](../examples/http-whoops.php). Existing container/discovery/middleware defaults remain unchanged.

@@ -21,12 +21,15 @@ use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +40,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Whoops\Handler\PrettyPageHandler;
+use Whoops\Inspector\InspectorInterface;
 
 use function FastForward\Container\container;
 
@@ -78,6 +82,20 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         }
     }
 
+    /** Declares only the renderer profile, leaving lifecycle composition to the application. */
+    public function testProfileDeclaresOnlyItsRendererServices(): void
+    {
+        $provider = new WhoopsErrorHandlerServiceProvider();
+
+        self::assertEqualsCanonicalizing([
+            PrettyPageHandler::class,
+            WhoopsThrowableResponseFactory::class,
+            ReportingThrowableResponseFactory::class,
+            ThrowableResponseFactoryInterface::class,
+        ], array_keys($provider->getFactories()));
+        self::assertSame([], $provider->getExtensions());
+    }
+
     /** Resolves the class-string profile and keeps sequential default pages independent. */
     public function testDefaultProfileSelectsReportingAndFreshHtml(): void
     {
@@ -88,7 +106,11 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
                 $reports[] = $event;
             },
         );
-        $services = container(WhoopsErrorHandlerServiceProvider::class, $this->application($reporter));
+        $services = container(
+            WhoopsErrorHandlerServiceProvider::class,
+            ErrorHandlerServiceProvider::class,
+            $this->application($reporter),
+        );
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
 
         self::assertInstanceOf(ReportingThrowableResponseFactory::class, $renderer);
@@ -109,67 +131,179 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         self::assertStringNotContainsString($first->getMessage(), (string) $two->getBody());
     }
 
-    /** Keeps configured callbacks lazy and creates two distinct customized pages. */
-    public function testCustomPageFactoryRunsOncePerRender(): void
+    /** Reuses a lazily configured page while replacing sequential request diagnostics. */
+    public function testApplicationPageServicePreservesConfigurationAndReplacesDiagnosticState(): void
     {
         $pages = [];
+        $inspected = [];
         $calls = 0;
-        $provider = new WhoopsErrorHandlerServiceProvider(
-            /** @return PrettyPageHandler a new application-configured page */
-            static function () use (&$pages, &$calls): PrettyPageHandler {
-                ++$calls;
-                $page = new PrettyPageHandler();
-                $page->setPageTitle('Configured provider page');
-                $pages[] = $page;
-
-                return $page;
-            },
-        );
+        $provider = new WhoopsErrorHandlerServiceProvider();
         $provider->getFactories();
         self::assertSame([], $provider->getExtensions());
         self::assertSame(0, $calls);
 
-        $services = container($provider, $this->application(new CallableThrowableHandler(
+        $reporter = new CallableThrowableHandler(
             /** @param \Throwable $event the private synthetic diagnostic */
             static function (\Throwable $event): void {
                 // This fixture deliberately has no public reporting output.
             },
-        )));
+        );
+        $application = $this->application($reporter, [
+            PrettyPageHandler::class
+                /**
+                 * @param ContainerInterface $container the application resolver
+                 *
+                 * @return PrettyPageHandler the shared application-configured page
+                 */
+                => static function (ContainerInterface $container) use (&$pages, &$inspected, &$calls): PrettyPageHandler {
+                    ++$calls;
+                    $page = new PrettyPageHandler();
+                    $page->setPageTitle('Configured provider page');
+                    $page->hideSuperglobalKey('_SERVER', 'HTTP_AUTHORIZATION');
+                    $page->addDataTableCallback(
+                        'Synthetic identity',
+                        /**
+                         * @param InspectorInterface $inspector the current diagnostic inspector
+                         *
+                         * @return array<string, string> synthetic table data
+                         */
+                        static function (InspectorInterface $inspector) use (&$inspected): array {
+                            $inspected[] = $inspector->getException();
+
+                            return ['fixture' => 'current diagnostic inspected'];
+                        },
+                    );
+                    $pages[] = $page;
+
+                    return $page;
+                },
+        ]);
+        $services = container(new AggregateServiceProvider(
+            new ErrorHandlerServiceProvider(),
+            $provider,
+            $application,
+        ));
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
         self::assertInstanceOf(ReportingThrowableResponseFactory::class, $renderer);
         self::assertSame(0, $calls);
 
-        $one = $renderer->createResponseFromThrowable(new \RuntimeException('Synthetic first request'));
-        $two = $renderer->createResponseFromThrowable(new \RuntimeException('Synthetic second request'));
+        $first = new \RuntimeException(base64_encode('first configured provider diagnostic'));
+        $second = new \RuntimeException(base64_encode('second configured provider diagnostic'));
+        $oldValue = base64_encode('first synthetic request data');
+        $newValue = base64_encode('second synthetic request data');
+        $_SERVER['HTTP_AUTHORIZATION'] = base64_encode('hidden synthetic authorization');
+        $_GET['fixture'] = $oldValue;
+        $one = $renderer->createResponseFromThrowable($first);
+        $_GET['fixture'] = $newValue;
+        $two = $renderer->createResponseFromThrowable($second);
 
-        self::assertSame(2, $calls);
-        self::assertNotSame($pages[0], $pages[1]);
+        self::assertSame(1, $calls);
+        self::assertCount(1, $pages);
+        self::assertSame($pages[0], $services->get(PrettyPageHandler::class));
+        self::assertSame([$first, $second], $inspected);
+        self::assertNotSame($one->getBody(), $two->getBody());
         self::assertSame('Configured provider page', $this->pageTitle((string) $one->getBody()));
         self::assertSame('Configured provider page', $this->pageTitle((string) $two->getBody()));
+        self::assertStringContainsString($oldValue, (string) $one->getBody());
+        self::assertStringContainsString($newValue, (string) $two->getBody());
+        self::assertStringNotContainsString($oldValue, (string) $two->getBody());
+        self::assertStringContainsString($second->getMessage(), (string) $two->getBody());
+        self::assertStringNotContainsString($first->getMessage(), (string) $two->getBody());
+        self::assertStringNotContainsString($_SERVER['HTTP_AUTHORIZATION'], (string) $one->getBody());
+        self::assertStringNotContainsString($_SERVER['HTTP_AUTHORIZATION'], (string) $two->getBody());
     }
 
-    /** Preserves a callable string even when the application defines the same service ID. */
-    public function testCallableStringIsNotResolvedAsAServiceId(): void
+    /** Demonstrates why the renderer profile must precede the separate base provider. */
+    public function testBaseFirstSelectsTheLegacyCaptureDefault(): void
     {
-        $id = self::class . '::configuredPage';
-        $conflictingService = new \stdClass();
         $reporter = new CallableThrowableHandler(
             /** @param \Throwable $event the synthetic private diagnostic */
             static function (\Throwable $event): void {
                 // This fixture deliberately has no public reporting output.
             },
         );
+        $services = container(
+            ErrorHandlerServiceProvider::class,
+            WhoopsErrorHandlerServiceProvider::class,
+            $this->application($reporter),
+        );
+        $renderer = $services->get(ThrowableResponseFactoryInterface::class);
+
+        self::assertInstanceOf(ThrowableResponseFactory::class, $renderer);
+    }
+
+    /**
+     * Distinguishes real container fallback from a returned incompatible page service.
+     *
+     * @param bool $throws whether page construction fails instead of returning an incompatible service
+     *
+     * @dataProvider providePageResolutionFollowsContainerFallbackAndReturnTypesCases
+     */
+    public function testPageResolutionFollowsContainerFallbackAndReturnTypes(bool $throws): void
+    {
+        $original = new \RuntimeException('Synthetic page resolution diagnostic');
+        $failure = new \LogicException('Synthetic application page construction failure');
+        $reports = [];
+        $calls = 0;
+        $reporter = new CallableThrowableHandler(
+            /** @param \Throwable $event the unchanged private diagnostic */
+            static function (\Throwable $event) use (&$reports): void {
+                $reports[] = $event;
+            },
+        );
         $application = $this->application($reporter, [
-            $id => new ServiceFactory($conflictingService),
+            PrettyPageHandler::class
+                /**
+                 * @param ContainerInterface $container the application resolver
+                 *
+                 * @return object the deliberately incompatible page in the nonthrowing case
+                 *
+                 * @throws \LogicException the unchanged application factory failure
+                 */
+                => static function (ContainerInterface $container) use ($throws, $failure, &$calls): object {
+                    ++$calls;
+
+                    if ($throws) {
+                        throw $failure;
+                    }
+
+                    return new \stdClass();
+                },
         ]);
-        $services = container(new WhoopsErrorHandlerServiceProvider($id), $application);
+        $services = container(new AggregateServiceProvider(
+            new ErrorHandlerServiceProvider(),
+            new WhoopsErrorHandlerServiceProvider(),
+            $application,
+        ));
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
         self::assertInstanceOf(ReportingThrowableResponseFactory::class, $renderer);
+        self::assertSame(0, $calls);
+        $caught = null;
+        $response = null;
 
-        $response = $renderer->createResponseFromThrowable(new \RuntimeException('Synthetic callable request'));
+        try {
+            $response = $renderer->createResponseFromThrowable($original);
+        } catch (\Throwable $event) {
+            $caught = $event;
+        }
 
-        self::assertSame('Callable provider page', $this->pageTitle((string) $response->getBody()));
-        self::assertSame($conflictingService, $services->get($id));
+        self::assertSame([$original], $reports);
+        self::assertSame(1, $calls);
+
+        if ($throws) {
+            // Aggregate fixes the binding map; FastForward can still autowire a default page.
+            self::assertNull($caught);
+            self::assertInstanceOf(ResponseInterface::class, $response);
+            self::assertStringContainsString($original->getMessage(), (string) $response->getBody());
+        } else {
+            self::assertInstanceOf(\TypeError::class, $caught);
+        }
+    }
+
+    /** @return array<string, array{bool}> independent page construction and type failures */
+    public static function providePageResolutionFollowsContainerFallbackAndReturnTypesCases(): iterable
+    {
+        return ['factory failure' => [true], 'incompatible service' => [false]];
     }
 
     /**
@@ -197,7 +331,11 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
                     $reports[] = $event;
                 },
             );
-            $services = container(WhoopsErrorHandlerServiceProvider::class, $this->application($reporter));
+            $services = container(
+                WhoopsErrorHandlerServiceProvider::class,
+                ErrorHandlerServiceProvider::class,
+                $this->application($reporter),
+            );
             $process = $services->get(ErrorHandlerInterface::class);
             $factory = $services->get(ErrorHandlerMiddlewareFactory::class);
             self::assertInstanceOf(ErrorHandler::class, $process);
@@ -275,19 +413,44 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
                     }
                 },
             );
-            $profile = new WhoopsErrorHandlerServiceProvider(
-                /** @return PrettyPageHandler the callback fails only in the page stage */
-                static function () use ($stage, $failure, &$pageCalls): PrettyPageHandler {
-                    ++$pageCalls;
+            $application = $this->application($reporter, [
+                PrettyPageHandler::class
+                    /**
+                     * @param ContainerInterface $container the application resolver
+                     *
+                     * @return PrettyPageHandler the page which fails before reading diagnostic source
+                     */
+                    => static function (ContainerInterface $container) use ($failure, &$pageCalls): PrettyPageHandler {
+                        ++$pageCalls;
 
-                    if ('page' === $stage) {
-                        throw $failure;
-                    }
+                        return new class ($failure) extends PrettyPageHandler {
+                            /** @var \LogicException the unchanged synthetic rendering failure */
+                            private \LogicException $failure;
 
-                    return new PrettyPageHandler();
-                },
-            );
-            $services = container($profile, $this->application($reporter));
+                            /** @param \LogicException $failure the exact application page failure */
+                            public function __construct(\LogicException $failure)
+                            {
+                                parent::__construct();
+                                $this->failure = $failure;
+                            }
+
+                            /**
+                             * @return int this fixture never returns a normal handler result
+                             *
+                             * @throws \LogicException the unchanged failure inside Whoops rendering
+                             */
+                            public function handle(): int
+                            {
+                                throw $this->failure;
+                            }
+                        };
+                    },
+            ]);
+            $services = container(new AggregateServiceProvider(
+                new ErrorHandlerServiceProvider(),
+                new WhoopsErrorHandlerServiceProvider(),
+                $application,
+            ));
             $factory = $services->get(ErrorHandlerMiddlewareFactory::class);
             self::assertInstanceOf(ErrorHandlerMiddlewareFactory::class, $factory);
             $messages = new Psr17Factory();
@@ -315,16 +478,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
     /** @return array<string, array{string}> independently failing collaborators */
     public static function provideFailuresReportOriginalOnceAndRestoreCallbacksCases(): iterable
     {
-        return ['private reporter' => ['reporter'], 'page callback' => ['page']];
-    }
-
-    /** @return PrettyPageHandler the real callable-string fixture page */
-    public static function configuredPage(): PrettyPageHandler
-    {
-        $page = new PrettyPageHandler();
-        $page->setPageTitle('Callable provider page');
-
-        return $page;
+        return ['private reporter' => ['reporter'], 'configured page rendering' => ['page']];
     }
 
     /**

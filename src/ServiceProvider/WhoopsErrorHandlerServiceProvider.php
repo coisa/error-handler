@@ -21,6 +21,7 @@ use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use FastForward\Container\Factory\AliasFactory;
+use FastForward\Container\Factory\CallableFactory;
 use FastForward\Container\Factory\InvokableFactory;
 use Interop\Container\ServiceProviderInterface;
 use Psr\Container\ContainerInterface;
@@ -32,52 +33,54 @@ use Whoops\Handler\PrettyPageHandler;
  * Selects optional development HTML and explicit reporting for the 2.x middleware.
  *
  * Applications supply HTTP factories, a private reporter and trusted development
- * authorization. Discovery creates no page and installs no native callbacks.
+ * authorization, and compose lifecycle services separately. Discovery creates no
+ * page and installs no native callbacks.
  */
 final class WhoopsErrorHandlerServiceProvider implements ServiceProviderInterface
 {
-    /** @var \Closure(): PrettyPageHandler creates a fresh configured diagnostic page */
-    private \Closure $pageHandlerFactory;
-
     /**
-     * Configures the page callback without executing it or requiring Whoops yet.
+     * Describes only this profile's page, pure renderer and reporting selection.
      *
-     * @param null|(callable(): PrettyPageHandler) $pageHandlerFactory creates a fresh page; null selects the default
-     */
-    public function __construct(?callable $pageHandlerFactory = null)
-    {
-        $this->pageHandlerFactory = \Closure::fromCallable(
-            $pageHandlerFactory ?? [self::class, 'createPage'],
-        );
-    }
-
-    /**
-     * Composes legacy lifecycle defaults with this profile's pure renderer and reporter.
-     *
-     * The Closure is a constructor value, not an ID for container resolution.
-     * FastForward owns service caching; the page callback creates per-render state.
+     * FastForward caches the configured page. Its lazy callback resolves that service
+     * only during rendering, after the renderer checks its optional dependency.
      *
      * @return array<string, callable(ContainerInterface): mixed> the lazy service definitions
      */
     public function getFactories(): array
     {
-        return array_merge(
-            (new ErrorHandlerServiceProvider())->getFactories(),
-            [
-                WhoopsThrowableResponseFactory::class => new InvokableFactory(
-                    WhoopsThrowableResponseFactory::class,
-                    ResponseFactoryInterface::class,
-                    StreamFactoryInterface::class,
-                    $this->pageHandlerFactory,
-                ),
-                ReportingThrowableResponseFactory::class => new InvokableFactory(
-                    ReportingThrowableResponseFactory::class,
-                    ThrowableHandlerInterface::class,
-                    WhoopsThrowableResponseFactory::class,
-                ),
-                ThrowableResponseFactoryInterface::class => AliasFactory::get(ReportingThrowableResponseFactory::class),
-            ],
-        );
+        return [
+            PrettyPageHandler::class => new InvokableFactory(PrettyPageHandler::class),
+            WhoopsThrowableResponseFactory::class => new CallableFactory(
+                /**
+                 * @param ContainerInterface $container the application service resolver
+                 *
+                 * @return WhoopsThrowableResponseFactory the pure renderer with a lazy page service
+                 */
+                static function (ContainerInterface $container): WhoopsThrowableResponseFactory {
+                    /** @var ResponseFactoryInterface $responses the application's PSR-17 factory */
+                    $responses = $container->get(ResponseFactoryInterface::class);
+
+                    /** @var StreamFactoryInterface $streams the application's PSR-17 factory */
+                    $streams = $container->get(StreamFactoryInterface::class);
+
+                    return new WhoopsThrowableResponseFactory(
+                        $responses,
+                        $streams,
+                        /** @return PrettyPageHandler the configured, container-owned page */
+                        static function () use ($container): PrettyPageHandler {
+                            /** @var PrettyPageHandler the application's page service */
+                            return $container->get(PrettyPageHandler::class);
+                        },
+                    );
+                },
+            ),
+            ReportingThrowableResponseFactory::class => new InvokableFactory(
+                ReportingThrowableResponseFactory::class,
+                ThrowableHandlerInterface::class,
+                WhoopsThrowableResponseFactory::class,
+            ),
+            ThrowableResponseFactoryInterface::class => AliasFactory::get(ReportingThrowableResponseFactory::class),
+        ];
     }
 
     /**
@@ -88,11 +91,5 @@ final class WhoopsErrorHandlerServiceProvider implements ServiceProviderInterfac
     public function getExtensions(): array
     {
         return [];
-    }
-
-    /** @return PrettyPageHandler a new unregistered default diagnostic page */
-    private static function createPage(): PrettyPageHandler
-    {
-        return new PrettyPageHandler();
     }
 }

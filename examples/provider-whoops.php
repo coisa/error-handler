@@ -16,10 +16,12 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -55,11 +57,11 @@ $privateReporter = new CallableThrowableHandler(
     },
 );
 
-$application = new ArrayServiceProvider([
+$factories = [
     ResponseFactoryInterface::class => new ServiceFactory($messages),
     StreamFactoryInterface::class => AliasFactory::get(ResponseFactoryInterface::class),
     ThrowableHandlerInterface::class => new ServiceFactory($privateReporter),
-]);
+];
 
 if ('configured' === $mode) {
     $settings = config([
@@ -68,25 +70,26 @@ if ('configured' === $mode) {
         ],
     ]);
 
-    $profile = new WhoopsErrorHandlerServiceProvider(
-        /** @return PrettyPageHandler a new page configured through Whoops' public API */
-        static function () use ($settings, &$pageCalls): PrettyPageHandler {
-            ++$pageCalls;
-            $page = new PrettyPageHandler();
+    // Prepare configuration outside get(): factory failures may trigger container fallback.
+    $page = new PrettyPageHandler();
+    ++$pageCalls;
 
-            $page->setPageTitle($settings->get('development.page_title'));
-            $page->hideSuperglobalKey('_SERVER', 'HTTP_AUTHORIZATION');
-            $page->hideSuperglobalKey('_COOKIE', 'session');
-            $page->hideSuperglobalKey('_ENV', 'APP_SECRET');
+    $page->setPageTitle($settings->get('development.page_title'));
+    $page->hideSuperglobalKey('_SERVER', 'HTTP_AUTHORIZATION');
+    $page->hideSuperglobalKey('_COOKIE', 'session');
+    $page->hideSuperglobalKey('_ENV', 'APP_SECRET');
 
-            return $page;
-        },
-    );
-
-    $services = container($profile, $application);
-} else {
-    $services = container(WhoopsErrorHandlerServiceProvider::class, $application);
+    $factories[PrettyPageHandler::class] = new ServiceFactory($page);
 }
+
+$application = new ArrayServiceProvider($factories);
+
+// One aggregate selects HTML explicitly and applies the application's page override.
+$services = container(new AggregateServiceProvider(
+    new ErrorHandlerServiceProvider(),
+    new WhoopsErrorHandlerServiceProvider(),
+    $application,
+));
 
 $middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
 exampleCheck($middlewareFactory instanceof ErrorHandlerMiddlewareFactory, 'Expected the fresh-scope factory.');
@@ -94,7 +97,10 @@ exampleCheck($middlewareFactory instanceof ErrorHandlerMiddlewareFactory, 'Expec
 $firstScope = $middlewareFactory($services);
 $secondScope = $middlewareFactory($services);
 
-exampleCheck(0 === $pageCalls, 'Discovery and scope construction must not render a page.');
+exampleCheck(
+    ('configured' === $mode ? 1 : 0) === $pageCalls,
+    'Scope construction must not create an additional page.',
+);
 exampleCheck($firstScope !== $secondScope, 'Each HTTP scope needs a new middleware and handler.');
 
 $failures = [
@@ -155,10 +161,14 @@ exampleCheck(
 );
 
 if ('configured' === $mode) {
-    exampleCheck(2 === $pageCalls, 'Expected one configured page per render.');
+    exampleCheck(1 === $pageCalls, 'Expected one cached configured page for sequential renders.');
     exampleCheck(
         false !== strpos((string) $first->getBody(), '<title>Synthetic application diagnostics</title>'),
         'Expected the application-configured title.',
+    );
+    exampleCheck(
+        false !== strpos((string) $second->getBody(), '<title>Synthetic application diagnostics</title>'),
+        'The cached page must retain application configuration.',
     );
 }
 

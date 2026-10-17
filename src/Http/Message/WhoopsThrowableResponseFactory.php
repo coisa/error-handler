@@ -25,7 +25,7 @@ use Whoops\Run;
 /**
  * Renders explicitly selected development HTML without reporting or HTTP emission.
  *
- * Applications own debug authorization and fresh page configuration. Diagnostic
+ * Applications own debug authorization and page configuration. Diagnostic
  * HTML can expose private values; hiding selected superglobal keys is not full redaction.
  */
 final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryInterface
@@ -36,7 +36,7 @@ final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryIn
     /** @var StreamFactoryInterface the application-owned HTTP stream factory */
     private StreamFactoryInterface $streamFactory;
 
-    /** @var callable(): PrettyPageHandler creates a new configured page for every render */
+    /** @var callable(): PrettyPageHandler supplies the configured page for each render */
     private $pageHandlerFactory;
 
     /**
@@ -44,7 +44,7 @@ final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryIn
      *
      * @param ResponseFactoryInterface      $responseFactory    the application HTTP response factory
      * @param StreamFactoryInterface        $streamFactory      the application HTTP stream factory
-     * @param callable(): PrettyPageHandler $pageHandlerFactory creates a fresh page without emission or registration
+     * @param callable(): PrettyPageHandler $pageHandlerFactory supplies a page without emission or registration
      *
      * @throws \LogicException when the optional Whoops dependency is unavailable
      */
@@ -89,7 +89,7 @@ final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryIn
     }
 
     /**
-     * Uses Whoops' public string-returning path with fresh state and no competing callbacks.
+     * Uses Whoops' public string-returning path with a fresh Run and no competing callbacks.
      *
      * @param \Throwable $throwable the original failure supplied to Whoops
      *
@@ -112,9 +112,12 @@ final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryIn
     }
 
     /**
-     * Obtains the application-configured page without retaining it between requests.
+     * Obtains the application-configured page for the current sequential render.
      *
-     * @return PrettyPageHandler the fresh page supplied by the application
+     * Whoops replaces its exception and inspector state on each render. A shared page
+     * retains its configuration and latest diagnostic until the following render.
+     *
+     * @return PrettyPageHandler the page supplied by the application
      *
      * @throws \Throwable the unchanged factory failure
      * @throws \TypeError when the application returns an incompatible value
