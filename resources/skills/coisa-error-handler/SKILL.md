@@ -1,8 +1,8 @@
 ---
 name: coisa-error-handler
-description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop service providers, and PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
+description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop providers and pure generic, JSON or Whoops PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
 license: MIT; see LICENSE
-compatibility: Selected unreleased next-major source of coisa/error-handler; PHP ^8.3 and Composer 2. This is not the published 2.x API. Applications supply PSR-14/17 implementations and HTTP emission. No agent SDK or global installation is required.
+compatibility: Selected unreleased next-major source of coisa/error-handler; PHP ^8.3, Composer 2 and required fast-forward/container ^1.6. This is not the published 2.x API. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.4 at runtime. No agent SDK or global installation is required.
 metadata:
   author: Felipe Sayão Lobato Abreu
   api-baseline: "unreleased-next-major-source"
@@ -108,6 +108,8 @@ and does not write logs or contact a service.
 | PHP warnings or uncaught exceptions | Register at the application bootstrap; follow [process scopes](references/process.md) and verify restoration. |
 | FastForward integration | Supply reporters through the [Interop provider recipe](references/container.md); construction must install no callbacks. |
 | HTTP | Supply PSR-17 implementations and select the [explicit public response recipe](references/http.md); verify private delivery and fixed body separately. |
+| Built-in JSON | Use the [pure JSON renderer or independent JSON provider](references/json.md); enable diagnostic JSON only through trusted application configuration. |
+| Development HTML | Use the [Whoops renderer or independent Whoops provider](references/whoops.md) only in an explicitly selected development pipeline; the renderer does not negotiate requests. |
 | Logging, events, filtering or best-effort reporting | Select [reporter composition](references/reporters.md) only for that integration; supply the actual collaborators. |
 
 FastForward caches services. The provider keeps process and middleware handlers
@@ -116,6 +118,13 @@ Do not mistake repeated `get()` calls for a transient lifetime.
 Applications own interfaces' implementations, private diagnostic transports,
 callback installation and HTTP emission. Registering a class does not imply
 aggregate membership.
+
+For a required reporter and a selected HTTP profile, compose one
+`AggregateServiceProvider` in base, JSON or Whoops, application order. Each
+library provider declares its own services; the application combines them.
+Application definitions win last inside that aggregate. See
+[provider precedence and fallback](references/container.md) before relying on an
+override: map precedence does not disable concrete autowiring fallback.
 
 ## Verify and report
 
@@ -127,9 +136,11 @@ run uncaught/fatal/termination experiments only in bounded child processes.
 
 For HTTP, assert status, exact public body and one original private report.
 Middleware reports before invoking a pure renderer. The provider defaults to a
-generic body; keep output capture explicit and never inject the private reporter
-into that renderer again. Do not infer successful delivery to an external logger from an
-in-memory example.
+generic body; JSON and Whoops profiles select pure response factories. Keep
+output capture explicit and never inject the private reporter into that renderer
+again. `ReportingThrowableResponseFactory` is an explicit utility for a pipeline
+that has not already reported; do not wrap this middleware's renderer with it.
+Do not infer successful delivery to an external logger from an in-memory example.
 
 Report installed package/PHP versions, chosen composition, changed files,
 executed checks and concrete limits. Shipping files, copying the package,

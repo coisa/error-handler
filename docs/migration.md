@@ -2,7 +2,7 @@
 
 This is the migration contract for the unreleased next major. It does not describe an already published Packagist release.
 
-FastForward applications can now adopt the [Interop service provider](fast-forward.md)
+Use the [Interop service provider](fast-forward.md) for container integration
 without changing the existing package or namespace. The short bootstrap is
 `container(ErrorHandlerServiceProvider::class, $application)` for external
 dependencies and optional reporters. To override existing library service IDs,
@@ -14,7 +14,7 @@ The Interop provider is the single container integration entrypoint.
 The Laminas `ConfigProvider` adapter and standalone `ErrorHandlerContainer`
 have been removed in favor of FastForward Container with this provider.
 
-1. Upgrade the application to PHP `^8.3`; PHP 8.3–8.5 are the tested versions. Resolve Composer dependencies again. The library does not commit `composer.lock`; resolve development dependencies for your PHP version with `composer update --no-plugins --no-scripts`. Applications keep their own locks.
+1. Upgrade the application to PHP `^8.3`; CI targets PHP 8.3–8.5. Resolve Composer dependencies again. The library does not commit `composer.lock`; resolve development dependencies for your PHP version with `composer update --no-plugins --no-scripts`. Applications keep their own locks.
 2. Expect exit status **1** after a globally uncaught `Throwable` is reported successfully. Version 2 could exit with status 0. A reporter that explicitly terminates the process still controls its own exit code. Direct `handleThrowable()` calls do not exit.
 3. Pair `register()` and `unregister()` in reverse order. A repeated `register()` on the same instance is idempotent, not reference counted. Out-of-order unregistration now throws `LogicException` instead of silently removing someone else's callback. Use separate instances for nested middleware and do not pre-register the middleware's own instance.
 4. A reporter must not call its own `ErrorHandler` recursively. After a reporter throws, that instance stops retrying it until it is unregistered and registered again. The failure propagates to the caller or PHP; it is not silently swallowed. Only the active registration receives shutdown notifications, preventing duplicates across nested handlers.
@@ -91,4 +91,16 @@ ThrowableHandlerInterface remains void, preserving CLI, event and aggregate role
 ThrowableStreamFactory retains explicit output capture for public templates.
 Configure a separate public renderer there, rather than a reporter middleware
 already invoked. Its old concrete service ID no longer controls the default
-stream alias. A ready opt-in JSON response adapter remains a separate additive feature.
+stream alias.
+
+The JSON and optional Whoops response adapters published in 2.5.0 remain available.
+Pass their pure renderers directly to middleware. Remove the explicit
+`ReportingThrowableResponseFactory` wrapper used by 2.x middleware, which did not
+report independently. The wrapper remains available for other explicit pipelines.
+`JsonErrorHandlerServiceProvider` and `WhoopsErrorHandlerServiceProvider` now alias
+`ThrowableResponseFactoryInterface` to their pure concrete renderers. Each profile
+returns only its own map; compose base, selected profile and application in one
+`AggregateServiceProvider` for required reporters/overrides. JSON retains explicit
+`bool $debug = false`; the Whoops provider has no constructor and uses the
+application-overridable `PrettyPageHandler` service. A configured page is reused
+sequentially; middleware scopes, Whoops runs and response bodies remain distinct.

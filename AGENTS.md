@@ -43,7 +43,9 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 - HTTP middleware requires lifecycle and throwable-reporting contracts on the same
   scoped handler. Report once, then invoke a pure response renderer. Keep the generic
   stream as the provider default and output capture as an explicit public-renderer
-  adapter; never invoke the diagnostic reporter again during rendering.
+  adapter. Keep the independent JSON and Whoops profile maps pure; applications
+  compose them with the base and their required reporter/PSR-17 bindings. Never
+  invoke the diagnostic reporter again during rendering.
 - Explicit Log/Filtering/CallablePHP/BestEffort adapters remain opt-in; the default
   reporter aggregate stays fail-fast and adds no implicit discovery for them.
 - Reporters own diagnostic output; HTTP fallback bodies must not leak exception
@@ -91,7 +93,7 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
 - [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
   cached services and fresh middleware scopes.
-- [docs/examples.md](docs/examples.md): all thirteen complete major recipes, checked
+- [docs/examples.md](docs/examples.md): all seventeen complete major recipes, checked
   byte-for-byte against executable source with only the leading license header omitted;
   preserve setup boundaries and matching website excerpts.
 - [docs/releases.md](docs/releases.md): pending Changesets, reviewed version PRs,
@@ -99,7 +101,9 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [docs/testing.md](docs/testing.md): PHPUnit/process tests, commands and evidence limits.
 - [CONTRIBUTING.md](CONTRIBUTING.md): dependency resolution and quality entrypoints.
 - [examples/README.md](examples/README.md): executable recipe dependencies and verifier.
-- [docs/migration.md](docs/migration.md): breaking changes from published 2.0.
+- [docs/http.md](docs/http.md): pure JSON/Whoops rendering, explicit capture,
+  reporting and diagnostic-output limits.
+- [docs/migration.md](docs/migration.md): breaking changes from published 2.x.
 - [docs/agent-skill.md](docs/agent-skill.md): optional project/global skill
   distribution, trust and lifecycle; copying does not establish host activation.
 - [resources/skills/coisa-error-handler/SKILL.md](resources/skills/coisa-error-handler/SKILL.md):

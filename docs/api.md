@@ -2,7 +2,7 @@
 
 All classes are under `CoiSA\ErrorHandler`. This describes the unreleased next
 major after 2.x, not the published 2.x contract. The declared PHP requirement is
-`^8.3`; PHP 8.3–8.5 are the tested versions. Complete runnable integrations are in
+`^8.3`; CI targets PHP 8.3–8.5. Complete runnable integrations are in
 the [cookbook](examples.md).
 
 ## Lifecycle and diagnostic reporting
@@ -160,7 +160,11 @@ Implement `ThrowableStreamFactoryInterface` for a pure custom body, such as JSON
 or `ThrowableResponseFactoryInterface` when also choosing Content-Type/headers.
 See [JSON without echo](examples.md#http-rendering). The application owns emission,
 headers, transport and public payload policy; diagnostic details are never a safe
-default. A ready opt-in JSON adapter is [tracked separately](https://github.com/coisa/error-handler/issues/7).
+default. The pure `JsonThrowableResponseFactory` and optional
+`WhoopsThrowableResponseFactory` retained from 2.5.0 provide built-in alternatives;
+see [HTTP composition](http.md). `ReportingThrowableResponseFactory` remains an
+explicit utility for other pipelines, but must not wrap the renderer after this
+middleware has already reported.
 
 ## Optional output-capture adapter
 

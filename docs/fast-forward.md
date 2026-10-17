@@ -1,22 +1,28 @@
 # FastForward service provider
 
 This integration belongs to the unreleased next major of `coisa/error-handler`,
-requiring PHP `^8.3`; PHP 8.3–8.5 are the tested versions.
-It follows the provider contract used by FastForward Container 1.6.0 and
-Framework 1.4.0. The existing `CoiSA\ErrorHandler` namespace remains the current
-API; a possible future move to php-fast-forward has not happened.
+requiring PHP `^8.3`; CI targets PHP 8.3–8.5. It uses FastForward Container's
+Interop service-provider contract. The existing `CoiSA\ErrorHandler` namespace
+remains the current API; a possible future move to php-fast-forward has not happened.
 
 ## Installation and bootstrap
 
 The library requires `fast-forward/container:^1.6` and the
 `container-interop/service-provider:^0.4` interface package at runtime.
 Composer installs them for consumers. The provider reuses FastForward's
-`AliasFactory::get()` and `InvokableFactory`; it does not ship a second container.
+`AliasFactory::get()`, `InvokableFactory` and `CallableFactory`; it does not ship a second container.
 To install the container explicitly in an application:
 
 ```sh
 composer require fast-forward/container:^1.6
 ```
+
+
+The `^1.6` requirement is the declared lower bound, not evidence that every
+permitted dependency graph is warning-free. A prior PHP 8.5/E_ALL run with
+FastForward 1.6 and PHP-DI 7.0 emitted upstream implicit-nullability deprecations
+despite exiting 0. Record the actual PHP and locked versions, and assess those
+diagnostics separately from successful resolution; see [test evidence](testing.md#coverage-and-current-evidence).
 
 The development checkout includes it in `require`. After installing
 the checkout dependencies, run the complete [example](../examples/fast-forward.php):
@@ -27,7 +33,9 @@ php examples/fast-forward.php
 
 It reports one warning and restores the prior PHP callbacks. Pass the library
 provider class and application provider directly to `container()`. This example
-adds a callable reporter for the library's optional reporter discovery:
+adds a callable reporter for the library's optional reporter discovery. Its
+`bootstrap.php` selects the checkout or application autoloader as described in
+[example setup](../examples/README.md):
 
 ```php
 <?php
@@ -41,28 +49,34 @@ use Interop\Container\ServiceProviderInterface;
 
 use function FastForward\Container\container;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
+require __DIR__ . '/bootstrap.php';
 
-$application = new class () implements ServiceProviderInterface {
+$application = new class implements ServiceProviderInterface {
     /**
      * Supplies application service definitions for the integration fixture.
      *
-     * @return array<class-string, callable> Application service factories.
+     * @return array<class-string, callable> application service factories
      */
     public function getFactories(): array
     {
         return [
-            CallableThrowableHandler::class => static fn (): CallableThrowableHandler =>
-                new CallableThrowableHandler(static function (Throwable $error): void {
+            CallableThrowableHandler::class => static fn(): CallableThrowableHandler => new CallableThrowableHandler(
+                /**
+                 * Prints only this CLI recipe's synthetic diagnostic.
+                 *
+                 * @param Throwable $error the converted warning supplied for reporting
+                 */
+                static function (Throwable $error): void {
                     printf("Reported: %s\n", $error->getMessage());
-                }),
+                },
+            ),
         ];
     }
 
     /**
      * Declares no application service extensions.
      *
-     * @return array<string, callable> An empty extension map.
+     * @return array<string, callable> an empty extension map
      */
     public function getExtensions(): array
     {
@@ -209,8 +223,8 @@ support constructor autowiring, as FastForward's `container()` does.
 The [usage cookbook](examples.md) exposes complete examples for every built-in adapter:
 PSR-14 dispatch and PSR-3 logging, private HTTP reporting, controlled JSON rendering,
 custom PHP/shutdown handlers, direct reporter composition and nested scopes.
-Each recipe is also available inline in the [documentation site](index.html#examples)
-and verified against its executable source in CI.
+The cookbook includes each complete program. The [documentation site](index.html#examples)
+links the same sources and displays checked excerpts.
 
 ## HTTP scopes and fresh instances
 
@@ -278,9 +292,88 @@ and produces a controlled body without invoking reporters or output buffering.
 A lifecycle-only custom implementation must add reporting to use the middleware.
 
 Reporters keep their void contract and must write HTTP diagnostics privately.
-Implement a stream/response factory for JSON; see the complete
-[renderer example](examples.md#http-rendering). The retained `ThrowableStreamFactory`
+Select the built-in pure JSON/Whoops profile below or implement a custom
+stream/response factory; see the complete
+[renderer example](examples.md#explicit-json-streams). The retained `ThrowableStreamFactory`
 captures a separate public renderer only when explicitly selected. Binding the
 old concrete capture class no longer changes the default alias. Bind the
 interface for required custom rendering, and do not inject the diagnostic reporter
 into a capture adapter after middleware has already reported it.
+
+## JSON profile
+
+`JsonErrorHandlerServiceProvider(bool $debug = false)` declares only two bindings:
+the JSON response factory through FastForward's `InvokableFactory`, and the
+response interface alias directly to that pure renderer. It does not include the
+base provider or reporter. For a required application reporter and PSR-17
+implementations, compose the maps explicitly:
+
+```php
+$services = container(new AggregateServiceProvider(
+    new ErrorHandlerServiceProvider(),
+    new JsonErrorHandlerServiceProvider(),
+    $application,
+));
+```
+
+Later aggregate definitions win. A trusted debug choice can be read from
+FastForward Config before constructing `new JsonErrorHandlerServiceProvider($debug)`.
+Pass a real boolean from a strict caller; the provider does not detect environment
+or request state. The [complete recipe](../examples/provider-json.php) shows public
+and debug modes, the application map and a fresh middleware scope. JSON is pure;
+the scoped middleware handler supplies the one private report.
+
+Separate providers search first-success sources. JSON before base selects JSON;
+base before JSON retains the generic renderer. This is not sufficient to replace
+the base's reporter interface: use the aggregate above for required reporting.
+Resolve the reusable middleware factory for each independent scope, rather than
+expecting repeated `get(ErrorHandlerMiddleware::class)` calls to be fresh.
+
+## Development HTML profile
+
+Install optional `filp/whoops:^2.18.4` in the application selecting this profile.
+`WhoopsErrorHandlerServiceProvider` has no constructor and declares only three
+bindings: `PrettyPageHandler` through `InvokableFactory`, the pure
+`WhoopsThrowableResponseFactory` through FastForward's `CallableFactory`, and its
+response interface alias. Its lazy page callback resolves the application's
+`PrettyPageHandler` service at render time. Discovery and middleware construction
+do not create a page or register native callbacks.
+
+Use one `AggregateServiceProvider` in base, Whoops, application order, as in the
+[complete default/configured recipe](../examples/provider-whoops.php). An optional
+package's absence can otherwise fall through between separate providers after a
+PSR-11 error. The aggregate selects the intended binding and retains an install
+hint through the container's failure chain; it is not a general guarantee that
+all concrete factory failures propagate unchanged.
+
+Customize the page by preparing a `PrettyPageHandler` outside container lookup,
+applying trusted Config values and binding it with FastForward's `ServiceFactory`.
+The container caches that service; sequential renders reuse its configuration and
+replace diagnostic data. Every render creates a fresh, unregistered Whoops run,
+response and stream. Distinct middleware scopes still use distinct core handlers.
+There is no concurrent rendering isolation or comprehensive redaction promise.
+
+FastForward may recover a failing concrete page factory by autowiring a default
+page even inside an aggregate. A binding returning the wrong page type and a page
+whose `handle()` throws are different runtime failures, not successful fallbacks.
+The provider follows the container's resolution contract; it does not install a
+second resolver, clone pages or suppress PHP warnings. Configure required page
+state before lookup when those configuration errors must be observed immediately.
+
+The manual renderer's callable parameter remains available for explicit application
+composition. Both profiles select pure renderers, never
+`ReportingThrowableResponseFactory`: this major's middleware has already reported.
+See [HTTP boundaries](http.md) for trusted debug policy and the tracked STDIN limit.
+
+## Troubleshooting composition
+
+| Symptom | Check |
+| --- | --- |
+| A required reporter is silent | Bind `ThrowableHandlerInterface` and merge base, profile if selected, then application maps in one aggregate. A separate application provider can be shadowed or skipped after a construction failure. |
+| A request deactivates the process handler | Give middleware a distinct handler. Resolve and invoke its factory for each independent scope; do not pre-register that handler. |
+| A page override appears to be ignored | Configure the page before lookup and bind the instance with `ServiceFactory`. A failed concrete factory can fall back to an autowired default page. |
+| Whoops classes are unavailable | Install optional `filp/whoops:^2.18.4` in the consuming application and confirm that the selected autoloader includes it. |
+
+For reporter echo, duplicate reports, diagnostic exposure and the known STDIN
+warning, follow [HTTP boundaries](http.md). Container failure normalization does
+not make an invalid required binding optional.

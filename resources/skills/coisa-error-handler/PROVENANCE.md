@@ -11,3 +11,10 @@ The API contract is the selected unreleased next-major source of
 namespace. It does not describe the published 2.x line or establish an available
 3.x release. Inspect the actual source/autoloader before using its provider,
 lifecycle and HTTP behavior. Keep a copied package with that matching source.
+
+JSON, Whoops and the reporting decorator were introduced in published 2.5.0.
+This source retains those renderer APIs, but its middleware reports before
+rendering and its providers select pure renderers. Use the matching major
+composition here rather than copying the 2.x reporting-decorator wiring.
+FastForward is required by this source; Whoops remains an optional application
+runtime dependency for the selected development HTML route.

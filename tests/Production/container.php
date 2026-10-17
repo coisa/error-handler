@@ -20,6 +20,9 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
@@ -27,6 +30,8 @@ use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -168,6 +173,24 @@ set_error_handler($previousError);
 set_exception_handler($previousException);
 
 try {
+    $publicClasses = [
+        JsonThrowableResponseFactory::class,
+        ReportingThrowableResponseFactory::class,
+        WhoopsThrowableResponseFactory::class,
+        JsonErrorHandlerServiceProvider::class,
+        WhoopsErrorHandlerServiceProvider::class,
+    ];
+
+    foreach ($publicClasses as $class) {
+        if (!class_exists($class)) {
+            throw new RuntimeException('The production autoloader must expose ' . $class);
+        }
+    }
+
+    // Declaring optional profile maps must not construct a Whoops page or register callbacks.
+    (new JsonErrorHandlerServiceProvider())->getFactories();
+    (new WhoopsErrorHandlerServiceProvider())->getFactories();
+
     $services = container(ErrorHandlerServiceProvider::class, $application);
     $handler = $services->get(ErrorHandlerInterface::class);
     $aggregate = $services->get(ThrowableHandlerInterface::class);

@@ -67,12 +67,12 @@ application programs use an explicit consumer autoloader. See the
 FastForward may normalize construction failures and retry autowiring: failed
 required construction is asserted without promising one attempt or original cause.
 
-`php examples/verify.php` checks the thirteen major recipes, including the four
-adapters already delivered in 2.x. The existing Symfony Process verifier uses
+`php examples/verify.php` checks every complete recipe and documented mode,
+including the adapters and JSON/Whoops profiles delivered in 2.x. The existing Symfony Process verifier uses
 five-second/64 MiB children and aborts above 16 KiB of observed output. It clears
 inherited environment variables except the selected autoloader/fixture marker.
 `php tests/Documentation/site.php` checks local source links, anchors and all
-thirteen complete cookbook recipes against executable source, omitting only the
+seventeen complete cookbook recipes against executable source, omitting only the
 leading license header. Duplicate, changed or missing recipes fail; a new
 executable recipe needs its own complete entry. Bootstrap, assertion helper and
 verifier are setup tools, not recipes. The site retains its source-parity checks.
@@ -83,8 +83,9 @@ Neither command starts a server or publishes Pages.
 The PHP 8.5/Xdebug job exports native Clover and Cobertura for all `src/` files.
 The inherited master policy permits overall decreases and fails below the
 repository variable `MINIMUM_COVERAGE_THRESHOLD`, defaulting to **80%** when unset.
-The authentic target-branch baseline, per-file differences/colors and sticky
-report remain visible. At the default floor, 80% passes and a result below it
+The workflow emits per-file differences/colors and a sticky report. Verify which
+target or stack baseline the actual run selected before interpreting the delta.
+At the default floor, 80% passes and a result below it
 fails; a configured variable overrides that default. No variable is changed by
 the workflow. Execution, invalid-report and artifact failures remain failures.
 
@@ -98,9 +99,13 @@ No runtime exclusions, merged child coverage or artificial coverage ignores are
 introduced by this reconciliation. PHPStan's output-buffer stub supplies analysis
 metadata only and is never loaded by the runtime/autoloader/test suite.
 
-The reconciled local graph uses PHP 8.4.26, PHPUnit 13.4.2 and FastForward 1.8.0
-on macOS arm64. Coverage is measured separately with PHP 8.5.11 and Xdebug 3.5.3.
+The reconciled local graph uses PHP 8.5.11, PHPUnit 13.4.2, FastForward 1.8.0
+and Whoops 2.18.6 on macOS arm64. Coverage is measured separately with PHP 8.5.11 and Xdebug 3.5.3.
 These observations do not prove PHP 8.3 or every permitted dependency combination.
+The declared FastForward `^1.6` floor includes an older graph with PHP-DI 7.0
+that emitted implicit-nullability deprecations under PHP 8.5/E_ALL despite exit 0.
+That earlier observation is a dependency diagnostic limit, not a clean result for
+the reconciled candidate. Keep its evidence separate from current-graph checks.
 The PR evidence records test totals, native uncovered lines and hosted SHAs.
 Earlier PR #3 results using 75 tests, custom runners or PSR-12-only formatting are
 historical; the current checkout uses the merged CoiSA 3.x preset and PHPUnit suites.

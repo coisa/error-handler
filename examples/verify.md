@@ -15,3 +15,10 @@ This verifier is example evidence, not a second test framework. PHPUnit contains
 the behavioral assertions and externally bounded native-termination fixtures.
 It does not use credentials, network servers, production logs or child coverage
 aggregation, and never publishes documentation or a release.
+
+The verifier covers every recipe and documented mode. JSON public/debug,
+manual HTML public/development and Whoops provider default/configured are included
+without an extra FastForward flag: the container is a runtime dependency of this
+major. The documented development graph supplies optional Whoops for those tests.
+Both middleware profiles report the original once before pure rendering. A
+configured page is a cached service, while runs and request scopes are fresh.

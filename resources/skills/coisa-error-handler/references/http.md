@@ -20,6 +20,22 @@ library API. Keep distinct handlers for nested process/request scopes. Invoke
 the provider's middleware factory service for each fresh scope; repeated `get()`
 calls return the cached middleware.
 
+## Select a built-in renderer
+
+Use [JSON](json.md) for a generic JSON body or explicitly configured diagnostic
+JSON. Use [Whoops](whoops.md) only after trusted application configuration selects
+development HTML and provides its optional runtime dependency. Both factories
+preserve integer throwable codes 400–599, otherwise use 500, and leave the reason
+to the application's PSR-17 implementation. Their independent profiles select
+the pure renderer; they do not import lifecycle or reporter maps.
+
+`ReportingThrowableResponseFactory($reporter, $renderer)` remains available for
+an application pipeline that has not already reported. It calls the reporter,
+then returns the pure renderer's response. Do not select it for this middleware:
+that would report the same original twice. A reporter failure prevents rendering;
+a renderer failure does not cause a retry. The application decides which layer
+owns reporting before combining these components.
+
 ## Generic default and explicit output capture
 
 The provider's `GenericThrowableStreamFactory` returns `Internal Server Error`
@@ -32,7 +48,7 @@ The retained `ThrowableStreamFactory` is an explicit compatibility adapter for
 deliberately public echo-based rendering. Its injected public renderer's output
 becomes the stream: empty output becomes `Internal Server Error`, while `"0"`
 remains a valid body. Never inject the private reporter middleware already called.
-New JSON or other renderers can return response/stream objects directly.
+The built-in JSON and Whoops response factories return their own bodies directly.
 
 Capture cleanup removes reachable removable buffers above the caller's entry
 level. It stops at protected buffers or no progress, retaining the first cleanup

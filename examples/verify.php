@@ -44,6 +44,32 @@ $cases = [
     ['php-errors.php', [], 0, "callable PHP errors: four arguments, explicit mask policy and conversion passed\n", ''],
 ];
 
+
+foreach (['public', 'debug'] as $mode) {
+    $cases[] = [
+        'http-json.php', [$mode], 0,
+        'HTTP JSON ' . $mode . ": explicit payload, status preservation and one private report passed\n", '',
+    ];
+    $cases[] = [
+        'provider-json.php', [$mode], 0,
+        'Interop JSON ' . $mode . ": configured profile, fresh scope and one private report passed\n", '',
+    ];
+}
+
+foreach (['public', 'development'] as $mode) {
+    $cases[] = [
+        'http-whoops.php', [$mode], 0,
+        'HTTP Whoops ' . $mode . ": explicit renderer selection and one private report passed\n", '',
+    ];
+}
+
+foreach (['default', 'configured'] as $mode) {
+    $cases[] = [
+        'provider-whoops.php', [$mode], 0,
+        'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n", '',
+    ];
+}
+
 $inherited = getenv();
 if (!is_array($inherited)) {
     throw new RuntimeException('Could not inspect inherited environment variable names.');

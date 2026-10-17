@@ -40,6 +40,7 @@
     },
     "require-dev": {
         "coisa/php-cs-fixer": "^3.0",
+        "filp/whoops": "^2.18.4",
         "jangregor/phpstan-prophecy": "^2.1",
         "nyholm/psr7": "^1.8",
         "nyholm/psr7-server": "^1.1",
@@ -75,6 +76,7 @@
         }
     },
     "suggest": {
-        "llm/skills": "Optionally synchronize the bundled agent skill in consumer projects."
+        "llm/skills": "Optionally synchronize the bundled agent skill in consumer projects.",
+        "filp/whoops": "Install ^2.18.4 for optional development HTML responses."
     }
 }

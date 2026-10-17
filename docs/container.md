@@ -15,3 +15,8 @@ The best-effort aggregate is also explicit: construct it with application report
 and bind the required reporting interface in the merged map. No factory, alias or
 automatic membership selects it. The default aggregate remains fail-fast; see
 [best-effort reporting](api.md#best-effort-reporting).
+
+The independent [JSON profile](fast-forward.md#json-profile) and
+[Whoops profile](fast-forward.md#development-html-profile) select pure renderers.
+Compose base, selected profile and application maps explicitly; middleware owns
+the single private report. No legacy capture/reporting wrapper is restored.

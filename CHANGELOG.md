@@ -10,6 +10,25 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.5.0
+
+### Minor Changes
+
+- [#92](https://github.com/coisa/error-handler/pull/92) [`fb418fb`](https://github.com/coisa/error-handler/commit/fb418fba4f342f2113a34cd8dfbb15418c0ade87) - Add an opt-in pure JSON throwable response factory with generic public output, integer HTTP 400–599 status preservation and an explicit development mode with metadata-only traces and no-store caching. Add a separate report-before-render response decorator for the existing 2.x middleware and independent Interop providers for explicit legacy or JSON composition with fresh HTTP scopes. Applications select the JSON provider before the base provider and supply PSR-17 factories and a private reporter; the FastForward integration requires PHP 8.3+ and an application runtime dependency, while the core retains PHP 7.4 and existing container/output-capture defaults. Debug alone needs the optional JSON extension on PHP 7.4.
+
+- [#92](https://github.com/coisa/error-handler/pull/92) [`fae2d58`](https://github.com/coisa/error-handler/commit/fae2d58471e72136d3e9967f54bd81a7fc38bc48) - Add an optional Whoops HTML response renderer with application-controlled development activation and page configuration. Provide an independent opt-in Interop profile using the application's PSR-17 factories and private reporter, with a lazy configurable PrettyPageHandler service. Applications compose the base and Whoops maps in one aggregate and obtain fresh middleware scopes through FastForward on PHP 8.3+. Sequential rendering preserves page configuration and replaces diagnostic state, with a fresh Run, response and stream. Reuse explicit reporting composition without changing existing middleware, capture defaults or HTTP negotiation; service resolution and fallback remain the container's policy. Bundle focused HTML guidance and executable consumer programs in the canonical skill, with installed-API availability checks. Require optional Whoops ^2.18.4 or later within 2.x, including the upstream PHP 8.5 fix to avoid its additional PHP deprecation report during rendering. Core PHP 7.4 and ordinary production installations still do not require Whoops or FastForward.
+
+### Patch Changes
+
+- [#105](https://github.com/coisa/error-handler/pull/105) [`723e985`](https://github.com/coisa/error-handler/commit/723e985899b86deef2a936e6e1c1b2267110b948) - Clarify the 2.x learning path, integration prerequisites, service aliases and factories, application extension contracts, and reporting/HTTP troubleshooting while retaining the existing Markdown guides and static documentation site.
+
+## 2.4.4
+
+### Patch Changes
+
+- [#103](https://github.com/coisa/error-handler/pull/103) [`e77e590`](https://github.com/coisa/error-handler/commit/e77e5908718f009260938ba29179c9812926de3e) - Make the 2.x README easier to use with a complete quick start, focused integration
+  guides and explicit lifecycle and HTTP boundaries.
+
 ## 2.4.3
 
 ### Patch Changes

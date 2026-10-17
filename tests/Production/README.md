@@ -14,7 +14,12 @@ The unreleased major declares PHP `^8.3`. The intended native CI matrix is PHP
 artificial 8.5 upper constraint. Resolve with the actual PHP runtime and Composer 2
 using `--no-dev --no-plugins --no-scripts`. The runtime graph supplies FastForward,
 Interop and the PSR interfaces. No Nyholm, application logger or other incidental
-consumer dependency is needed for these construction/reporting checks.
+consumer dependency is needed for these construction/reporting checks. The
+production autoloader also exposes JSON, Whoops and the explicit reporting
+adapter, and both profile maps can be discovered without constructing optional
+Whoops objects or installing callbacks. Actual HTML rendering requires the
+application to install Whoops; the PHPUnit and documented recipes exercise that
+composition separately.
 
 `container.php` uses the real Interop provider and FastForward container. It
 checks default aliases, cached identities, distinct explicit core scopes and
