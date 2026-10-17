@@ -2,7 +2,6 @@
 /composer.lock
 .idea/
 vendor/
-node_modules/
 tests/html/
 tests/clover.xml
 tests/cobertura.xml

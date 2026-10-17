@@ -4,11 +4,11 @@ Notable changes to `coisa/error-handler`, with the newest release first.
 
 This file is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-New entries are generated from [Changesets](https://changesets.dev/) using its
-GitHub changelog formatter and change categories.
+New entries are collected from independent Markdown fragments by
+[Fast Forward Changelog](https://github.com/php-fast-forward/changelog).
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
-Pending changes live in `.changeset/` until a version PR is prepared.
+Pending changes live in `.changelog/` until a version PR is prepared.
 
 ## 2.5.1
 
