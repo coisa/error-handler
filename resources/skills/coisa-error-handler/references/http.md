@@ -34,10 +34,11 @@ explicit. This repair does not make the renderer public-safe.
 
 Captured-output failure triggers best-effort cleanup of removable buffers above
 the entry level. Cleanup stops at a protected buffer, failed close or no progress;
-caller buffers are not deliberately closed. A throwing output callback can still
-permit progress if PHP removed its buffer. If cleanup returns, the original
-primary failure propagates. A callback that exits or triggers an engine fatal
-can prevent propagation. Side effects cannot be undone.
+caller buffers are not deliberately closed. Starting with 2.4.1, cleanup can
+continue after an output callback throws if PHP removed its buffer and progress
+remains possible; 2.4.0 stops cleanup at that throw. If cleanup returns, the
+original primary failure propagates. A callback that exits or triggers an engine
+fatal can prevent propagation. Side effects cannot be undone.
 
 ## Verification
 
