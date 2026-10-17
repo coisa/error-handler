@@ -181,13 +181,17 @@ final class ConsumerSkillExamplesTest extends TestCase
     /**
      * Execute the actual programs; HTTP callback installation stays in its own child.
      *
-     * @param string $file   the shipped example program
-     * @param string $output the exact success observation
+     * @param string       $file      the shipped example program
+     * @param string       $output    the exact success observation
+     * @param list<string> $arguments explicit synthetic application inputs
      *
      * @dataProvider provideShippedProgramsUseTheExplicitConsumerAutoloaderCases
      */
-    public function testShippedProgramsUseTheExplicitConsumerAutoloader(string $file, string $output): void
-    {
+    public function testShippedProgramsUseTheExplicitConsumerAutoloader(
+        string $file,
+        string $output,
+        array $arguments = []
+    ): void {
         $root = \dirname(__DIR__, 2);
         $process = new Process([
             PHP_BINARY,
@@ -195,6 +199,7 @@ final class ConsumerSkillExamplesTest extends TestCase
             '-d', 'memory_limit=64M',
             $root . '/resources/skills/coisa-error-handler/examples/' . $file,
             $root . '/vendor/autoload.php',
+            ...$arguments,
         ], $root, null, null, 5.0);
 
         try {
@@ -211,14 +216,39 @@ final class ConsumerSkillExamplesTest extends TestCase
     /**
      * Supplies complete programs without sharing mutable application collaborators.
      *
-     * @return array<string, array{string, string}> program names and expected output
+     * @return array<string, array{string, string, list<string>}> names, observations and explicit inputs
      */
     public static function provideShippedProgramsUseTheExplicitConsumerAutoloaderCases(): iterable
     {
         return [
-            'configuration' => ['configured.php', 'configured reporting: original delivered once'],
-            'container' => ['container.php', 'legacy container: application reporter, caching and fresh scope passed'],
-            'HTTP' => ['http.php', 'HTTP: private report once and fixed public response passed'],
+            'configuration' => ['configured.php', 'configured reporting: original delivered once', []],
+            'container' => [
+                'container.php', 'legacy container: application reporter, caching and fresh scope passed', [],
+            ],
+            'HTTP' => ['http.php', 'HTTP: private report once and fixed public response passed', []],
+            'JSON public' => [
+                'json.php', 'JSON public: original reported once and explicit response passed', ['public'],
+            ],
+            'JSON debug' => ['json.php', 'JSON debug: original reported once and explicit response passed', ['debug']],
+            'provider public' => [
+                'provider-json.php', 'Interop JSON public: independent providers and fresh scope passed', ['public'],
+            ],
+            'provider debug' => [
+                'provider-json.php', 'Interop JSON debug: independent providers and fresh scope passed', ['debug'],
+            ],
+            'Whoops HTML' => [
+                'whoops.php', 'Whoops HTML: explicit development page and one original report passed', [],
+            ],
+            'Whoops provider default' => [
+                'provider-whoops.php',
+                'Interop Whoops default: explicit aggregate, shared page and original reports passed',
+                ['default'],
+            ],
+            'Whoops provider configured' => [
+                'provider-whoops.php',
+                'Interop Whoops configured: explicit aggregate, shared page and original reports passed',
+                ['configured'],
+            ],
         ];
     }
 }

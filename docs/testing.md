@@ -36,6 +36,11 @@ boundary. Even 100% overall line coverage does not prove every branch or behavio
   callback restoration and successful/failed output capture. Specific `@covers`
   annotations describe the subject. Doubles control application-owned services;
   actual PSR message values and real PHP callbacks are used where relevant.
+  Optional Interop provider cases use the real FastForward development dependency:
+  inert lookup, cached aliases, fresh nested middleware scopes, legacy defaults,
+  JSON/configuration, independent provider responsibilities, JSON-first versus
+  base-first selection, lazy shared Whoops pages, aggregate override precedence,
+  report ordering and failure identity.
 - `tests/Functional`: legacy application/container composition. These tests
   retain `@coversNothing`; direct class tests measure their runtime subjects
   independently. Cases installing native callbacks use explicit PHPUnit
@@ -48,15 +53,19 @@ boundary. Even 100% overall line coverage does not prove every branch or behavio
   application, agent or parent test process.
 - `tests/Production`: committed-archive and clean no-dev consumer checks. They
   prove installed metadata/autoloading across the declared PHP range, which unit
-  tests of a development checkout cannot establish.
+  tests of a development checkout cannot establish. This includes construction
+  of the optional Interop provider objects without FastForward installed; their
+  service maps are only used in the explicit PHP 8.3+ integration.
 
 The old standalone Fire/HTTP runners and custom process helper have been retired.
 Ordinary warnings/capture and the four HTTP response tuples now run directly in
 PHPUnit. No server is needed: the library returns PSR responses and applications
 own emission. Integer 404 stays 404, 503 falls back to 500, ordinary exceptions and
 TypeError produce 500; tests also verify exact captured bodies, original events
-and restored native callbacks. They do not certify an HTTP server or a future
-report-once/redacted-default policy.
+and restored native callbacks. They do not certify an HTTP server or change the
+legacy defaults. The opt-in JSON/provider tests separately assert one private
+report and generic public output; they do not imply the proposed major's default
+rendering policy.
 
 ## Process bounds and known limits
 
@@ -123,6 +132,13 @@ and [verifier guide](https://github.com/coisa/error-handler/blob/master/examples
 describe its real inputs, expected outputs and separate bounded native-fatal
 example. It uses Symfony Process directly and no test helper framework.
 
+With PHP 8.3+ and `fast-forward/container:^1.9`, run
+`php examples/verify.php --with-fast-forward` to include both JSON and both Whoops
+provider modes in the same bounded runner, with Whoops installed for HTML. The default remains independent of this optional
+runtime. Core production consumers install no library development dependencies;
+Quality PHP 8.3–8.5 runs the provider unit tests and maximum PHPStan with the actual
+FastForward graph. This adds no new runner or alternate analysis stubs.
+
 Run `php tests/Documentation/site.php` with PHP 7.4+ and DOM to verify displayed
 source excerpts, unique IDs, anchors and links in `docs/index.html`. It also checks
 every complete recipe in [the 2.x cookbook](examples.md) against executable source,
@@ -141,3 +157,24 @@ The retired Scrutinizer requested additional data-flow security analysis; PHPSta
 and PHPCS are not equivalent to that capability. Repository cleanup does not
 alter the external service. FPM/Apache, Windows, concurrency, arbitrary reporter
 side effects and production load still require application-specific validation.
+
+### Bundled consumer programs
+
+`ConsumerSkillExamplesTest` runs the canonical skill's complete application
+programs with an explicit consumer autoloader in bounded children. The optional
+Whoops cases include direct HTML and both aggregate-provider page configurations;
+their programs reject unavailable installed APIs rather than treating the common
+`^2.4` baseline as proof of every additive class. Installed-package checks run the
+same programs with the consumer's real dependencies. The archive guard requires
+every canonical file and its source bytes, including focused references, examples
+and license; these checks do not install or activate an agent skill.
+
+### Optional Whoops HTML adapter
+
+`WhoopsThrowableResponseFactoryTest` uses real Whoops pages and PSR messages. Synthetic superglobal tables have positive exposure controls before configured key hiding and are restored after every test. Tests cover status boundaries/string SQLSTATE, original identity, one report, fresh sequential pages/bodies, escaped text and unchanged collaborator failures. The method touching native callback stacks uses PHPUnit's standard separate-process isolation. Caller output/buffers and continuation are tested without mocking native functions. Native CGI headers require separate bounded SAPI evidence, not CLI header assertions.
+
+Whoops is a development dependency for these tests, optional for consumers. Verify the supported `^2.18.4` lower bound as well as the current version on actual PHP; a declared constraint alone is not execution proof. Production consumers without Whoops must load core/container and the adapter class, then receive a useful `LogicException` only if they select its constructor. Do not fake dependency absence inside the installed development autoloader. Consult the implementation PR for actual graphs and SHAs.
+
+The optional Whoops provider uses real FastForward in PHPUnit: default/custom page services remain lazy and cached, configuration persists and sequential diagnostic/GET data is replaced. Tests exercise the exact provider map and both separate-provider orders, plus application overrides through one aggregate. With the selected Whoops integration present, rendering reports the original once and reporter/Whoops failures retain identity. Tests distinguish a failing concrete page factory's autowiring fallback from incompatible returned services and actual rendering failures. Native lifecycle cases are isolated and verify distinct active handlers and restoration; pure rendering cases install no callbacks. The bounded provider recipe then exercises the complete middleware/render/report path from a real source file. Installed consumers additionally verify profile construction without Whoops, the missing-dependency hint through the recommended aggregate, the separate-provider fallback limit and an application `--no-dev` graph with FastForward and Whoops explicitly required. Core PHP 7.4 and optional FastForward PHP 8.3+ are separate platform checks.
+
+The [HTTP guide](http.md#opt-in-development-html-with-whoops) records the separately reproduced STDIN trace limitation on PHP 8.5.11/Whoops 2.18.6. PHPUnit's generated stdin harness can encounter the same upstream source-reading path. Keep lifecycle assertions isolated and pure rendering independent; neither a trace rewrite nor warning suppression establishes a production fix.

@@ -17,7 +17,7 @@ A **reporter** receives a `Throwable` and delivers diagnostics to an application
 | --- | --- | --- |
 | Diagnostic delivery | `Handler\ThrowableHandlerInterface` and built-in adapters | Destination, redaction, transport and reporter-failure policy |
 | PHP callback lifetime | `ErrorHandlerInterface::register()` / `unregister()` | Bootstrap location, distinct nested scopes and process exit policy |
-| Service composition | `Container\ErrorHandlerContainer`, `Container\ConfigProvider` and factories | External implementations and required service overrides |
+| Service composition | `Container\ErrorHandlerContainer`, `Container\ConfigProvider`, factories and optional Interop providers | External implementations and required service overrides |
 | HTTP response creation | `Http\Message\ThrowableResponseFactoryInterface` | Public content, application status mapping and PSR-17 implementations |
 | HTTP delivery | A returned PSR-7 response | Server integration and response emitter |
 
@@ -129,6 +129,8 @@ The [adapter example](https://github.com/coisa/error-handler/blob/master/example
 
 The [complete event/logging example](https://github.com/coisa/error-handler/blob/master/examples/events.php) uses an application-installed Phly dispatcher, both providers and callable listeners, plus an in-memory PSR-3 logger. Raw and wrapped dispatch are separate deliveries; configure both only when both are intended.
 
+For explicit public JSON responses, use the separate [pure JSON renderer and reporting decorator](http.md#opt-in-json-responses-and-explicit-reporting). Diagnostic reporters retain their void contract and private-output responsibility; this opt-in composition changes no process lifecycle or existing middleware/default behavior.
+
 ## Extend through the existing contracts
 
 The core `ErrorHandler`, built-in handlers and HTTP adapters are final. Compose them, adapt callables where supported, or implement the relevant interface in the application. A custom reporter does not need to implement callback registration or HTTP rendering.
@@ -158,3 +160,7 @@ For events, implement or reuse an application [PSR-14 dispatcher](https://www.ph
 For missing services or unexpected shared instances, use [container troubleshooting](container.md#troubleshoot-service-resolution). For leaked response text or repeated HTTP delivery, use [HTTP troubleshooting](http.md#troubleshoot-http-composition).
 
 Continue with [container composition](container.md), [HTTP composition](http.md), and the [executable cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+
+## Optional development HTML
+
+For a checkout/release containing `WhoopsThrowableResponseFactory`, use it only as an explicitly selected development renderer, with `ReportingThrowableResponseFactory` supplying private reporting in 2.x. It is not a Throwable reporter, lifecycle handler or Accept negotiator. Whoops remains optional; page configuration and development authorization belong to the application. Read [the HTTP contract](http.md#opt-in-development-html-with-whoops) and [complete recipe](../examples/http-whoops.php). The proposed major uses the pure renderer after its own report; [issue 95](https://github.com/coisa/error-handler/issues/95) tracks that separate adaptation.

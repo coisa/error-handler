@@ -72,6 +72,18 @@ application's private diagnostic sink.
 | Filter or fan out | [Filtering][link-filtering], [aggregates][link-aggregates] and [best effort][link-best-effort]. |
 | Use a PSR-11 or Laminas application | [`ErrorHandlerContainer`, `ConfigProvider` and factories](docs/container.md). |
 | Return an HTTP response | [PSR-15 middleware and PSR-17 composition](docs/http.md). |
+| Return JSON with one private report | [Opt-in JSON rendering](docs/http.md#opt-in-json-responses-and-explicit-reporting) and [complete recipe](examples/http-json.php). |
+| Use Interop/FastForward providers | [Optional JSON profile](docs/container.md#optional-interop-and-fastforward-providers) and [complete provider recipe](examples/provider-json.php). |
+| Render development HTML | [Optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [manual recipe](examples/http-whoops.php). |
+| Configure Whoops services | [Optional Whoops profile](docs/container.md#development-html-profile) and [complete provider recipe](examples/provider-whoops.php). |
+
+Check the installed source for the JSON/Whoops response adapters and Interop
+providers before selecting those additive profiles. FastForward examples require
+application PHP 8.3+, PSR-17 factories and a private reporter; core and legacy
+integrations retain PHP 7.4 support.
+
+Whoops is an explicit development choice. Applications own trusted debug
+activation and format selection.
 
 ## Lifecycle and HTTP boundaries
 

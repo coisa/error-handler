@@ -22,11 +22,27 @@ use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
+use Interop\Container\ServiceProviderInterface;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
 require $argv[1] ?? dirname(__DIR__, 2) . '/vendor/autoload.php';
+
+$interopProviders = [
+    new ErrorHandlerServiceProvider(),
+    new JsonErrorHandlerServiceProvider(),
+    new WhoopsErrorHandlerServiceProvider(),
+];
+
+foreach ($interopProviders as $interopProvider) {
+    if (!$interopProvider instanceof ServiceProviderInterface) {
+        throw new RuntimeException('Optional Interop providers must load without FastForward or development packages.');
+    }
+}
 
 $container = new ErrorHandlerContainer();
 $provider = new ConfigProvider();

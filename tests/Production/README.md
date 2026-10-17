@@ -6,6 +6,11 @@ PHP. It verifies exact delegated values, object identity, exception propagation,
 legacy container aliases and core handler construction. It does not install PHP
 callbacks. Tests are excluded from Composer distribution archives.
 
+`container.php` also constructs the base, JSON and Whoops Interop provider objects
+without requesting their definitions. Their interface contract loads from runtime
+metadata on PHP 7.4 without FastForward or Whoops; using their service maps remains an
+opt-in PHP 8.3+ application integration.
+
 The consumer must require only `coisa/error-handler`; its runtime metadata must
 install `psr/container` transitively. Use Composer 2 with
 `--no-plugins --no-scripts` and no library development dependencies. The

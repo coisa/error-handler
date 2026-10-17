@@ -31,6 +31,14 @@ also prevents resolving the complete development graph on PHP 7.4. A production
 consumer must resolve only the library's runtime dependencies when checking
 that minimum.
 
+The optional Interop providers are tested with the real
+`fast-forward/container:^1.9` development dependency in the normal PHPUnit and
+PHPStan checks. FastForward requires PHP 8.3; it is not a core runtime requirement.
+The Production jobs create an external consumer from `git archive`, so the
+library's `require-dev` is not transitively installed on PHP 7.4. An application
+that chooses these providers must install FastForward in its own `require`, not
+only `require-dev`, to retain its container in production.
+
 ## Quality checks
 
 The `coisa/php-cs-fixer:^3.0` preset supplies the formatter policy. A local override
@@ -247,3 +255,9 @@ php tests/Production/archive.php /absolute/temporary/package.tar
 
 This checks archive paths and bytes against the selected source, including every
 runtime file. Then run the clean consumer and production container smoke above.
+
+## Optional development HTML dependency
+
+The development graph includes `filp/whoops:^2.18.4` to verify the opt-in HTML adapter. Consumer runtime requirements remain unchanged: applications install Whoops only when selecting development HTML, and ordinary no-dev core/container installations need none of it. Record actual lower/current Whoops resolutions and PHP versions when verifying the bridge. The [HTML guide](docs/http.md#opt-in-development-html-with-whoops) describes explicit activation, page configuration and diagnostic disclosure limits.
+
+The optional Whoops profile is checked with the same real FastForward graph as JSON. It defers page lookup until rendering and FastForward caches the result; applications may prepare their configured page before composition. Middleware scope construction creates no additional page. Check sequential diagnostic replacement and persistent application configuration, not a fresh-page requirement. Verify installed applications both without Whoops (inert profile construction, useful diagnostic through the recommended aggregate, documented separate-provider fallback) and with FastForward/Whoops in the application's runtime requirements under `--no-dev`. Use the existing bounded verifier's `--with-fast-forward` option for the full provider recipes; no separate runner is needed.

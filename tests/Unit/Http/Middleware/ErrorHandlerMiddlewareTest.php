@@ -19,12 +19,16 @@ namespace CoiSA\ErrorHandler\Test\Unit\Http\Middleware;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
@@ -182,6 +186,123 @@ final class ErrorHandlerMiddlewareTest extends TestCase
             'unavailable' => [\RuntimeException::class, 'synthetic upstream address', 503, 500],
             'client-error' => [\RuntimeException::class, 'synthetic client failure', 404, 404],
             'type-error' => [\TypeError::class, 'synthetic type mismatch', 0, 500],
+        ];
+    }
+
+    /**
+     * Verifies opt-in JSON reports once and restores native callbacks on every result.
+     *
+     * @param string $failureStage the optional reporter or HTTP factory failure
+     *
+     * @dataProvider provideJsonCompositionRestoresNativeCallbacksCases
+     *
+     * @runInSeparateProcess
+     *
+     * @preserveGlobalState disabled
+     */
+    public function testJsonCompositionRestoresNativeCallbacks(string $failureStage): void
+    {
+        $this->expectOutputString('');
+        $original = new \RuntimeException('Private downstream diagnostic', 503);
+        $failure = new \RuntimeException('Configured collaborator failure');
+        $reports = [];
+        $reporter = new CallableThrowableHandler(
+            /**
+             * Records the original privately and optionally fails before rendering.
+             *
+             * @param \Throwable $event the diagnostic event delivered by the decorator
+             *
+             * @throws \RuntimeException the identical configured reporter failure
+             */
+            static function (\Throwable $event) use (&$reports, $failureStage, $failure): void {
+                $reports[] = $event;
+
+                if ('reporter' === $failureStage) {
+                    throw $failure;
+                }
+            },
+        );
+        $messages = new Psr17Factory();
+        $responses = $this->createMock(ResponseFactoryInterface::class);
+        if ('reporter' === $failureStage) {
+            $responses->expects(self::never())->method('createResponse');
+        } elseif ('renderer' === $failureStage) {
+            $responses->expects(self::once())->method('createResponse')->willThrowException($failure);
+        } else {
+            $responses->expects(self::once())->method('createResponse')->with(503)
+                ->willReturn($messages->createResponse(503))
+            ;
+        }
+        $middleware = new ErrorHandlerMiddleware(
+            new ErrorHandler($reporter),
+            new ReportingThrowableResponseFactory($reporter, new JsonThrowableResponseFactory($responses, $messages)),
+        );
+        $next = $this->createMock(RequestHandlerInterface::class);
+        $next->expects(self::once())->method('handle')->willThrowException($original);
+
+        /** @return bool whether the surrounding callback owns a synthetic warning */
+        $previousError = static fn(): bool => true;
+
+        /**
+         * Retains the surrounding exception callback without accepting an uncaught fixture event.
+         *
+         * @param \Throwable $event an unexpected exception escaping the middleware test
+         *
+         * @throws \LogicException if a fixture bypasses the expected local catch
+         */
+        $previousException = static function (\Throwable $event): void {
+            throw new \LogicException('Unexpected previous exception callback.', 0, $event);
+        };
+
+        set_error_handler($previousError);
+        set_exception_handler($previousException);
+        $bufferLevel = ob_get_level();
+        $response = null;
+        $caught = null;
+
+        try {
+            try {
+                $response = $middleware->process($messages->createServerRequest('GET', '/example'), $next);
+            } catch (\Throwable $actual) {
+                $caught = $actual;
+            }
+
+            $actualError = set_error_handler($previousError);
+            restore_error_handler();
+            $actualException = set_exception_handler($previousException);
+            restore_exception_handler();
+
+            self::assertSame($previousError, $actualError);
+            self::assertSame($previousException, $actualException);
+            self::assertSame($bufferLevel, ob_get_level());
+            self::assertSame([$original], $reports);
+
+            if ('none' === $failureStage) {
+                self::assertNull($caught);
+                self::assertInstanceOf(ResponseInterface::class, $response);
+                self::assertSame(503, $response->getStatusCode());
+                self::assertSame('{"error":"Request failed"}', (string) $response->getBody());
+            } else {
+                self::assertNull($response);
+                self::assertSame($failure, $caught);
+            }
+        } finally {
+            restore_error_handler();
+            restore_exception_handler();
+        }
+    }
+
+    /**
+     * Supplies independent successful, reporter-failure and renderer-failure paths.
+     *
+     * @return array<string, array{string}> scalar scenarios for native PHPUnit isolation
+     */
+    public static function provideJsonCompositionRestoresNativeCallbacksCases(): iterable
+    {
+        return [
+            'JSON response' => ['none'],
+            'reporter failure' => ['reporter'],
+            'renderer failure' => ['renderer'],
         ];
     }
 }

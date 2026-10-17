@@ -1,8 +1,8 @@
 ---
 name: coisa-error-handler
-description: Integrate coisa/error-handler with configured private reporters, process callbacks, legacy PSR-11 or ConfigProvider composition, and PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
+description: Integrate coisa/error-handler with configured private reporters, process callbacks, legacy PSR-11 or ConfigProvider composition, PSR-15 responses and available JSON/Whoops/Interop profiles. Use when an application consumes this library; inspect its installed version before selecting an API.
 license: MIT; see LICENSE
-compatibility: coisa/error-handler ^2.4, starting with 2.4.0; PHP ^7.4 || ^8.0 and Composer 2. Applications supply PSR-14/17 implementations and HTTP emission. No agent SDK or global installation is required.
+compatibility: coisa/error-handler ^2.4, starting with 2.4.0; PHP ^7.4 || ^8.0 and Composer 2. Advanced JSON/Whoops/Interop routes require their named classes in the installed source; Whoops requires optional filp/whoops ^2.18.4 and FastForward integration requires application PHP 8.3+. Applications supply PSR-14/17 implementations and HTTP emission. No agent SDK or global installation is required.
 metadata:
   author: Felipe Sayão Lobato Abreu
   api-baseline: "2.4.0"
@@ -25,6 +25,15 @@ the actual PHP runtime and available application implementations. This procedure
 supports `^2.4`; earlier versions are outside its supported API contract. A lockfile
 entry alone does not establish runtime availability. Do not install or upgrade
 dependencies solely to fit this skill.
+
+The common 2.4 baseline does not establish availability of every additive
+JSON/Whoops/provider class. Before selecting those routes, inspect the installed
+version, matching source and named symbols using the
+[advanced availability checks](references/json.md#inspect-the-selected-installation).
+If they are absent, use the ordinary route or existing application response
+implementation; do not substitute another API or upgrade automatically.
+For development HTML, also follow the focused
+[Whoops availability and diagnostic checks](references/whoops.md#inspect-the-selected-installation).
 
 For an authorized new application installation:
 
@@ -110,6 +119,8 @@ and does not write logs or contact a service.
 | PHP warnings or uncaught exceptions | Register at the application bootstrap; follow [process scopes](references/process.md) and verify restoration. |
 | Existing PSR-11 or Laminas application | Supply its reporters to the [legacy container recipe](references/container.md); construction must install no callbacks. |
 | HTTP | Supply PSR-17 implementations and select the [explicit public response recipe](references/http.md); verify private delivery and fixed body separately. |
+| Available JSON or Interop/FastForward profiles | Verify the installed symbols, then use [explicit JSON composition](references/json.md); applications select independent providers and trusted debug configuration. |
+| Explicit development HTML | Verify the installed APIs and optional Whoops, then use [HTML composition](references/whoops.md); the application selects diagnostic exposure and one aggregate for the Whoops profile. |
 | Logging, events, filtering or best-effort reporting | Select [reporter composition](references/reporters.md) only for that integration; supply the actual collaborators. |
 
 The built-in container caches handlers. A fresh wrapper does not establish a

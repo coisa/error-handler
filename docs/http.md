@@ -8,7 +8,7 @@ Run the [HTTP example](https://github.com/coisa/error-handler/blob/master/exampl
 
 Read [the setup guide](../examples/README.md#application-dependencies) for a compatible application dependency graph. [PSR-15](https://www.php-fig.org/psr/psr-15/) defines middleware/request-handler contracts; [PSR-17](https://www.php-fig.org/psr/psr-17/) defines HTTP message factories. Their interface packages do not create a concrete request, response body or network server for the application.
 
-For the two compositions demonstrated here, identify:
+For the two legacy compositions demonstrated here, identify:
 
 - A private reporter implementing `ThrowableHandlerInterface` and a distinct lifecycle handler for this scope.
 - Application PSR-17 `ResponseFactoryInterface` and `StreamFactoryInterface` implementations; the recipe uses one Nyholm object for both.
@@ -75,9 +75,91 @@ The `safe` mode uses an application implementation of `ThrowableResponseFactoryI
 
 Read the [complete HTTP recipe](examples.md#http-responses-output-capture-and-a-safe-application-adapter) for its imports, synthetic request handler, application response adapter and assertions. Through the bounded verifier, the safe case checks one private report, the fixed 500 status/body and restored callbacks. A reporter failure propagates before the fixed response is created; PSR-17 failures propagate too. The application still needs a terminal failure policy for its chosen server/runtime.
 
-This is an explicit application adapter. The built-in renderer remains the capture/fallback adapter described above. A proposed future pure renderer, JSON API or content negotiation policy is not an existing 2.x default.
+This is an explicit application adapter. The default renderer remains the capture/fallback adapter described above. The opt-in JSON factory below is a separate additive API; verify the selected source or installed release contains it. Neither JSON nor content negotiation becomes a default.
 
 An explicit `FilteringThrowableHandler` may select the private diagnostic branch in this application adapter. Both match and nonmatch still lead to its fixed public response; filtering does not select status, body or reason. Predicate/delegate failure propagates after middleware restores callbacks. Do not use a silent nonmatch as redaction inside the built-in capture adapter: no output still falls back to the original diagnostic text. Filtering starts after PHP-error conversion and preserves the existing reporting mask/suppression rules.
+
+## Opt-in JSON responses and explicit reporting
+
+`Http\Message\JsonThrowableResponseFactory` accepts a PSR-17 response factory and stream factory. It returns a fresh response/body with `Content-Type: application/json` and the exact public body `{"error":"Request failed"}`. Integer throwable codes from 400 through 599 are preserved; strings, including numeric-looking codes and SQLSTATE, and all other integers use 500. The PSR-17 implementation supplies its default reason phrase; the throwable message is never passed as that reason.
+
+This renderer returns data directly. It does not invoke a diagnostic reporter, print, capture output, register callbacks, emit the response or select a representation from request globals. Its status range belongs to this new opt-in class; the legacy factory's 400–500 mapping, throwable reason phrase and output-capture defaults remain unchanged.
+
+The 2.x middleware does not report a caught downstream Throwable before rendering. Compose `Http\Message\ReportingThrowableResponseFactory` with a private, non-output reporter and the pure JSON renderer:
+
+```php
+$errors = new CoiSA\ErrorHandler\ErrorHandler($reporter);
+
+$json = new CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory($messages, $messages);
+
+$responses = new CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory($reporter, $json);
+
+$middleware = new CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware($errors, $responses);
+```
+
+The decorator calls its reporter once with the original Throwable, then calls its renderer once with the same object and returns that exact response. A reporter failure prevents rendering; reporter and renderer failures propagate unchanged, with middleware unregistering in `finally`. The decorator does not silence a reporter that prints. Use a private sink; diagnostic output remains that collaborator's responsibility.
+
+### Explicit development details
+
+The optional third JSON constructor argument is `bool $debug = false`. Enable it only from trusted application configuration, for example `new JsonThrowableResponseFactory($messages, $messages, true)` in a development-only composition. The library does not inspect environment names, request headers, remote addresses or globals to enable diagnostics. Omitting the argument keeps the generic public body.
+
+Debug adds `exception` containing `class`, `message`, `file`, `line` and `trace`, and sets `Cache-Control: no-store`. Trace frames retain only the native `file`, `line`, `class`, `type` and `function` keys that are present. Arguments, objects, previous-exception chains and arbitrary properties are excluded; the Throwable is not serialized. Debug intentionally exposes the chosen message and paths, which can contain sensitive information. It is not a complete redaction policy.
+
+Debug encoding replaces invalid UTF-8 bytes in messages, paths and trace metadata with U+FFFD. It does not retry or report again. PHP 7.4 debug use needs the optional JSON extension and an available `json_encode`; the constructor rejects a missing encoder when debug is selected, before a Throwable is being handled. PHP 8 includes JSON. Generic rendering needs no encoder, and the core package does not acquire an extension requirement.
+
+Using JSON directly in the 2.x middleware omits explicit reporting of that caught Throwable unless the application supplies another reporting composition. Wrapping the legacy capture renderer would instead add a second report because capture already invokes its reporter. Use the decorator with a pure renderer. In the proposed major's report-before-render middleware, inject the pure JSON factory directly and omit this decorator to avoid duplicate delivery; that major is not the published 2.x contract.
+
+The [complete JSON example](https://github.com/coisa/error-handler/blob/master/examples/http-json.php) preserves a synthetic 503 and records the original privately once in both `public` and explicitly selected `debug` modes. It uses application-provided PSR-17 factories without application-side buffers or an emitter. The CLI mode represents trusted application configuration, not request input. Run both through the existing bounded verifier.
+
+### JSON through an Interop service provider
+
+For an application using PHP 8.3+ and FastForward Container `^1.9` as a runtime dependency, register `ServiceProvider\JsonErrorHandlerServiceProvider` before the separate base provider, followed by the application's PSR-17 and private reporter definitions:
+
+```php
+$services = FastForward\Container\container(
+    CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider::class,
+    CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider::class,
+    $application,
+);
+
+$middlewareFactory = $services->get(
+    CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory::class,
+);
+
+$middleware = $middlewareFactory($services);
+```
+
+Each provider declares only its own services. The JSON profile selects the reporting decorator for this explicit 2.x composition; the base supplies lifecycle and fresh-scope factories. JSON must come first in this separate-provider call so its response alias wins over legacy capture. The pure concrete remains independently available. Invoking the middleware factory creates a new lifecycle handler rather than reusing the cached process handler. Discovery is inert, public JSON is the default, and a real bool constructor argument enables debug only by trusted application choice. The core and legacy container still support PHP 7.4.
+
+Read the [provider dependencies, Config values and override precedence](container.md#optional-interop-and-fastforward-providers) and the [complete executable provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php). Run the optional provider scenarios with `php examples/verify.php --with-fast-forward` on PHP 8.3+; the existing verifier keeps their callback installation in bounded children. Applications continue to own emission and private reporter output.
+
+## Opt-in development HTML with Whoops
+
+For a checkout/release containing `Http\Message\WhoopsThrowableResponseFactory`, applications can explicitly select a development HTML page. Install optional `filp/whoops:^2.18.4` in that application's development dependencies. The library suggests Whoops and uses it for development tests; core/container installations do not require it. Loading the adapter class without Whoops works; constructing it without the dependency raises `LogicException` with installation guidance.
+
+The minimum Whoops 2.18.4 includes the upstream PHP 8.5 deprecation fix. Older Whoops versions are outside this adapter's supported integration; the minimum keeps that native deprecation from adding a PHP error event during rendering. This optional integration requirement does not add Whoops to core runtime dependencies.
+
+The constructor takes `ResponseFactoryInterface`, `StreamFactoryInterface` and a required `callable(): Whoops\Handler\PrettyPageHandler`. The callable supplies the configured page for each render and is not invoked during construction. It may create a new page or return a configured page reused for sequential rendering. Whoops replaces the page's current exception, inspector and generated template data; configuration stays in place. A reused page retains its latest diagnostic until the next render. This is not a concurrency or arbitrary-subclass guarantee. The adapter creates its own fresh Run, sets `handleUnconditionally(true)`, `allowQuit(false)`, `writeToOutput(false)` and `sendHttpCode(false)`, and never calls `register()`.
+
+HTML comes from Whoops' public string-returning path. Its internal buffering belongs to Whoops; CoiSA adds no reporter-output capture. The adapter returns a new PSR body with `text/html; charset=UTF-8` and `Cache-Control: no-store`. It preserves integer codes 400–599, otherwise uses 500, and omits the reason argument so PSR-17 supplies its default. The original diagnostic code shown by Whoops is not a separate HTTP status promise; the Throwable is neither wrapped nor changed.
+
+Reuse `ReportingThrowableResponseFactory($reporter, $html)` in the 2.x middleware. The private reporter runs once before rendering; its failure prevents page lookup. Failures escaping the manual page callback, Whoops or HTTP collaborators propagate without adapter retry, fallback or another report. Returning an incompatible page produces `TypeError`. These controls do not suppress arbitrary output, callbacks or process termination deliberately performed by application callbacks/subclasses.
+
+One integration limit is reproduced on PHP 8.5.11 with Whoops 2.18.6: rendering a Throwable created through STDIN makes Whoops try to read `Standard input code` as a source file. Its resulting `file_get_contents` warning reaches the active PHP-error handler as a separate event. The original is still reported once; a reporter that throws on that additional warning can interrupt rendering. This also occurs in the manual composition, independently of the provider, and is tracked in [issue 99](https://github.com/coisa/error-handler/issues/99). The executable recipes use real source files; no warning suppression or trace rewriting is supplied.
+
+The [complete HTML recipe](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php) starts with generic JSON. Its trusted `development` mode selects Whoops in an explicitly chosen HTML pipeline; `public` mode never constructs a page and can run without Whoops. The mode represents application configuration, not a request parameter. There is no additional debug flag on the HTML class: choosing this diagnostic renderer is the explicit opt-in.
+
+`hideSuperglobalKey()` hides selected fields, not every occurrence of a secret. Default Whoops pages expose diagnostic data and ambient superglobals; messages, traces, source excerpts, causes and other tables may remain sensitive. The recipe's three hidden keys are examples, not a universal policy. HTML does not have the JSON adapter's metadata-only trace guarantee. Keep development access and broader data policy with the application; do not use this as a redacted production page.
+
+This factory receives only Throwable. It does not negotiate Accept, infer a browser, inspect request globals to enable debug or retain a current request. Existing application format selection may choose it after an independent trusted debug decision. No `Vary: Accept` is added; an application that negotiates must set its own Vary/cache policy. Reusable negotiation remains separate [issue 8](https://github.com/coisa/error-handler/issues/8). The proposed major receives the pure renderer directly after reporting, without the 2.x decorator; [issue 95](https://github.com/coisa/error-handler/issues/95) tracks that adaptation.
+
+### Whoops through an Interop service provider
+
+With application PHP 8.3+, `fast-forward/container:^1.9` installed at runtime and optional `filp/whoops:^2.18.4`, choose Whoops after the trusted development/HTML decision. Compose the independent providers in one `AggregateServiceProvider`, ordered `ErrorHandlerServiceProvider`, `WhoopsErrorHandlerServiceProvider`, application. Its last definition wins, retaining HTML and application page overrides. Supply the same application PSR-17 factories and private reporter used by the JSON profile. The Whoops map selects the 2.x reporting decorator; the base supplies `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` for a fresh HTTP scope.
+
+The profile has no constructor arguments. It defines `PrettyPageHandler::class` through FastForward's `InvokableFactory` and resolves that cached page lazily when rendering starts. Neither provider discovery, renderer resolution nor middleware scope construction creates the default page. The [complete provider recipe](../examples/provider-whoops.php) also shows application Config preparing a customized page before composition, bound through `ServiceFactory`. Sequential renders reuse page configuration while replacing the current diagnostic, with a new Run, response and stream each time. There is no request negotiation or automatic development detection. Selected key hiding remains a limited diagnostic policy, not comprehensive redaction.
+
+Use the documented aggregate for Whoops. Separate providers can fall back to reporting around legacy capture when Whoops is absent, reporting the same original twice instead of preserving the missing-dependency hint. The aggregate preserves that hint in the verified no-Whoops graph, but does not disable FastForward's autowiring fallback after a concrete page factory throws. The renderer propagates errors that actually escape page lookup; it does not enforce container resolution policy. See the [provider configuration and failure boundaries](container.md#development-html-profile).
 
 Keep emission after response creation in the application's existing PSR-7 emitter/server integration. This library does not call header(), echo a response to a client or select an emitter package. Output captured by the diagnostic adapter is an input to a response body, not HTTP emission.
 
@@ -87,7 +169,7 @@ Keep emission after response creation in the application's existing PSR-7 emitte
 | --- | --- |
 | A stack trace or exception message appears in the body despite private logging | The built-in capture adapter falls back to diagnostic text for empty output or `"0"`. Select the explicit application response adapter and assert the exact public body. |
 | One downstream failure reaches a reporter twice | Inspect raw/wrapped event routes, manual reporting and the response factory's policy. The 2.x middleware delegates to the response factory; adding another diagnostic call before the built-in capture renderer duplicates reporting. |
-| A PDO or domain error produces an unexpected status/reason | The built-in mapping uses integer 400–500 only and can preserve a valid diagnostic message as reason. Provide application response mapping and test status, reason and body together. |
+| A PDO or domain error produces an unexpected status/reason | The legacy mapping uses integer 400–500 only and can preserve a valid diagnostic message as reason. Provide application response mapping and test status, reason and body together. |
 | No response reaches the client after `process()` returns | Pass the returned PSR-7 response to the application's emitter. Creating a response object does not send headers or a body. |
 | Response creation throws instead of returning a fallback | Reporter and renderer failures propagate after callback restoration. Inspect the original private failure and apply the application's terminal policy. Best-effort reporting also throws when any reporter slot fails. |
 

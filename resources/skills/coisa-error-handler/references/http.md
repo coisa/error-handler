@@ -16,6 +16,16 @@ PSR-17 failures also propagate. The application supplies the emitter.
 Keep a separate lifecycle handler for each nested request/process scope.
 A fresh middleware wrapper does not make a cached handler fresh.
 
+## Optional library JSON composition
+
+When the installed source contains `JsonThrowableResponseFactory` and
+`ReportingThrowableResponseFactory`, the library can supply this composition.
+Follow the [availability, direct JSON and provider recipe](json.md), which checks
+the selected installation first. The pure JSON renderer preserves integer HTTP
+400–599 codes; the reporting decorator supplies one private report for the 2.x
+middleware. Trusted configuration explicitly selects development diagnostics.
+The fixed application example above remains usable without these additive APIs.
+
 ## Existing captured-output default
 
 The library's existing `ThrowableStreamFactory` invokes its configured reporter

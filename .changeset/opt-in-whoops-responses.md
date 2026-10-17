@@ -1,0 +1,5 @@
+---
+"@coisa/error-handler": minor
+---
+
+Add an optional Whoops HTML response renderer with application-controlled development activation and page configuration. Provide an independent opt-in Interop profile using the application's PSR-17 factories and private reporter, with a lazy configurable PrettyPageHandler service. Applications compose the base and Whoops maps in one aggregate and obtain fresh middleware scopes through FastForward on PHP 8.3+. Sequential rendering preserves page configuration and replaces diagnostic state, with a fresh Run, response and stream. Reuse explicit reporting composition without changing existing middleware, capture defaults or HTTP negotiation; service resolution and fallback remain the container's policy. Bundle focused HTML guidance and executable consumer programs in the canonical skill, with installed-API availability checks. Require optional Whoops ^2.18.4 or later within 2.x, including the upstream PHP 8.5 fix to avoid its additional PHP deprecation report during rendering. Core PHP 7.4 and ordinary production installations still do not require Whoops or FastForward.

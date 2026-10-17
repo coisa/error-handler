@@ -27,12 +27,60 @@ $cases = [
     ['best-effort.php', [], 0, "best-effort order, original cause and all reporter failures passed\n"],
     ['events.php', [], 0, "raw throwable, ErrorEvent, listener providers and PSR-3 logging passed\n"],
     ['container.php', [], 0, "legacy container, cached services, fresh factory and ConfigProvider passed\n"],
+    [
+        'http-json.php',
+        ['public'],
+        0,
+        "HTTP JSON public: explicit payload, status preservation and one private report passed\n",
+    ],
+    [
+        'http-json.php',
+        ['debug'],
+        0,
+        "HTTP JSON debug: explicit payload, status preservation and one private report passed\n",
+    ],
+    [
+        'http-whoops.php',
+        ['public'],
+        0,
+        "HTTP Whoops public: explicit renderer selection and one private report passed\n",
+    ],
+    [
+        'http-whoops.php',
+        ['development'],
+        0,
+        "HTTP Whoops development: explicit renderer selection and one private report passed\n",
+    ],
     ['process.php', ['warning'], 0, "reported: Process warning\ncontinued\n"],
     ['process.php', ['scope'], 0, "reported: Scoped warning\ncallbacks restored\n"],
     ['process.php', ['uncaught'], 0, "reported: Uncaught fixture\n"],
     ['process.php', ['shutdown'], 0, "leaving main\nshutdown callback\n"],
     ['process.php', ['fatal'], 255, null],
 ];
+
+if (in_array('--with-fast-forward', $argv, true)) {
+    if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container')) {
+        throw new RuntimeException('FastForward scenarios require PHP 8.3+ and fast-forward/container:^1.9.');
+    }
+
+    foreach (['public', 'debug'] as $mode) {
+        $cases[] = [
+            'provider-json.php',
+            [$mode],
+            0,
+            'Interop JSON ' . $mode . ": configured profile, fresh scope and one private report passed\n",
+        ];
+    }
+
+    foreach (['default', 'configured'] as $mode) {
+        $cases[] = [
+            'provider-whoops.php',
+            [$mode],
+            0,
+            'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n",
+        ];
+    }
+}
 
 foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 'reporter-failure'] as $mode) {
     $cases[] = [

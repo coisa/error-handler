@@ -3,6 +3,9 @@
 Read when an application already uses a PSR-11 container or Laminas discovery.
 Use the complete [container program](../examples/container.php) and its
 [dependency/verification instructions](../examples/README.md#legacy-container).
+For an application choosing the separate Interop/FastForward integration, first
+inspect installed symbols and use [the optional JSON/provider route](json.md).
+That route requires application PHP 8.3+ and does not replace these legacy APIs.
 
 The application binds its private reporter under
 `CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface`, then passes the parent
