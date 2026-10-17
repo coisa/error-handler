@@ -27,6 +27,10 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   retire the prototype Fire/HTTP/Python parents and custom release publisher.
 - Check all complete major cookbook recipes against executable source, retaining
   the exact inventory and omitting only each leading license header.
+- Ship the canonical `resources/skills/coisa-error-handler` package with
+  configuration-first examples adapted to the existing major provider and pure
+  renderer contracts. Preserve its license and optional installer metadata, and
+  require the complete consumer payload in distribution checks.
 - Add a direct native regression for output-handler destruction that replaces its
   removed buffer, proving bounded cleanup, primary-failure and caller ownership.
 The current 2.x manifest version and published changelog remain unchanged. Native

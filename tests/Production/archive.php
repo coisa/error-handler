@@ -37,10 +37,11 @@ foreach (new RecursiveIteratorIterator($archive) as $file) {
 
     $path = substr($file->getPathname(), strlen($prefix));
 
-    // Runtime code and optional useful consumer guides are distribution assets.
+    // Runtime code, useful guides and the canonical skill are distribution assets.
     $allowed = in_array($path, ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md'], true)
         ||   str_starts_with($path, 'src/')
-        ||   str_starts_with($path, 'docs/');
+        ||   str_starts_with($path, 'docs/')
+        ||   str_starts_with($path, 'resources/skills/coisa-error-handler/');
 
     if (!$allowed) {
         throw new RuntimeException('Unexpected development asset in distribution: ' . $path);
@@ -55,10 +56,12 @@ foreach (new RecursiveIteratorIterator($archive) as $file) {
 
 $required = ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md'];
 
-/** @var SplFileInfo $source A runtime source file supplied by the directory iterator. */
-foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/src')) as $source) {
-    if ($source->isFile()) {
-        $required[] = substr($source->getPathname(), strlen($root) + 1);
+foreach (['src', 'resources/skills/coisa-error-handler'] as $directory) {
+    /** @var SplFileInfo $source A required runtime or consumer skill file from the selected source. */
+    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $directory)) as $source) {
+        if ($source->isFile()) {
+            $required[] = substr($source->getPathname(), strlen($root) + 1);
+        }
     }
 }
 

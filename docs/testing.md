@@ -59,6 +59,11 @@ installs it into a fresh consumer with `--no-dev --no-plugins --no-scripts`.
 Production jobs run PHP 8.3–8.5; lower-bound runtime graphs run on 8.3 and 8.5.
 The consumer requires only this library, so FastForward/Interop/PSR dependencies
 must resolve transitively. See [production checks](../tests/Production/README.md).
+The archive gate also requires every file of the canonical consumer skill,
+including nested examples and its license, with exact source bytes. Functional
+PHPUnit cases reject missing, changed and unrelated resource assets; the bundled
+application programs use an explicit consumer autoloader. See the
+[skill examples](../resources/skills/coisa-error-handler/examples/README.md).
 FastForward may normalize construction failures and retry autowiring: failed
 required construction is asserted without promising one attempt or original cause.
 

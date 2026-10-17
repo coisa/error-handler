@@ -75,6 +75,16 @@ Run `php examples/fast-forward.php` after provider changes. Verify a production
 installation without development dependencies still loads the core and provider.
 Check documentation links and inspect the actual CI result for the tested SHA.
 
+## Bundled consumer skill
+
+Read [the consumer skill](resources/skills/coisa-error-handler/SKILL.md) when
+changing application integration examples, consumer guides or the skill. Keep
+its source-version contract, references and executable examples aligned with
+this unreleased major's public API. The canonical package is under
+`resources/skills`; `.agents/skills` is a consumer discovery destination, not a
+second source copy. This source link needs no installed copy or host alias.
+Repository maintenance and verification continue to follow this AGENTS.md.
+
 ## Child DOX Index
 
 - [README.md](README.md): installation and entrypoints for consumers.
@@ -90,8 +100,11 @@ Check documentation links and inspect the actual CI result for the tested SHA.
 - [CONTRIBUTING.md](CONTRIBUTING.md): dependency resolution and quality entrypoints.
 - [examples/README.md](examples/README.md): executable recipe dependencies and verifier.
 - [docs/migration.md](docs/migration.md): breaking changes from published 2.0.
-- [.agents/skills/coisa-error-handler/SKILL.md](.agents/skills/coisa-error-handler/SKILL.md):
-  portable consumer integration procedure; no global installation required.
+- [docs/agent-skill.md](docs/agent-skill.md): optional project/global skill
+  distribution, trust and lifecycle; copying does not establish host activation.
+- [resources/skills/coisa-error-handler/SKILL.md](resources/skills/coisa-error-handler/SKILL.md):
+  portable consumer integration procedure, bundled examples and source-version
+  contract; its package procedure stays in its own entrypoint.
 
 No subtree needs a separate maintenance contract; the skill's procedure stays
 in its SKILL.md entrypoint.

@@ -40,3 +40,9 @@ services. The [native CI workflow](../../.github/workflows/ci.yml) owns the actu
 PHP/resolution matrix; report its exact candidate and results. These checks prove
 installed provider composition, not production transport delivery, server
 behavior, arbitrary callback recovery or release/publication authority.
+
+The distribution check admits only root metadata, runtime source, useful guides
+and `resources/skills/coisa-error-handler/`. Every runtime and canonical skill
+file must be present with bytes matching source; arbitrary `resources/` content
+and development directories remain forbidden. The skill's examples and license
+are consumer assets and must survive archive exclusions.
