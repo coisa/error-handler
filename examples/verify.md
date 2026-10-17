@@ -44,8 +44,10 @@ For an application that also installs `fast-forward/container:^1.9` at runtime,
 use PHP 8.3+ and select `php examples/verify.php --with-fast-forward`. It adds two
 Interop JSON and two Whoops profile cases, for twenty-eight bounded scenarios in total. They
 resolve the application PSR-17/reporter definitions, use a fresh middleware scope
-and verify public/default or explicitly configured development JSON, plus lazy
-default/configured HTML pages across distinct scopes. The HTML cases need the
+and verify public/default or explicitly configured development JSON, plus cached
+HTML page services across distinct scopes. The default page is lazy; the configured
+mode binds a page prepared from application Config before composition. Both use
+one aggregate ordered base, Whoops, application. The HTML cases need the
 optional Whoops dependency. Requesting
 the option without its PHP/container prerequisites fails before starting those
 scenarios; the default core run remains available without FastForward on PHP 7.4.

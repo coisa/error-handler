@@ -28,6 +28,7 @@ use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
+use FastForward\Container\Factory\CallableFactory;
 use FastForward\Container\Factory\ServiceFactory;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
@@ -149,13 +150,17 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
             },
         );
         $application = $this->application($reporter, [
-            PrettyPageHandler::class
+            PrettyPageHandler::class => new CallableFactory(
                 /**
                  * @param ContainerInterface $container the application resolver
                  *
                  * @return PrettyPageHandler the shared application-configured page
                  */
-                => static function (ContainerInterface $container) use (&$pages, &$inspected, &$calls): PrettyPageHandler {
+                static function (ContainerInterface $container) use (
+                    &$pages,
+                    &$inspected,
+                    &$calls
+                ): PrettyPageHandler {
                     ++$calls;
                     $page = new PrettyPageHandler();
                     $page->setPageTitle('Configured provider page');
@@ -177,6 +182,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
 
                     return $page;
                 },
+            ),
         ]);
         $services = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
@@ -252,7 +258,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
             },
         );
         $application = $this->application($reporter, [
-            PrettyPageHandler::class
+            PrettyPageHandler::class => new CallableFactory(
                 /**
                  * @param ContainerInterface $container the application resolver
                  *
@@ -260,7 +266,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
                  *
                  * @throws \LogicException the unchanged application factory failure
                  */
-                => static function (ContainerInterface $container) use ($throws, $failure, &$calls): object {
+                static function (ContainerInterface $container) use ($throws, $failure, &$calls): object {
                     ++$calls;
 
                     if ($throws) {
@@ -269,6 +275,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
 
                     return new \stdClass();
                 },
+            ),
         ]);
         $services = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
@@ -414,13 +421,13 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
                 },
             );
             $application = $this->application($reporter, [
-                PrettyPageHandler::class
+                PrettyPageHandler::class => new CallableFactory(
                     /**
                      * @param ContainerInterface $container the application resolver
                      *
                      * @return PrettyPageHandler the page which fails before reading diagnostic source
                      */
-                    => static function (ContainerInterface $container) use ($failure, &$pageCalls): PrettyPageHandler {
+                    static function (ContainerInterface $container) use ($failure, &$pageCalls): PrettyPageHandler {
                         ++$pageCalls;
 
                         return new class ($failure) extends PrettyPageHandler {
@@ -445,6 +452,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
                             }
                         };
                     },
+                ),
             ]);
             $services = container(new AggregateServiceProvider(
                 new ErrorHandlerServiceProvider(),
