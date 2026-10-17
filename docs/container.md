@@ -104,10 +104,10 @@ Invoking `ErrorHandlerMiddlewareFactory` constructs a middleware wrapper but ask
 
 ## Optional Interop and FastForward providers
 
-First verify that the selected source/release contains the optional `ServiceProvider\ErrorHandlerServiceProvider`, `JsonErrorHandlerServiceProvider` or `WhoopsErrorHandlerServiceProvider` profile you select. They use `Interop\Container\ServiceProviderInterface` and FastForward's reusable factories. Core PHP 7.4 consumers retain the legacy routes. The provider integration needs PHP 8.3+ and FastForward installed as an **application runtime dependency**:
+The optional `ServiceProvider\ErrorHandlerServiceProvider`, `JsonErrorHandlerServiceProvider` and `WhoopsErrorHandlerServiceProvider` profiles were published in 2.5.0. Select `coisa/error-handler:^2.5` and verify the installed source for the chosen profile. They use `Interop\Container\ServiceProviderInterface` and FastForward's reusable factories. Core PHP 7.4 consumers retain the legacy routes. The examples and bundled skill keep their common `^2.4` baseline. The provider integration needs PHP 8.3+ and FastForward installed as an **application runtime dependency**:
 
 ```sh
-composer require 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 ```
 
 The library requires only the small Interop contract; FastForward is optional for library consumers and present in the library's development graph for its PHPUnit checks. Installing it only as the application's `require-dev` would leave a production `--no-dev` installation without its chosen container. Applications still own PSR-17 factories, their private `ThrowableHandlerInterface` reporter and response emission. The providers do not install an emitter or choose a logging destination.

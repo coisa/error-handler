@@ -5,7 +5,8 @@ Use the complete [container program](../examples/container.php) and its
 [dependency/verification instructions](../examples/README.md#legacy-container).
 For an application choosing the separate Interop/FastForward integration, first
 inspect installed symbols and use [the optional JSON/provider route](json.md).
-That route requires application PHP 8.3+ and does not replace these legacy APIs.
+That route was published in 2.5.0, requires `coisa/error-handler ^2.5` and
+application PHP 8.3+, and does not replace these legacy APIs or their `^2.4` baseline.
 
 The application binds its private reporter under
 `CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface`, then passes the parent

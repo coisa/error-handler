@@ -4,8 +4,9 @@ These programs support `coisa/error-handler ^2.4` and PHP 7.4-compatible
 syntax. They accept an existing consumer autoloader as their first argument;
 they never install dependencies, emit HTTP or contact a real diagnostic service.
 Every named class has its own matching file.
-The JSON/Whoops/provider programs additionally require their named APIs in the installed
-library. Inspect the selected package first as described in the
+The JSON/Whoops/provider programs require `coisa/error-handler ^2.5`, first
+published in 2.5.0, and their named APIs in the installed library.
+Inspect the selected package first as described in the
 [availability checks](../references/json.md#inspect-the-selected-installation);
 the common `^2.4` requirement alone does not establish their presence.
 The HTML route has its own [Whoops availability checks](../references/whoops.md#inspect-the-selected-installation).
@@ -93,9 +94,10 @@ should test their reporter/PSR-17 failures as well as successful rendering.
 
 After verifying the installed `JsonThrowableResponseFactory` and
 `ReportingThrowableResponseFactory`, supply an application PSR-17 implementation
-such as Nyholm above and run both configurations:
+such as Nyholm and run both configurations. For an authorized installation:
 
 ```sh
+composer require 'coisa/error-handler:^2.5' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/json.php ./vendor/autoload.php public
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/json.php ./vendor/autoload.php debug
 ```
@@ -117,7 +119,7 @@ This optional application route needs PHP 8.3+ and FastForward as an application
 runtime dependency. It does not change the library core's PHP 7.4 contract:
 
 ```sh
-composer require 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-json.php ./vendor/autoload.php public
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-json.php ./vendor/autoload.php debug
 ```
@@ -143,6 +145,7 @@ select this route only for application-controlled development HTML. Install
 optional Whoops and a PSR-17 implementation for the selected environment:
 
 ```sh
+composer require 'coisa/error-handler:^2.5' --no-plugins --no-scripts
 composer require --dev 'filp/whoops:^2.18.4' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/whoops.php ./vendor/autoload.php
 ```
@@ -164,7 +167,7 @@ selected application runtime uses this profile with `--no-dev`, it must keep
 Whoops, FastForward and its PSR-17 implementation in its own runtime requirements:
 
 ```sh
-composer require 'fast-forward/container:^1.9' 'filp/whoops:^2.18.4' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'filp/whoops:^2.18.4' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php default
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php configured
 ```

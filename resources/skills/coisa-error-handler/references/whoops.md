@@ -6,9 +6,10 @@ does not negotiate `Accept`, infer an environment or enable debug from a header.
 
 ## Inspect the selected installation
 
-The common `coisa/error-handler ^2.4` baseline does not establish that every
-additive renderer or provider exists. Inspect `composer show coisa/error-handler`,
-the matching installed source and its autoloader before selecting this route:
+The Whoops renderer and Interop profile were published in 2.5.0 and require
+`coisa/error-handler ^2.5`. The common `^2.4` baseline does not establish their
+availability. Inspect `composer show coisa/error-handler`, the matching installed
+source and its autoloader before selecting this route:
 
 ```sh
 php -r 'require "vendor/autoload.php"; foreach (["CoiSA\\ErrorHandler\\Http\\Message\\WhoopsThrowableResponseFactory", "CoiSA\\ErrorHandler\\Http\\Message\\ReportingThrowableResponseFactory"] as $class) { if (!class_exists($class)) { throw new RuntimeException("Selected installation lacks " . $class); } }'

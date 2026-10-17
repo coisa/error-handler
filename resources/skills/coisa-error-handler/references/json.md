@@ -6,6 +6,15 @@ legacy integration available to consumers of the common 2.4 API.
 
 ## Inspect the selected installation
 
+JSON rendering, its reporting decorator and the Interop providers were published
+in 2.5.0. For an authorized installation selecting these routes, use:
+
+```sh
+composer require 'coisa/error-handler:^2.5' --no-plugins --no-scripts
+```
+
+The ordinary reporting and legacy integration baseline remains `^2.4`.
+
 Inspect `composer show coisa/error-handler`, its Composer lock source reference
 and the actual installed source. Before choosing JSON, verify both classes load
 through the application's autoloader:

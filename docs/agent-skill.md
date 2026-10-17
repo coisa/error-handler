@@ -5,7 +5,8 @@ The Composer library ships the complete
 under `resources/skills/coisa-error-handler`, including its MIT license,
 references and executable application examples. It supports the library's
 `^2.4` API and PHP `^7.4 || ^8.0`. Earlier API versions are outside that skill
-contract. Inspect `composer show coisa/error-handler` and the actual files;
+contract. JSON/Whoops/provider routes were published in 2.5.0 and require `^2.5`;
+the common skill baseline remains `^2.4`. Inspect `composer show coisa/error-handler` and the actual files;
 do not upgrade a production dependency just to obtain instructions.
 
 Shipping a skill does not install it in a discovery directory or activate it in

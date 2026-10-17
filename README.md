@@ -77,8 +77,9 @@ application's private diagnostic sink.
 | Render development HTML | [Optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [manual recipe](examples/http-whoops.php). |
 | Configure Whoops services | [Optional Whoops profile](docs/container.md#development-html-profile) and [complete provider recipe](examples/provider-whoops.php). |
 
-Check the installed source for the JSON/Whoops response adapters and Interop
-providers before selecting those additive profiles. FastForward examples require
+JSON/Whoops response adapters and Interop providers were published in 2.5.0;
+select `coisa/error-handler:^2.5` for those routes and verify the installed source.
+The bundled skill keeps its common `^2.4` baseline. FastForward examples require
 application PHP 8.3+, PSR-17 factories and a private reporter; core and legacy
 integrations retain PHP 7.4 support.
 
