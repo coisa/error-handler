@@ -14,3 +14,9 @@ install `psr/container` transitively. Use Composer 2 with
 runtime dependency resolutions on PHP 7.4 and 8.0–8.5 and lowest resolutions on
 PHP 7.4 and 8.5. See [contributor checks](../../CONTRIBUTING.md) for local commands
 and the distinction between production and development runners.
+
+The distribution check admits only root metadata, runtime source, useful guides
+and `resources/skills/coisa-error-handler/`. Every runtime and canonical skill
+file must be present with bytes matching source; arbitrary `resources/` content
+and development directories remain forbidden. The skill's examples and license
+are consumer assets and must survive archive exclusions.

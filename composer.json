@@ -20,7 +20,13 @@
     "extra": {
         "laminas": {
             "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
+        },
+        "skills": {
+            "source": "resources/skills"
         }
+    },
+    "suggest": {
+        "llm/skills": "Optionally synchronize the bundled agent skill in consumer projects."
     },
     "require": {
         "php": "^7.4 || ^8.0",
@@ -37,7 +43,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "CoiSA\\ErrorHandler\\Test\\": "tests/"
+            "CoiSA\\ErrorHandler\\Test\\": "tests/",
+            "CoiSA\\ErrorHandler\\Example\\": "resources/skills/coisa-error-handler/examples/"
         },
         "exclude-from-classmap": [
             "/tests/Fixtures/compile-fatal.inc"
