@@ -1,9 +1,9 @@
-# Container integration in the unreleased major
+# Container integration
 
-The standalone `ErrorHandlerContainer`, its factories/exceptions and Laminas
-`ConfigProvider` belong to the published 2.x API. They are removed in this major.
-Use the [Interop/FastForward service provider](fast-forward.md) and follow the
-[migration map](migration.md). Direct handler construction remains available.
+Use the [Interop/FastForward service provider](fast-forward.md) for container
+integration. Direct handler construction remains available. Applications upgrading
+from the 2.x standalone `ErrorHandlerContainer`, its factories/exceptions or
+Laminas `ConfigProvider` should follow the [migration map](migration.md).
 
 FastForward caches services. Resolve and invoke the provider's explicit factory
 services when a fresh handler/middleware scope is required. Discovery does not

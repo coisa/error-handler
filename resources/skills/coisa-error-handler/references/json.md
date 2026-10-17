@@ -1,8 +1,9 @@
 # Pure JSON and Interop composition
 
 Read when an application wants the library's JSON renderer or explicitly chooses
-the independent JSON provider. This describes the selected unreleased major
-source with PHP `^8.3`, not the published 2.x middleware composition.
+the independent JSON provider. The library requires PHP `^8.3`; follow the
+[migration guide](https://github.com/coisa/error-handler/blob/master/docs/migration.md)
+when upgrading from the 2.x middleware composition.
 
 ## Inspect the selected installation
 
@@ -19,7 +20,7 @@ For providers, also verify `ServiceProvider\ErrorHandlerServiceProvider`,
 `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` under the
 `CoiSA\ErrorHandler` namespace. FastForward `^1.10` is a required runtime dependency
 of this source. Class discovery alone does not distinguish the 2.5 renderer APIs
-from this major's lifecycle and middleware contracts. Follow the matching
+from the lifecycle and middleware contracts described here. Follow the matching
 source and skill; do not upgrade a consumer automatically to fit this route.
 
 ## Direct JSON responses

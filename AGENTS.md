@@ -18,8 +18,9 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 - Identify the public consumer skill as `coisa-error-handler`, matching its
   Composer package, and retain the source repository link for copied installs.
 - Declare PHP 8.3+ support (`^8.3`); the tested CI matrix is PHP 8.3–8.5.
-  The current branch describes an unreleased major after the published 2.x line.
-  Do not present branch behavior as an already published Composer release.
+  Document the API and behavior of the accompanying code in its current state.
+  Do not add temporary PR, branch or unreleased-status disclaimers that require
+  an edit after merge/release. Keep migration and release history versioned where relevant.
 - Keep core handlers independent of FastForward. The service provider uses
   `Interop\Container\ServiceProviderInterface` and FastForward's reusable factory
   classes. FastForward Container is a required runtime dependency and owns
@@ -82,7 +83,7 @@ Check documentation links and inspect the actual CI result for the tested SHA.
 Read [the consumer skill](resources/skills/coisa-error-handler/SKILL.md) when
 changing application integration examples, consumer guides or the skill. Keep
 its source-version contract, references and executable examples aligned with
-this unreleased major's public API. The canonical package is under
+the accompanying public API. The canonical package is under
 `resources/skills`; `.agents/skills` is a consumer discovery destination, not a
 second source copy. This source link needs no installed copy or host alias.
 Repository maintenance and verification continue to follow this AGENTS.md.
@@ -93,7 +94,7 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
 - [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
   cached services and fresh middleware scopes.
-- [docs/examples.md](docs/examples.md): all seventeen complete major recipes, checked
+- [docs/examples.md](docs/examples.md): all seventeen complete recipes, checked
   byte-for-byte against executable source with only the leading license header omitted;
   preserve setup boundaries and matching website excerpts.
 - [docs/releases.md](docs/releases.md): pending Changesets, reviewed version PRs,

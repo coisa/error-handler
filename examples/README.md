@@ -1,11 +1,11 @@
-# Executable major cookbook
+# Executable cookbook
 
-These synthetic examples target the unreleased PHP 8.3+ branch. Use the exact
-reviewed checkout/path package; installing the published 2.x package does not
-select the major provider/lifecycle/HTTP contracts.
+These synthetic examples exercise the library's reporting, lifecycle, provider
+and HTTP contracts on PHP `^8.3`. Use examples matching the installed API; follow
+the [migration guide](../docs/migration.md) when upgrading from 2.x.
 
 The source checkout supplies application implementations through development
-dependencies. In a disposable application using that path package, add
+dependencies. In a disposable application, add
 `nyholm/psr7:^1.8.2` and `phly/phly-event-dispatcher:^1.6` for HTTP/event recipes.
 Add optional `filp/whoops:^2.18.4` wherever the development HTML recipes are used.
 FastForward Container and PSR interfaces resolve from the library's runtime graph.

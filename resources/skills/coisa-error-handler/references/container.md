@@ -4,7 +4,7 @@ Read when an application uses the Interop service provider. The complete
 [container program](../examples/container.php) and its
 [setup instructions](../examples/README.md#fastforward-container) supply a private
 reporter, resolve a cached handler and create a distinct scope. FastForward
-Container `^1.10` is required at runtime by this major; do not restore the removed
+Container `^1.10` is required at runtime by the library; do not restore the removed
 `ErrorHandlerContainer`, `ConfigProvider` or Laminas metadata.
 
 FastForward 1.10 requires Config `^1.6`; these versions no longer use PHP-DI or

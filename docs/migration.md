@@ -1,6 +1,6 @@
-# Migrating from 2.x
+# Migrating from 2.x to 3.x
 
-This is the migration contract for the unreleased next major. It does not describe an already published Packagist release.
+This guide describes the API and behavior changes when upgrading from 2.x to 3.x.
 
 Use the [Interop service provider](fast-forward.md) for container integration
 without changing the existing package or namespace. The short bootstrap is

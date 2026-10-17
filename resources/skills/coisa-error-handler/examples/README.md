@@ -1,9 +1,7 @@
 # Complete application examples
 
-These programs describe the selected unreleased next-major source of
-`coisa/error-handler` and PHP `^8.3`. They do not target the published 2.x API or
-assume an available 3.x Composer release. Inspect the consumer's actual source
-and autoloader first. They never install dependencies, emit HTTP or contact a
+These programs exercise the skill's API baseline on PHP `^8.3`. Inspect the
+consumer's installed package version, source and autoloader first. They never install dependencies, emit HTTP or contact a
 real diagnostic service. Every named class has its own matching file.
 
 Pass the application's existing `vendor/autoload.php` as the first argument.
@@ -16,7 +14,7 @@ not permission to install or upgrade the library automatically.
 
 ## Configured reporting
 
-Use the application's existing Composer autoloader for this major source. From
+Use the application's existing Composer autoloader for the installed package. From
 the library source root after its documented dependency setup:
 
 ```sh

@@ -2,10 +2,10 @@
 name: coisa-error-handler
 description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop providers and pure generic, JSON or Whoops PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
 license: MIT; see LICENSE
-compatibility: Selected unreleased next-major source of coisa/error-handler; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. This is not the published 2.x API. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.4 at runtime. No agent SDK or global installation is required.
+compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.4 at runtime. No agent SDK or global installation is required.
 metadata:
   author: Felipe Sayão Lobato Abreu
-  api-baseline: "unreleased-next-major-source"
+  api-baseline: "3.x"
   source_url: https://github.com/coisa/error-handler
 ---
 
@@ -22,11 +22,11 @@ separate tasks.
 Read applicable instructions, Composer files, the application bootstrap and its
 existing reporter configuration. Inspect `composer show coisa/error-handler`,
 the actual PHP runtime and available application implementations. This procedure
-describes the selected unreleased next-major source with PHP `^8.3`; CI targets
-PHP 8.3–8.5. Published 2.x installations need their matching 2.x skill instead.
+targets the 3.x API with PHP `^8.3`; CI targets PHP 8.3–8.5. Match 2.x
+installations to their version's skill and migration guidance.
 A lockfile entry alone does not establish runtime availability. Inspect the
 selected source and autoloader; do not install or upgrade dependencies solely
-to fit these instructions. No published next-major Composer version is assumed.
+to fit these instructions.
 
 Use the application's configuration and secret mechanisms. Error Handler accepts
 handler interfaces or matching callables; it does not load application

@@ -5,7 +5,7 @@ Read when integrating PSR-15 middleware. The complete
 implementation, lifecycle handler, private reporter, pure response factory and
 request handler. Follow its [setup and result](../examples/README.md#explicit-http-policy).
 
-In this major, middleware requires one scoped object implementing both
+Middleware requires one scoped object implementing both
 `ErrorHandlerInterface` and `ThrowableHandlerInterface`. It registers that scope,
 executes downstream, reports a caught throwable once, invokes the pure
 `ThrowableResponseFactoryInterface` and restores callbacks in `finally`.

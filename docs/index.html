@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="The unreleased CoiSA Error Handler major: private reporting, owned PHP callbacks, required FastForward providers and pure HTTP rendering.">
-  <title>CoiSA Error Handler — unreleased major documentation</title>
+  <meta name="description" content="CoiSA Error Handler: private reporting, owned PHP callbacks, FastForward providers and pure HTTP rendering.">
+  <title>CoiSA Error Handler documentation</title>
   <style>
     :root {
       color-scheme: light;
@@ -93,7 +93,7 @@
   <div class="layout">
     <nav aria-label="Documentation sections">
       <p class="nav-title">In this guide</p>
-      <a href="#install">Source setup</a>
+      <a href="#install">Installation</a>
       <a href="#reporting">Direct reporting</a>
       <a href="#logging">Direct PSR-3 logging</a>
       <a href="#lifecycle">Process lifecycle</a>
@@ -109,18 +109,18 @@
     </nav>
     <main id="content" tabindex="-1">
       <div id="overview">
-        <p class="eyebrow">Unreleased major · PHP 8.3+</p>
-        <h1>Error Handler: next major</h1>
+        <p class="eyebrow">PHP 8.3+ · PSR integrations</p>
+        <h1>CoiSA Error Handler</h1>
         <p class="lead">Compose private diagnostic reporting, owned PHP callbacks and explicit HTTP response rendering.</p>
         <p>The library supplies handlers and PSR adapters. Applications choose diagnostic sinks, PSR implementations, callback installation and response emission.</p>
-        <div class="version-note">This page describes selected unreleased major source after published 2.5.0. It does not establish an available 3.x Composer release. Published 2.x consumers need their <a href="https://github.com/coisa/error-handler/tree/v2.5.0">matching release documentation</a>; adopting this source requires the <a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">migration guide</a>.</div>
-        <p>Start with <a href="#install">source setup</a> and <a href="#reporting">direct reporting</a>, then select <a href="#lifecycle">process callbacks</a> or <a href="#http">HTTP composition</a>. Add application services through the <a href="#container">Interop provider</a>.</p>
+        <div class="version-note">Match documentation to your installed package version. For an upgrade from 2.x, follow the <a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">migration guide</a> and compare the <a href="https://github.com/coisa/error-handler/tree/v2.5.0">2.x API documentation</a>.</div>
+        <p>Start with <a href="#install">installation</a> and <a href="#reporting">direct reporting</a>, then select <a href="#lifecycle">process callbacks</a> or <a href="#http">HTTP composition</a>. Add application services through the <a href="#container">Interop provider</a>.</p>
       </div>
 
       <section id="install" aria-labelledby="install-title">
-        <h2 id="install-title">Set up the selected major source</h2>
-        <code class="install-command">composer install --no-plugins --no-scripts</code>
-        <p>Use Composer 2 in the reviewed checkout or an application selecting that exact path package. The declared PHP constraint is <code>^8.3</code>; the CI matrix targets PHP 8.3–8.5. FastForward Container <code>^1.10</code> and the Interop provider contract are runtime dependencies.</p>
+        <h2 id="install-title">Installation and setup</h2>
+        <code class="install-command">composer require coisa/error-handler</code>
+        <p>Use Composer 2 to install the library on the actual PHP runtime. The declared PHP constraint is <code>^8.3</code>; the CI matrix targets PHP 8.3–8.5. FastForward Container <code>^1.10</code> and the Interop provider contract are runtime dependencies.</p>
         <p>Applications supply loggers, dispatchers, PSR-17 implementations and their emitter as needed. The development checkout supplies Nyholm and Phly for its synthetic recipes; optional <code>filp/whoops:^2.18.4</code> is needed only where development HTML is selected.</p>
         <p>Read <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">example setup</a> for the selected autoloader and verifier dependencies. Resolve with the actual PHP runtime and retain application lockfiles. Consult the <a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">recorded test evidence</a>; a permitted constraint is not proof that every combination is clean.</p>
       </section>
@@ -293,7 +293,7 @@ $middleware = new ErrorHandlerMiddleware($errors, $json);</code></pre>
 $middleware = new ErrorHandlerMiddleware($errors, $renderer);</code></pre>
         </figure>
         <p>The trusted application choice made earlier in this recipe selects JSON or optional <code>WhoopsThrowableResponseFactory</code>. Its manual third argument remains <code>callable(): PrettyPageHandler</code>. It returns <code>text/html; charset=UTF-8</code> and <code>no-store</code> without emission, native headers, registration or controlled quit. Whoops source/globals/traces are development disclosures; selected key hiding is not comprehensive redaction.</p>
-        <p><code>ReportingThrowableResponseFactory</code> remains an explicit utility for other pipelines that still need reporting. Neither the base provider nor these profiles select it after the major middleware has already reported. Request/Accept negotiation is <a href="https://github.com/coisa/error-handler/issues/8">separate unimplemented work</a>. The native <a href="https://github.com/coisa/error-handler/issues/99">Whoops STDIN source-read limit</a> is also separate: its warning is another event, not a second delivery of the original.</p>
+        <p><code>ReportingThrowableResponseFactory</code> remains an explicit utility for other pipelines that still need reporting. Neither the base provider nor these profiles select it after the middleware has already reported. <a href="https://github.com/coisa/error-handler/issues/8">Request/Accept negotiation</a> is application policy; these providers select explicit renderers. The native <a href="https://github.com/coisa/error-handler/issues/99">Whoops STDIN source-read limit</a> is also separate: its warning is another event, not a second delivery of the original.</p>
         <h3>Use output capture only for a separate public renderer</h3>
         <figure>
           <figcaption>Explicit public output capture from <a href="https://github.com/coisa/error-handler/blob/master/examples/output-capture.php">examples/output-capture.php</a> · imports and application setup are in the complete source</figcaption>
@@ -308,7 +308,7 @@ $streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);</cod
 
       <section id="examples" aria-labelledby="examples-title">
         <h2 id="examples-title">Run the complete recipes</h2>
-        <p>Every displayed excerpt is checked against executable source. The <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">major cookbook</a> contains the complete programs, with imports, application setup and every branch; only their leading license headers are omitted. Synthetic records and response objects do not certify real transport delivery.</p>
+        <p>Every displayed excerpt is checked against executable source. The <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">complete cookbook</a> contains the complete programs, with imports, application setup and every branch; only their leading license headers are omitted. Synthetic records and response objects do not certify real transport delivery.</p>
         <ul class="recipe-list">
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/reporters.php">reporters.php</a><span>Direct reporting and ordered aggregate delivery without native registration.</span></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/examples/cli.php">cli.php</a><span>Process bootstrap for warnings and uncaught failure with exit status 1.</span></li>
@@ -338,13 +338,13 @@ $streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);</cod
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Core API, reporters and process lifecycle</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">Interop provider, required overrides and fresh scopes</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP defaults, pure JSON/Whoops and explicit capture</a></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">Migration from published 2.x</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">Migration from 2.x</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Native checks, bounded fixtures and evidence limits</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/resources/skills/coisa-error-handler/SKILL.md">Portable consumer skill</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/agent-skill.md">optional installation</a></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/CHANGELOG.md">Published release history</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/releases.md">major release boundaries</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/CHANGELOG.md">Published release history</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/releases.md">release workflow</a></li>
         </ul>
       </section>
-      <footer>Source-backed guidance for <a href="https://github.com/coisa/error-handler">coisa/error-handler</a>, under the <a href="https://github.com/coisa/error-handler/blob/master/LICENSE">MIT license</a>. This major is unreleased; choose documentation matching the actual source installed.</footer>
+      <footer>Source-backed guidance for <a href="https://github.com/coisa/error-handler">coisa/error-handler</a>, under the <a href="https://github.com/coisa/error-handler/blob/master/LICENSE">MIT license</a>. Choose documentation matching the installed package version.</footer>
     </main>
   </div>
 </body>

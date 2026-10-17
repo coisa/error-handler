@@ -6,8 +6,7 @@ does not negotiate `Accept`, infer an environment or enable debug from a header.
 
 ## Inspect the selected installation
 
-This route describes the selected unreleased major source of
-`coisa/error-handler`, with PHP `^8.3`. Inspect `composer show coisa/error-handler`,
+This route requires PHP `^8.3`. Inspect `composer show coisa/error-handler`,
 the matching source, PHP version and its autoloader before selecting this route:
 
 ```sh
@@ -18,7 +17,7 @@ The application supplies PSR-17 response/stream factories and
 `filp/whoops:^2.18.4`. The patch minimum includes Whoops's PHP 8.5 deprecation
 repair. A library development dependency is not installed transitively in a
 consumer. Core and unrelated integration remain usable without Whoops.
-Renderer classes also exist in published 2.5.0, but this major's middleware
+Renderer classes also exist in published 2.5.0, but the middleware described here
 reports before rendering. Class discovery alone does not establish that contract.
 Use matching source and skill; do not upgrade or substitute an API automatically.
 

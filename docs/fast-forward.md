@@ -1,9 +1,8 @@
 # FastForward service provider
 
-This integration belongs to the unreleased next major of `coisa/error-handler`,
-requiring PHP `^8.3`; CI targets PHP 8.3–8.5. It uses FastForward Container's
-Interop service-provider contract. The existing `CoiSA\ErrorHandler` namespace
-remains the current API; a possible future move to php-fast-forward has not happened.
+`coisa/error-handler` uses FastForward Container's Interop service-provider
+contract under the `CoiSA\ErrorHandler` namespace. It requires PHP `^8.3`;
+CI targets PHP 8.3–8.5.
 
 ## Installation and bootstrap
 
@@ -278,10 +277,8 @@ bounded fatal-error fixtures under PHPUnit Process tests. CI also installs witho
 and resolves a process handler through the provider, proving that FastForward's
 factory classes and autowiring are available in production installations.
 
-The full FastForward framework is not required. A later package move still needs
-an explicit package/namespace decision,
-release and migration guidance; this provider is not a claim that those changes
-have already been made.
+The full FastForward framework is not required. The Composer package is
+`coisa/error-handler`, under the `CoiSA\ErrorHandler` namespace.
 
 Sources: [FastForward Container 1.10.0](https://github.com/php-fast-forward/container/tree/v1.10.0),
 [provider contract](https://github.com/container-interop/service-provider/tree/v0.4.1),
@@ -292,7 +289,7 @@ propagates that failure and restores callbacks without rendering it through the
 reporter again. Ordinary downstream failures still use the configured response
 factory. See [failure boundaries](examples.md#failure-and-lifetime-boundaries).
 
-## Reporting and rendering in this major
+## Reporting and rendering
 
 Middleware requires one scoped instance implementing both `ErrorHandlerInterface`
 and `ThrowableHandlerInterface`. It reports downstream failures before invoking
@@ -372,7 +369,7 @@ state before lookup when those configuration errors must be observed immediately
 
 The manual renderer's callable parameter remains available for explicit application
 composition. Both profiles select pure renderers, never
-`ReportingThrowableResponseFactory`: this major's middleware has already reported.
+`ReportingThrowableResponseFactory`: middleware has already reported.
 See [HTTP boundaries](http.md) for trusted debug policy and the tracked STDIN limit.
 
 ## Troubleshooting composition

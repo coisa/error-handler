@@ -9,8 +9,8 @@ php tests/Production/container.php /path/to/consumer/vendor/autoload.php
 php tests/Production/alias-factory.php /path/to/consumer/vendor/autoload.php
 ```
 
-The unreleased major declares PHP `^8.3`. The intended native CI matrix is PHP
-8.3–8.5 with the documented dependency bounds; this is a tested range, not an
+The library declares PHP `^8.3`. CI tests PHP 8.3–8.5 with the documented
+dependency bounds; this is a tested range, not an
 artificial 8.5 upper constraint. Resolve with the actual PHP runtime and Composer 2
 using `--no-dev --no-plugins --no-scripts`. The runtime graph supplies FastForward,
 Interop and the PSR interfaces. No Nyholm, application logger or other incidental

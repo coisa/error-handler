@@ -1,8 +1,8 @@
 # Release notes and version PRs
 
 Changesets is development tooling for the Composer package `coisa/error-handler`.
-The private npm manifest starts at the published `2.0.0` baseline and tracks the
-next version. It is never published to npm. Composer continues to derive its
+The private npm workspace `@coisa/error-handler` tracks the release version.
+It is never published to npm. Composer continues to derive its
 version from Git tags; do not add a `version` field to `composer.json`.
 
 Installing or using the PHP library does not require Node.js. The tooling,
@@ -26,7 +26,7 @@ Select `@coisa/error-handler`, choose the appropriate bump, and describe the
 consumer-visible change in English. Commit the generated `.changeset/*.md` file
 with the change. Use `patch` for compatible fixes or maintenance and `minor` for
 compatible additions. Changes to public contracts or supported PHP versions need
-separate major-release planning. This setup includes only a maintenance patch.
+separate major-release planning.
 
 Keep `package-lock.json` committed to make development dependencies reproducible.
 Do not run the version command as part of an ordinary feature PR.

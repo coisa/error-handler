@@ -1,8 +1,7 @@
 # API and composition
 
-All classes are under `CoiSA\ErrorHandler`. This describes the unreleased next
-major after 2.x, not the published 2.x contract. The declared PHP requirement is
-`^8.3`; CI targets PHP 8.3–8.5. Complete runnable integrations are in
+All classes are under `CoiSA\ErrorHandler`. The PHP requirement is `^8.3`;
+CI targets PHP 8.3–8.5. Complete runnable integrations are in
 the [cookbook](examples.md).
 
 ## Lifecycle and diagnostic reporting
@@ -116,7 +115,7 @@ unchanged, without retry. A failure still stops the default fail-fast aggregate.
 
 No output, default filtering policy, registration or automatic aggregate discovery
 is added. A skipped report does not recover the operation, change PHP suppression
-or choose the HTTP response. In this major, rendering remains a separate public
+or choose the HTTP response. Rendering remains a separate public
 boundary regardless of whether a diagnostic reporter forwards the event.
 See [the filtering example](../examples/filtering.php); select PHP severity via
 ErrorException::getSeverity(), not an arbitrary exception code.

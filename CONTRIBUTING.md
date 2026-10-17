@@ -1,4 +1,4 @@
-# Contributing to the unreleased major
+# Contributing
 
 Use PHP 8.3+ and Composer 2. The runtime constraint is `^8.3`; CI currently tests
 8.3–8.5. Resolve tools on the actual selected runtime without bypassing platform
@@ -41,7 +41,7 @@ Source changes need complete English PHPDoc, meaningful regression tests, affect
 examples/guides/consumer skill and a pending Changeset. Runtime code stays separate
 from Node release tooling. Preserve the application-owned reporter, callback
 registration and HTTP emission boundaries. Do not restore removed Container or
-ConfigProvider APIs in this major.
+ConfigProvider APIs; use the Interop provider.
 
 Verify examples with `php examples/verify.php`, documentation source parity with
 `php tests/Documentation/site.php`, and an installed no-dev archive consumer with

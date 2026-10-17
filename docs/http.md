@@ -1,4 +1,4 @@
-# HTTP boundaries in the unreleased major
+# HTTP reporting and response boundaries
 
 Middleware requires one scoped object implementing `ErrorHandlerInterface` and
 `ThrowableHandlerInterface`. It registers, calls downstream, reports a caught
@@ -7,10 +7,10 @@ A reporter failure propagates without rendering. Successful downstream responses
 retain their exact identity; PHP warnings do not replace them automatically.
 Applications supply PSR-17 factories and own HTTP emission and format selection.
 
-The JSON and Whoops adapters published in 2.5.0 remain available in this source.
-The major changes their middleware composition: pass the pure renderer directly.
-Do not wrap it in `ReportingThrowableResponseFactory` after this middleware has
-already reported. See [migration](migration.md#separate-http-reporting-from-rendering).
+JSON and Whoops adapters were introduced in 2.5.0. Middleware owns reporting;
+pass the pure renderer directly. Do not wrap it in
+`ReportingThrowableResponseFactory` after this middleware has already reported.
+See [migration](migration.md#separate-http-reporting-from-rendering).
 
 ## Generic default and explicit output capture
 
@@ -58,7 +58,7 @@ typing; casting the string `"false"` yields true in PHP.
 `ReportingThrowableResponseFactory($reporter, $renderer)` remains a public,
 explicit utility for pipelines that have not already reported. It reports once
 and then delegates. Reporter failures prevent rendering; collaborator failures
-propagate unchanged. Selecting it after this major's middleware would report
+propagate unchanged. Selecting it after this middleware would report
 twice. The base provider and both response profiles never select it automatically.
 
 ## Opt-in development HTML with Whoops

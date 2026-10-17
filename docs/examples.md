@@ -1,6 +1,6 @@
-# Executable major cookbook
+# Executable cookbook
 
-This is the unreleased PHP 8.3+ development line. The checkout includes Nyholm PSR-7 and Phly EventDispatcher for examples; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](../examples/README.md).
+These complete examples use PHP `^8.3`. The development dependencies include Nyholm PSR-7 and Phly EventDispatcher; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](../examples/README.md).
 
 Run `php examples/verify.php` to verify every recipe and documented mode in bounded children. The CLI recipe deliberately exits 1. The [static site](index.html#examples) links these programs and displays checked excerpts. Every complete entry is checked byte-for-byte against source, omitting only its leading license header. Duplicate, changed or missing recipes fail validation; examples do not prove delivery to real transports.
 
@@ -1454,4 +1454,4 @@ Middleware requires lifecycle and reporting on one scoped object. It reports onc
 
 Unregister in reverse order and use distinct nested instances. Failed-reporter suppression applies within a registered lifecycle; independent direct calls remain usable. Arbitrary exit/die, engine fatals, callback side effects and concurrent native callback scopes are not recovered. See [provider](fast-forward.md), [API](api.md), [migration](migration.md) and [testing](testing.md).
 
-The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. The JSON/developer-HTML adapters and independent profiles delivered in 2.5.0 are retained with pure renderers after this major's middleware report. ErrorHandler accepts matching callables directly while preserving interface precedence, default policies and explicit lifecycle ownership.
+The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. The JSON/developer-HTML adapters and independent profiles delivered in 2.5.0 are retained with pure renderers after the middleware's report. ErrorHandler accepts matching callables directly while preserving interface precedence, default policies and explicit lifecycle ownership.

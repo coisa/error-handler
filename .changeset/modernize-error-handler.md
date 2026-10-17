@@ -2,7 +2,7 @@
 "@coisa/error-handler": major
 ---
 
-Prepare the unreleased PHP 8.3+ major while retaining the package
+Modernize the library for PHP 8.3+ while retaining the package
 `coisa/error-handler` and namespace `CoiSA\ErrorHandler`.
 - Require PHP `^8.3`, with a tested CI matrix of PHP 8.3–8.5.
 - Require FastForward Container `^1.10` and expose the Interop service provider as the
@@ -21,21 +21,21 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
 - Keep explicit public output capture as an opt-in renderer adapter. Preserve `0`,
   use a generic empty body, clean reachable buffers after success and failure,
   and retain renderer-failure precedence over cleanup failures.
-- Reconcile the major with delivered 2.x handlers, native release tooling,
-  distribution checks and organized PHPUnit Unit/Functional/Process coverage.
-  Inherit master's configurable 80% overall coverage floor and real comparisons;
+- Retain delivered 2.x handlers and native release tooling. Add distribution checks
+  and organized PHPUnit Unit/Functional/Process coverage.
+  Preserve the configurable 80% overall coverage floor and real comparisons;
   retire the prototype Fire/HTTP/Python parents and custom release publisher.
-- Check all complete major cookbook recipes against executable source, retaining
+- Check all complete cookbook recipes against executable source, retaining
   the exact inventory and omitting only each leading license header.
 - Ship the canonical `resources/skills/coisa-error-handler` package with
-  configuration-first examples adapted to the existing major provider and pure
+  configuration-first examples for the Interop provider and pure
   renderer contracts. Preserve its license and optional installer metadata, and
   require the complete consumer payload in distribution checks.
 - Add a direct native regression for output-handler destruction that replaces its
   removed buffer, proving bounded cleanup, primary-failure and caller ownership.
 - Preserve the JSON, optional Whoops and explicit reporting adapters published in
   2.5.0. Compose independent response providers with pure renderer aliases after
-  the major middleware report; retain trusted debug configuration, lazy page
+  the middleware report; retain trusted debug configuration, lazy page
   overrides and fresh middleware scopes without a second diagnostic delivery.
 - Accept matching callables in all three ErrorHandler constructor inputs using
   existing adapters. Preserve interface identity and precedence, required reporter,
@@ -45,5 +45,6 @@ Prepare the unreleased PHP 8.3+ major while retaining the package
   PHP 8.3 support through PHPUnit 12.5 and Symfony Process 7.4 alternatives.
   Require Nyholm 1.8.2 in development for its PHP 8.5 fixes; retain the compatible
   PSR ranges and optional Whoops 2.18.4 minimum.
-- Keep the current 2.x manifest version and published changelog unchanged. Content
-  negotiation remains separate work; this note does not perform a release.
+- Describe the accompanying API without temporary PR or publication status,
+  and clarify that diagnostic reporter output remains outside the PSR-7 body.
+- Keep content negotiation under application control.

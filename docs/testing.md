@@ -1,4 +1,4 @@
-# Testing the unreleased major
+# Testing
 
 The Composer runtime constraint is `^8.3`. CI exercises PHP 8.3, 8.4 and 8.5;
 that test set does not impose an upper cap on the declared PHP 8.x range.
@@ -47,10 +47,10 @@ application logs. They do not merge child coverage into PHPUnit's parent report.
 | Protected/terminating output handlers | Externally bounded Process cases preserve caller ownership and show native termination limits |
 | Fatal in an earlier shutdown callback | Fresh and reused handlers both receive no event; PHP aborts the remaining queue |
 
-The standalone Fire/HTTP parents and Python verification scripts were retired in
-master and are not restored by this major. Their meaningful behavior is checked
-through these PHPUnit suites and the bounded example verifier. Synthetic builtin
-overrides and self-tests of the retired runner are not equivalent native evidence.
+The PHPUnit suites and bounded example verifier cover the meaningful behavior of
+the retired standalone Fire/HTTP parents and Python verification scripts.
+Synthetic builtin overrides and self-tests of the retired runner are not
+equivalent native evidence.
 
 ## Production and documentation
 
@@ -95,8 +95,8 @@ overall floor is not an 80% floor per class. Even 100% of lines does not prove a
 branches or behaviors.
 The sticky note identifies the head SHA, tested merge SHA and workflow run.
 Read those exact identities; a historical note or a running review is not approval.
-No runtime exclusions, merged child coverage or artificial coverage ignores are
-introduced by this reconciliation. PHPStan's output-buffer stub supplies analysis
+Runtime coverage includes all source files without merged child coverage or
+artificial coverage ignores. PHPStan's output-buffer stub supplies analysis
 metadata only and is never loaded by the runtime/autoloader/test suite.
 
 Resolve development dependencies on the actual PHP runtime. PHP 8.3 uses the
@@ -129,4 +129,3 @@ scopes and restores the fixture in finally; the factory does not promise to
 remove every scope after native callbacks or destructors change the stack.
 
 Release maintenance uses the existing [Changesets procedure](releases.md).
-Preparing or testing this draft does not merge, publish a release or deploy Pages.

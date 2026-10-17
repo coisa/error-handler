@@ -12,18 +12,16 @@ PHP callbacks, PSR-3 logging, PSR-14 events or PSR-15 HTTP middleware when neede
 ## 📦 Installation
 
 ```sh
-composer install --no-plugins --no-scripts
+composer require coisa/error-handler
 ```
 
-Use Composer 2 in this reviewed source checkout on PHP `^8.3`; CI targets
+Use Composer 2 with PHP `^8.3`; CI targets
 PHP 8.3–8.5. FastForward Container `^1.10` is a runtime dependency. Applications supply
 their logger, dispatcher, HTTP factories and response emitter as needed.
 
-This branch describes the unreleased next major after published 2.5.0. It does
-not establish an available 3.x Composer version. Check the selected source and
-[release history](CHANGELOG.md); published 2.x consumers need their matching
-[release documentation](https://github.com/coisa/error-handler/tree/v2.5.0).
-Read [migration](docs/migration.md) before adopting this source contract.
+Match the documentation to your installed package and its [release history](CHANGELOG.md).
+For an upgrade from 2.x, follow the [migration guide](docs/migration.md) and
+compare the [2.x API](https://github.com/coisa/error-handler/tree/v2.5.0).
 
 ## 🛠️ Quick start
 
@@ -81,8 +79,8 @@ objects keep their identity. See the [complete three-callback recipe](examples/p
 | Render development HTML | [Optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [manual recipe](examples/http-whoops.php). |
 | Configure Whoops services | [Whoops profile](docs/fast-forward.md#development-html-profile) and [complete provider recipe](examples/provider-whoops.php). |
 
-JSON and Whoops adapters published in 2.5.0 remain available. In this major,
-middleware reports once before the pure renderer; do not add the 2.x reporting
+JSON and Whoops adapters introduced in 2.5.0 use the same representation APIs.
+Middleware reports once before the pure renderer; do not add the 2.x reporting
 decorator. Each provider declares only its own map, composed by the application.
 
 Whoops is an explicit development choice. Applications own trusted debug
@@ -97,9 +95,11 @@ activation and format selection.
   Direct `handleThrowable()` calls return normally. Fatal errors remain fatal.
 - FastForward caches services and discovery installs no callbacks. Middleware
   has a separate handler; invoke the reusable factory for each independent scope.
-- Middleware reports once, then renders. The default public body is
-  `Internal Server Error`; codes 400–599 are preserved and reason phrases come
-  from PSR-17. JSON and development HTML are explicit renderer choices.
+- Middleware reports once, then renders. `GenericThrowableStreamFactory` always
+  supplies `Internal Server Error`, independently of reporter output; codes
+  400–599 are preserved and reason phrases come from PSR-17. The middleware does
+  not capture reporter output: echoed diagnostics can leak outside the PSR-7 body
+  and corrupt HTTP emission. JSON and development HTML are explicit renderer choices.
 - Output capture is an explicit public-renderer adapter: empty output uses the
   generic body and `"0"` remains valid. Reporters must keep diagnostics private.
 
@@ -108,9 +108,9 @@ failure propagation, callback ownership and output-buffer limits.
 
 ## 📚 Guides and examples
 
-- [Complete major cookbook](docs/examples.md), [application setup](examples/README.md)
+- [Complete cookbook](docs/examples.md), [application setup](examples/README.md)
   and [bounded example verification](examples/verify.md).
-- [Source documentation](docs/index.html), [published 2.x site][link-docs] and
+- [Source documentation](docs/index.html), [web documentation][link-docs] and
   [API reference](docs/api.md).
 - [Portable `coisa-error-handler` consumer skill](resources/skills/coisa-error-handler/SKILL.md)
   with complete application examples; [optional installation](docs/agent-skill.md)
@@ -132,7 +132,7 @@ Node.js is used only by development release tooling.
 [ico-php]: https://img.shields.io/packagist/php-v/coisa/error-handler?logo=php&logoColor=white
 [ico-package]: https://img.shields.io/badge/composer-coisa%2Ferror--handler-F28D1A?logo=composer&logoColor=white
 [ico-build]: https://img.shields.io/github/actions/workflow/status/coisa/error-handler/ci.yml?branch=master&logo=githubactions&logoColor=white&label=tests
-[ico-docs]: https://img.shields.io/badge/docs-next_major_source-38BDF8?logo=readthedocs&logoColor=white
+[ico-docs]: https://img.shields.io/badge/docs-guides-38BDF8?logo=readthedocs&logoColor=white
 [ico-license]: https://img.shields.io/badge/license-MIT-64748B
 
 [link-packagist]: https://packagist.org/packages/coisa/error-handler
