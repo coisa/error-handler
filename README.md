@@ -119,6 +119,9 @@ status-code mapping, reason validation and output-buffer cleanup limits.
 
 ## 🤝 Contributing
 
+For suspected vulnerabilities, follow the [security policy](SECURITY.md) and use
+the private reporting channel. Ordinary bugs and feature requests belong in issues.
+
 Follow the [contributor guide](CONTRIBUTING.md) for dependency setup and
 `composer --no-plugins check`. See [testing](docs/testing.md) for process fixtures
 and platform evidence, and [Changesets](.changeset/README.md) for release notes.
