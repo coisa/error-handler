@@ -1125,7 +1125,7 @@ echo 'HTTP JSON ' . $mode . ': explicit payload, status preservation and one pri
 
 ## Optional Interop JSON profile
 
-Use the additive JSON profile with application-owned PSR-17 and a private reporter. The base keeps lifecycle/defaults; the JSON profile selects reporting plus its pure renderer. This integration requires PHP 8.3+ and FastForward installed in the application's runtime dependencies. Config supplies an explicit bool before container construction. Each scope-factory invocation creates a distinct handler and middleware; existing 2.x shutdown-queue limits remain. Select these two modes with the existing verifier's `--with-fast-forward` option.
+Use the additive JSON profile with application-owned PSR-17 and a private reporter. Each provider declares only its own services: select JSON before the separate base provider so its response alias wins over legacy capture. The base supplies lifecycle/defaults and scope factories; JSON supplies reporting plus its pure renderer. This integration requires PHP 8.3+ and FastForward installed in the application's runtime dependencies. Config supplies an explicit bool before container construction. Each scope-factory invocation creates a distinct handler and middleware; existing 2.x shutdown-queue limits remain. Select these two modes with the existing verifier's `--with-fast-forward` option.
 
 Source: [examples/provider-json.php](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php).
 
@@ -1137,6 +1137,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
@@ -1183,13 +1184,19 @@ $application = new ArrayServiceProvider([
     ThrowableHandlerInterface::class => new ServiceFactory($reporter),
 ]);
 
+// Separate providers are first-wins: the JSON selection must precede the base capture alias.
 if ('debug' === $mode) {
     $services = container(
         new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
+        ErrorHandlerServiceProvider::class,
         $application,
     );
 } else {
-    $services = container(JsonErrorHandlerServiceProvider::class, $application);
+    $services = container(
+        JsonErrorHandlerServiceProvider::class,
+        ErrorHandlerServiceProvider::class,
+        $application,
+    );
 }
 
 // Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.

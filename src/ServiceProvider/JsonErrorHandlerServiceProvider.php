@@ -27,7 +27,9 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
-/** Selects explicit report-before-render JSON composition for the 2.x middleware. */
+/**
+ * Declares report-before-render JSON services for explicit composition with the base provider.
+ */
 final class JsonErrorHandlerServiceProvider implements ServiceProviderInterface
 {
     /** @var bool whether trusted application configuration enables diagnostic JSON */
@@ -44,13 +46,13 @@ final class JsonErrorHandlerServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * Composes a private reporter with pure JSON without changing legacy providers.
+     * Composes a private reporter with pure JSON without importing lifecycle definitions.
      *
-     * @return array<string, callable(ContainerInterface): mixed> lifecycle and JSON definitions
+     * @return array<string, callable(ContainerInterface): mixed> JSON-only service definitions
      */
     public function getFactories(): array
     {
-        return array_merge((new ErrorHandlerServiceProvider())->getFactories(), [
+        return [
             JsonThrowableResponseFactory::class => new InvokableFactory(
                 JsonThrowableResponseFactory::class,
                 ResponseFactoryInterface::class,
@@ -63,7 +65,7 @@ final class JsonErrorHandlerServiceProvider implements ServiceProviderInterface
                 JsonThrowableResponseFactory::class,
             ),
             ThrowableResponseFactoryInterface::class => AliasFactory::get(ReportingThrowableResponseFactory::class),
-        ]);
+        ];
     }
 
     /**

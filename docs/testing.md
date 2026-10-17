@@ -38,7 +38,8 @@ boundary. Even 100% overall line coverage does not prove every branch or behavio
   actual PSR message values and real PHP callbacks are used where relevant.
   Optional Interop provider cases use the real FastForward development dependency:
   inert lookup, cached aliases, fresh nested middleware scopes, legacy defaults,
-  JSON/configuration, lazy shared Whoops pages, override precedence,
+  JSON/configuration, independent provider responsibilities, JSON-first versus
+  base-first selection, lazy shared Whoops pages, aggregate override precedence,
   report ordering and failure identity.
 - `tests/Functional`: legacy application/container composition. These tests
   retain `@coversNothing`; direct class tests measure their runtime subjects

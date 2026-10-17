@@ -91,11 +91,12 @@ The [complete JSON example](https://github.com/coisa/error-handler/blob/master/e
 
 ### JSON through an Interop service provider
 
-For an application using PHP 8.3+ and FastForward Container `^1.9` as a runtime dependency, select `ServiceProvider\JsonErrorHandlerServiceProvider` with the application's PSR-17 and private reporter definitions:
+For an application using PHP 8.3+ and FastForward Container `^1.9` as a runtime dependency, register `ServiceProvider\JsonErrorHandlerServiceProvider` before the separate base provider, followed by the application's PSR-17 and private reporter definitions:
 
 ```php
 $services = FastForward\Container\container(
     CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider::class,
+    CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider::class,
     $application,
 );
 
@@ -106,7 +107,7 @@ $middlewareFactory = $services->get(
 $middleware = $middlewareFactory($services);
 ```
 
-The profile selects the reporting decorator automatically for this explicit 2.x composition; the pure concrete remains independently available. Invoking the middleware factory creates a new lifecycle handler rather than reusing the cached process handler. Discovery is inert, public JSON is the default, and a real bool constructor argument enables debug only by trusted application choice. The core and legacy container still support PHP 7.4.
+Each provider declares only its own services. The JSON profile selects the reporting decorator for this explicit 2.x composition; the base supplies lifecycle and fresh-scope factories. JSON must come first in this separate-provider call so its response alias wins over legacy capture. The pure concrete remains independently available. Invoking the middleware factory creates a new lifecycle handler rather than reusing the cached process handler. Discovery is inert, public JSON is the default, and a real bool constructor argument enables debug only by trusted application choice. The core and legacy container still support PHP 7.4.
 
 Read the [provider dependencies, Config values and override precedence](container.md#optional-interop-and-fastforward-providers) and the [complete executable provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php). Run the optional provider scenarios with `php examples/verify.php --with-fast-forward` on PHP 8.3+; the existing verifier keeps their callback installation in bounded children. Applications continue to own emission and private reporter output.
 
