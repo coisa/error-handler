@@ -163,8 +163,9 @@ side effects and production load still require application-specific validation.
 `ConsumerSkillExamplesTest` runs the canonical skill's complete application
 programs with an explicit consumer autoloader in bounded children. The optional
 Whoops cases include direct HTML and both aggregate-provider page configurations;
-their programs reject unavailable installed APIs rather than treating the common
-`^2.4` baseline as proof of every additive class. Installed-package checks run the
+their programs require `^2.5` for JSON/Whoops/provider APIs published in 2.5.0 and
+reject unavailable symbols rather than treating the common `^2.4` baseline as proof
+of every additive class. Installed-package checks run the
 same programs with the consumer's real dependencies. The archive guard requires
 every canonical file and its source bytes, including focused references, examples
 and license; these checks do not install or activate an agent skill.

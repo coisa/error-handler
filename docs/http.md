@@ -75,11 +75,19 @@ The `safe` mode uses an application implementation of `ThrowableResponseFactoryI
 
 Read the [complete HTTP recipe](examples.md#http-responses-output-capture-and-a-safe-application-adapter) for its imports, synthetic request handler, application response adapter and assertions. Through the bounded verifier, the safe case checks one private report, the fixed 500 status/body and restored callbacks. A reporter failure propagates before the fixed response is created; PSR-17 failures propagate too. The application still needs a terminal failure policy for its chosen server/runtime.
 
-This is an explicit application adapter. The default renderer remains the capture/fallback adapter described above. The opt-in JSON factory below is a separate additive API; verify the selected source or installed release contains it. Neither JSON nor content negotiation becomes a default.
+This is an explicit application adapter. The default renderer remains the capture/fallback adapter described above. The opt-in JSON factory below was published in 2.5.0; select `coisa/error-handler:^2.5` and verify the installed source. Neither JSON nor content negotiation becomes a default.
 
 An explicit `FilteringThrowableHandler` may select the private diagnostic branch in this application adapter. Both match and nonmatch still lead to its fixed public response; filtering does not select status, body or reason. Predicate/delegate failure propagates after middleware restores callbacks. Do not use a silent nonmatch as redaction inside the built-in capture adapter: no output still falls back to the original diagnostic text. Filtering starts after PHP-error conversion and preserves the existing reporting mask/suppression rules.
 
 ## Opt-in JSON responses and explicit reporting
+
+JSON, its reporting decorator and the optional Interop profiles are available from published 2.5.0. For an authorized application installation selecting these routes, use:
+
+```sh
+composer require 'coisa/error-handler:^2.5' --no-plugins --no-scripts
+```
+
+The common reporting and legacy integration baseline remains `^2.4`.
 
 `Http\Message\JsonThrowableResponseFactory` accepts a PSR-17 response factory and stream factory. It returns a fresh response/body with `Content-Type: application/json` and the exact public body `{"error":"Request failed"}`. Integer throwable codes from 400 through 599 are preserved; strings, including numeric-looking codes and SQLSTATE, and all other integers use 500. The PSR-17 implementation supplies its default reason phrase; the throwable message is never passed as that reason.
 
@@ -135,7 +143,7 @@ Read the [provider dependencies, Config values and override precedence](containe
 
 ## Opt-in development HTML with Whoops
 
-For a checkout/release containing `Http\Message\WhoopsThrowableResponseFactory`, applications can explicitly select a development HTML page. Install optional `filp/whoops:^2.18.4` in that application's development dependencies. The library suggests Whoops and uses it for development tests; core/container installations do not require it. Loading the adapter class without Whoops works; constructing it without the dependency raises `LogicException` with installation guidance.
+`Http\Message\WhoopsThrowableResponseFactory` was published in 2.5.0. Applications selecting this development HTML route need `coisa/error-handler:^2.5`. Install optional `filp/whoops:^2.18.4` in that application's development dependencies. The library suggests Whoops and uses it for development tests; core/container installations do not require it. Loading the adapter class without Whoops works; constructing it without the dependency raises `LogicException` with installation guidance.
 
 The minimum Whoops 2.18.4 includes the upstream PHP 8.5 deprecation fix. Older Whoops versions are outside this adapter's supported integration; the minimum keeps that native deprecation from adding a PHP error event during rendering. This optional integration requirement does not add Whoops to core runtime dependencies.
 

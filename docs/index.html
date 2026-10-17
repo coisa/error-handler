@@ -120,6 +120,7 @@
       <section id="install" aria-labelledby="install-title">
         <h2 id="install-title">Installation</h2>
         <code class="install-command">composer require 'coisa/error-handler:^2.4'</code>
+        <p>This common baseline covers ordinary reporting and legacy integration. JSON/Whoops adapters and Interop providers were published in 2.5.0; select <code>coisa/error-handler:^2.5</code> for those routes and verify the installed source.</p>
         <p>The package declares PHP <code>^7.4 || ^8.0</code>. Composer installs PSR interfaces; applications supply concrete dispatchers, loggers and HTTP factories when those integrations are used.</p>
         <p>For the runnable recipes, use the <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">cookbook's explicit application dependencies</a>. Resolve them with the actual PHP runtime and retain the application's lockfile.</p>
         <p>Composer 2 and the application's <code>vendor/autoload.php</code> are the starting point. Direct reporting needs no container or HTTP implementation. Nyholm, Phly and Laminas are used only by their respective recipes; install compatible versions for the selected integration. The bounded verifier also needs the documented Symfony Process development dependency.</p>
@@ -262,7 +263,7 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
 
       <section id="interop" aria-labelledby="interop-title">
         <h2 id="interop-title">Select an optional response provider</h2>
-        <p>For a source/release containing the optional Interop providers, an application using PHP 8.3+ can install <code>fast-forward/container:^1.9</code> as its own runtime dependency. Supply PSR-17 response/stream factories and a private <code>ThrowableHandlerInterface</code> reporter, then choose JSON explicitly:</p>
+        <p>The optional Interop providers are available from published 2.5.0. Select <code>coisa/error-handler:^2.5</code>; an application using PHP 8.3+ can install <code>fast-forward/container:^1.9</code> as its own runtime dependency. Supply PSR-17 response/stream factories and a private <code>ThrowableHandlerInterface</code> reporter, then choose JSON explicitly:</p>
         <figure>
           <figcaption>Public JSON selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · the complete recipe provides application services and imports</figcaption>
           <pre tabindex="0" aria-label="Interop JSON provider PHP source"><code data-source="examples/provider-json.php">    $services = container(
@@ -314,7 +315,7 @@ $responses = new ReportingThrowableResponseFactory($reporter, $json);
 
 $middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
         </figure>
-        <p>For a source/release containing these additive classes, the pure JSON factory returns <code>application/json</code> with <code>{"error":"Request failed"}</code>, preserves integer codes <code>400–599</code> and otherwise uses <code>500</code>. It does not report or capture output. The explicit decorator reports the original once before rendering; reporter failure prevents rendering, and failures propagate after middleware restores callbacks. Use a private reporter that does not print. Defaults remain unchanged.</p>
+        <p>Available from published 2.5.0 with <code>coisa/error-handler:^2.5</code>, the pure JSON factory returns <code>application/json</code> with <code>{"error":"Request failed"}</code>, preserves integer codes <code>400–599</code> and otherwise uses <code>500</code>. It does not report or capture output. The explicit decorator reports the original once before rendering; reporter failure prevents rendering, and failures propagate after middleware restores callbacks. Use a private reporter that does not print. Defaults remain unchanged.</p>
         <p>The optional third boolean defaults to <code>false</code>. An explicit trusted development configuration can enable class/message/file/line and trace metadata, without arguments or objects; debug sets <code>Cache-Control: no-store</code> and replaces invalid UTF-8. Messages and paths still contain diagnostic details. No environment/request autodetection enables it, and the recipe uses a private reporter without output. PHP 7.4 debug use needs the optional JSON extension, included by PHP 8.</p>
         <figure>
           <figcaption>Shared reporting composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">examples/http-whoops.php</a> · a trusted development choice selects the pure HTML renderer earlier</figcaption>

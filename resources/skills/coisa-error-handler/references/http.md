@@ -18,8 +18,9 @@ A fresh middleware wrapper does not make a cached handler fresh.
 
 ## Optional library JSON composition
 
-When the installed source contains `JsonThrowableResponseFactory` and
-`ReportingThrowableResponseFactory`, the library can supply this composition.
+`JsonThrowableResponseFactory` and `ReportingThrowableResponseFactory` were
+published in 2.5.0; select `coisa/error-handler ^2.5` and verify the installed
+source for this composition. The ordinary application recipe retains its `^2.4` baseline.
 Follow the [availability, direct JSON and provider recipe](json.md), which checks
 the selected installation first. The pure JSON renderer preserves integer HTTP
 400–599 codes; the reporting decorator supplies one private report for the 2.x

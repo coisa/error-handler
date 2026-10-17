@@ -30,7 +30,7 @@ require_once __DIR__ . '/ThrowingRequestHandler.php';
 
 foreach ([JsonThrowableResponseFactory::class, ReportingThrowableResponseFactory::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('The selected library installation lacks ' . $class);
+        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
     }
 }
 

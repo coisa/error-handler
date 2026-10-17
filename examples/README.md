@@ -9,7 +9,7 @@ Read all fourteen complete recipes, including imports and every executable branc
 The library needs Composer's autoloader. The HTTP, event and container examples additionally use application implementations. In a disposable application directory, install:
 
 ```sh
-composer require 'coisa/error-handler:^2.0' 'nyholm/psr7:^1.8' 'phly/phly-event-dispatcher:^1.0' 'laminas/laminas-servicemanager:^3.0 || ^4.0' --no-plugins --no-scripts --no-interaction
+composer require 'coisa/error-handler:^2.4' 'nyholm/psr7:^1.8' 'phly/phly-event-dispatcher:^1.0' 'laminas/laminas-servicemanager:^3.0 || ^4.0' --no-plugins --no-scripts --no-interaction
 ```
 
 Choose a library release/check-out containing the metadata and PHP 7.4 alias repairs before running legacy container examples on PHP 7.4. When testing source maintenance, use a local path repository for that exact source instead of silently resolving a published version. Keep its vendor/cache/lock state in the disposable application; do not modify the library's Composer requirements.
@@ -18,7 +18,13 @@ Each implementation resolves to a version compatible with the application's actu
 
 The direct logging recipe requires a checkout or release containing `LogThrowableHandler`; older installed releases may not provide this opt-in adapter. Its recording logger needs no transport or extra package beyond the library's existing PSR-3 dependency.
 
-The JSON recipe requires a checkout or release containing `JsonThrowableResponseFactory` and `ReportingThrowableResponseFactory`. Both are opt-in: existing releases/default middleware do not acquire this composition automatically. It uses the same application-owned PSR-17 implementation as the legacy HTTP example.
+The JSON/Whoops adapters and Interop providers were published in 2.5.0. For an authorized application installation selecting these recipes, require `coisa/error-handler:^2.5`; the common baseline above remains `^2.4`:
+
+```sh
+composer require 'coisa/error-handler:^2.5' --no-plugins --no-scripts --no-interaction
+```
+
+The JSON recipe selects `JsonThrowableResponseFactory` and `ReportingThrowableResponseFactory`. Both are opt-in: default middleware does not acquire this composition automatically. It uses the same application-owned PSR-17 implementation as the legacy HTTP example.
 
 Its `public` mode returns only the generic payload. Its explicitly selected `debug` mode adds native exception/trace metadata without arguments or objects and sends `Cache-Control: no-store`. The CLI mode stands in for trusted application configuration; do not select debug from public request input. PHP 7.4 debug use requires the optional JSON extension, included by PHP 8; it does not become a core requirement.
 

@@ -1,6 +1,6 @@
 # Complete 2.x cookbook
 
-These complete recipes use the `coisa/error-handler` 2.x API and PHP 7.4-compatible syntax. They match the executable sources in this checkout; verify that an installed release contains the adapters you select. The optional Interop/FastForward recipes require PHP 8.3+ at runtime. They do not adopt the proposed major's required container, constructor callables or report-before-render middleware.
+These complete recipes use the `coisa/error-handler` 2.x API and PHP 7.4-compatible syntax. They match the executable sources in this checkout. The common baseline is `^2.4`; JSON/Whoops adapters and Interop providers were published in 2.5.0 and need `^2.5`. Verify the selected installation. The optional Interop/FastForward recipes require PHP 8.3+ at runtime. They do not adopt the proposed major's required container, constructor callables or report-before-render middleware.
 
 Start with the [application dependencies and execution setup](https://github.com/coisa/error-handler/blob/master/examples/README.md). The recipes share [bootstrap.php](https://github.com/coisa/error-handler/blob/master/examples/bootstrap.php) for the application's Composer autoloader and [check.php](https://github.com/coisa/error-handler/blob/master/examples/check.php) for their synthetic assertions. When adapting a recipe to an application, use its existing autoloader and tests.
 

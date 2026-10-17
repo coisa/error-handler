@@ -40,6 +40,9 @@ page, HTTP 503 and one private report. Public mode never constructs Whoops; HTML
 mode requires the optional package. It does not negotiate request headers or emit
 the response. Selected hidden superglobal keys are not comprehensive redaction.
 
+JSON/Whoops/provider recipes need `coisa/error-handler:^2.5`, the published floor
+for these APIs. The common reporting baseline remains `^2.4`.
+
 For an application that also installs `fast-forward/container:^1.9` at runtime,
 use PHP 8.3+ and select `php examples/verify.php --with-fast-forward`. It adds two
 Interop JSON and two Whoops profile cases, for twenty-eight bounded scenarios in total. They

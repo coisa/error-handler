@@ -46,7 +46,7 @@ if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container'
 
 foreach ([ErrorHandlerServiceProvider::class, WhoopsErrorHandlerServiceProvider::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('The selected library installation lacks ' . $class);
+        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
     }
 }
 
