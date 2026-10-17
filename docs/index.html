@@ -118,7 +118,7 @@
 
       <section id="install" aria-labelledby="install-title">
         <h2 id="install-title">Installation</h2>
-        <code class="install-command">composer require 'coisa/error-handler:^2.0'</code>
+        <code class="install-command">composer require 'coisa/error-handler:^2.4'</code>
         <p>The package declares PHP <code>^7.4 || ^8.0</code>. Composer installs PSR interfaces; applications supply concrete dispatchers, loggers and HTTP factories when those integrations are used.</p>
         <p>For the runnable recipes, use the <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">cookbook's explicit application dependencies</a>. Resolve them with the actual PHP runtime and retain the application's lockfile.</p>
         <p>Composer 2 and the application's <code>vendor/autoload.php</code> are the starting point. Direct reporting needs no container or HTTP implementation. Nyholm, Phly and Laminas are used only by their respective recipes; install compatible versions for the selected integration. The bounded verifier also needs the documented Symfony Process development dependency.</p>
