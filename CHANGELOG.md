@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.5.1
+
+### Patch Changes
+
+- [#109](https://github.com/coisa/error-handler/pull/109) [`af43a68`](https://github.com/coisa/error-handler/commit/af43a68f809664831af99bef4eb3aebf94e129d1) - Document published 2.5.0 as the minimum for JSON, Whoops and Interop provider routes in the guides and bundled consumer skill, while retaining the common 2.4 baseline and existing 2.x behavior.
+
 ## 2.5.0
 
 ### Minor Changes
