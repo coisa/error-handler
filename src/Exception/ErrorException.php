@@ -47,7 +47,7 @@ final class ErrorException extends \ErrorException
         int $severity,
         ?string $filename = null,
         ?int $line = null,
-        ?\Throwable $previous = null
+        ?\Throwable $previous = null,
     ): self {
         return new self($message, $code, $severity, $filename ?? '', $line ?? 0, $previous);
     }

@@ -35,4 +35,15 @@ if ([$failure] !== $configuration['reporter']->getThrowables()) {
     throw new RuntimeException('Expected one private delivery of the original throwable.');
 }
 
+$selected = new RecordingThrowableHandler();
+$overridden = (new ConfiguredErrorHandlerFactory())($configuration, [
+    'reporter' => $selected->handleThrowable(...),
+]);
+
+$overridden->handleThrowable($failure);
+
+if ([$failure] !== $selected->getThrowables() || [$failure] !== $configuration['reporter']->getThrowables()) {
+    throw new RuntimeException('Expected a callable override to replace the configured reporter.');
+}
+
 echo 'configured reporting: original delivered once' . PHP_EOL;

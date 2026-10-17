@@ -4,7 +4,10 @@
 
     <file>src</file>
     <file>tests</file>
+    <file>examples</file>
 
     <exclude-pattern>vendor/*</exclude-pattern>
     <exclude-pattern>tests/html/*</exclude-pattern>
+    <!-- Native-fatal inputs intentionally cannot compile; their Process tests remain active. -->
+    <exclude-pattern>tests/Fixtures/*.inc</exclude-pattern>
 </ruleset>

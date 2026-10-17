@@ -14,7 +14,7 @@
 
 declare(strict_types=1);
 
-namespace CoiSA\ErrorHandler\Container\Factory;
+namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
@@ -26,10 +26,11 @@ use Psr\Container\ContainerInterface;
  * Class ErrorHandlerFactory.
  *
  * A factory responsible for creating instances of ErrorHandler.
- * This factory SHALL ensure proper dependency injection of ThrowableHandlerInterface,
- * PhpErrorHandlerInterface, and ShutdownHandlerInterface.
+ * Interface service IDs SHALL supply interface implementations or matching callables.
+ * Normalization belongs to ErrorHandler; this factory preserves optional defaults
+ * and constructs a fresh scope without registering native callbacks.
  *
- * @package CoiSA\ErrorHandler\Container\Factory
+ * @package CoiSA\ErrorHandler\ServiceProvider\Factory
  */
 final class ErrorHandlerFactory
 {
@@ -45,15 +46,21 @@ final class ErrorHandlerFactory
      */
     public function __invoke(ContainerInterface $container): ErrorHandler
     {
-        /** @var ThrowableHandlerInterface $throwableHandler */
+        /**
+         * @var (callable(\Throwable): mixed)|ThrowableHandlerInterface $throwableHandler
+         */
         $throwableHandler = $container->get(ThrowableHandlerInterface::class);
 
-        /** @var null|PhpErrorHandlerInterface $phpErrorHandler */
+        /**
+         * @var null|(callable(int, string, string, int): mixed)|PhpErrorHandlerInterface $phpErrorHandler
+         */
         $phpErrorHandler = $container->has(PhpErrorHandlerInterface::class)
             ? $container->get(PhpErrorHandlerInterface::class)
             : null;
 
-        /** @var null|ShutdownHandlerInterface $shutdownHandler */
+        /**
+         * @var null|(callable(): mixed)|ShutdownHandlerInterface $shutdownHandler
+         */
         $shutdownHandler = $container->has(ShutdownHandlerInterface::class)
             ? $container->get(ShutdownHandlerInterface::class)
             : null;

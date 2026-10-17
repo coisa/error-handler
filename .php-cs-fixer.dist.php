@@ -25,8 +25,12 @@ $paths = [
 $header = HeaderExtractor::extractFromFile(__FILE__);
 
 return PhpCsFixer::create($paths, $header, [
-    'trailing_comma_in_multiline' => [
-        'after_heredoc' => true,
-        'elements'     => ['arguments', 'array_destructuring', 'arrays'],
+    // PER3 sections 4/4.4 recommend concise empty bodies (SHOULD); keep multiline bodies
+    // to converge with complete PSR12 checking, including braced namespaces.
+    // https://github.com/php-fig/per-coding-style/blob/3.0.0/spec.md#44-methods-and-functions
+    'single_line_empty_body' => false,
+    'braces_position' => [
+        'allow_single_line_anonymous_functions' => false,
+        'allow_single_line_empty_anonymous_classes' => false,
     ],
 ]);

@@ -19,14 +19,14 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Verifies raw-event identity and dispatcher failure propagation.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\DispatchThrowableHandler
  */
+#[CoversClass(DispatchThrowableHandler::class)]
 final class DispatchThrowableHandlerTest extends TestCase
 {
     /** Dispatch the original throwable once even when the dispatcher returns another object. */

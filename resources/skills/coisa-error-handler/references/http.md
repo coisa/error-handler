@@ -2,69 +2,74 @@
 
 Read when integrating PSR-15 middleware. The complete
 [HTTP program](../examples/http.php) connects imports, autoloader, PSR-17
-implementation, lifecycle handler, private reporter, response factory and request
-handler. Follow its [setup and expected result](../examples/README.md#explicit-http-policy).
+implementation, lifecycle handler, private reporter, pure response factory and
+request handler. Follow its [setup and result](../examples/README.md#explicit-http-policy).
 
-In this 2.4 contract the middleware registers the scoped lifecycle handler,
-executes the next handler, sends a caught throwable to
+Middleware requires one scoped object implementing both
+`ErrorHandlerInterface` and `ThrowableHandlerInterface`. It registers that scope,
+executes downstream, reports a caught throwable once, invokes the pure
 `ThrowableResponseFactoryInterface` and restores callbacks in `finally`.
-It does not independently report the caught throwable first. The bundled
-application `PublicThrowableResponseFactory` reports privately once and builds
-a fixed response. A reporter failure stops response construction and propagates;
-PSR-17 failures also propagate. The application supplies the emitter.
+A reporter failure propagates before rendering. A renderer/PSR-17 failure also
+propagates without retrying the original report. The application supplies the
+HTTP emitter; reporters must keep diagnostics in private sinks.
 
-Keep a separate lifecycle handler for each nested request/process scope.
-A fresh middleware wrapper does not make a cached handler fresh.
+The bundled application `PublicThrowableResponseFactory` only builds a fixed
+status-500 JSON response. It does not report or inspect diagnostic output.
+This is application example code, not a built-in JSON adapter or configurable
+library API. Keep distinct handlers for nested process/request scopes. Invoke
+the provider's middleware factory service for each fresh scope; repeated `get()`
+calls return the cached middleware.
 
-## Optional library JSON composition
+## Select a built-in renderer
 
-`JsonThrowableResponseFactory` and `ReportingThrowableResponseFactory` were
-published in 2.5.0; select `coisa/error-handler ^2.5` and verify the installed
-source for this composition. The ordinary application recipe retains its `^2.4` baseline.
-Follow the [availability, direct JSON and provider recipe](json.md), which checks
-the selected installation first. The pure JSON renderer preserves integer HTTP
-400–599 codes; the reporting decorator supplies one private report for the 2.x
-middleware. Trusted configuration explicitly selects development diagnostics.
-The fixed application example above remains usable without these additive APIs.
+Use [JSON](json.md) for a generic JSON body or explicitly configured diagnostic
+JSON. Use [Whoops](whoops.md) only after trusted application configuration selects
+development HTML and provides its optional runtime dependency. Both factories
+preserve integer throwable codes 400–599, otherwise use 500, and leave the reason
+to the application's PSR-17 implementation. Their independent profiles select
+the pure renderer; they do not import lifecycle or reporter maps.
 
-## Existing captured-output default
+`ReportingThrowableResponseFactory($reporter, $renderer)` remains available for
+an application pipeline that has not already reported. It calls the reporter,
+then returns the pure renderer's response. Do not select it for this middleware:
+that would report the same original twice. A reporter failure prevents rendering;
+a renderer failure does not cause a retry. The application decides which layer
+owns reporting before combining these components.
 
-The library's existing `ThrowableStreamFactory` invokes its configured reporter
-and captures that reporter's output. The output becomes the response body.
-Empty output or `"0"` falls back to exception text, so a silent reporter is not a
-safe public renderer. Writing JSON through `echo` can produce a body but couples
-diagnostics to public content; the application response recipe avoids that
-coupling and does not require output buffering.
+## Generic default and explicit output capture
 
-If a reporter closes capture and returns, the stream factory uses the same
-diagnostic fallback without reading or closing a caller buffer at or below its
-entry depth or invoking that buffer's output callback. Verify the selected
-installation contains the [capture ownership repair](https://github.com/coisa/error-handler/issues/112)
-before relying on this boundary; the common `^2.4` baseline alone does not
-guarantee it. Missing capture with no caller buffer also reaches fallback.
-This cannot undo the reporter's own output or buffer changes: reporters still
-own balanced buffer use, and fallback still contains diagnostic details.
+The provider's `GenericThrowableStreamFactory` returns `Internal Server Error`
+without invoking a reporter. `ThrowableResponseFactory` preserves integer codes
+400–599 and uses 500 otherwise, including string codes. It leaves the reason
+phrase to the application's PSR-17 implementation; exception messages are never
+the reason phrase.
 
-The built-in `ThrowableResponseFactory` maps integer codes 400–500 inclusive
-to status; other integers and string codes use 500. It uses diagnostic exception
-messages as reason phrases where accepted. From 2.4.2, forbidden controls omit
-the reason argument and choose the application's PSR-17 default; valid text
-(including tab/high bytes) can still reveal details. Empty messages remain
-explicit. This repair does not make the renderer public-safe.
+If an explicit public renderer closes capture and returns, the capture factory
+uses the generic body without reading or closing caller-owned buffers or
+invoking their output callbacks. Missing capture at native depth zero also uses
+that body. Renderers still own balanced buffer use: the factory cannot undo
+their own writes, flushes or buffer changes.
 
-Captured-output failure triggers best-effort cleanup of removable buffers above
-the entry level. Cleanup stops at a protected buffer, failed close or no progress;
-caller buffers are not deliberately closed. Starting with 2.4.1, cleanup can
-continue after an output callback throws if PHP removed its buffer and progress
-remains possible; 2.4.0 stops cleanup at that throw. If cleanup returns, the
-original primary failure propagates. A callback that exits or triggers an engine
-fatal can prevent propagation. Side effects cannot be undone.
+The retained `ThrowableStreamFactory` is an explicit compatibility adapter for
+deliberately public echo-based rendering. Its injected public renderer's output
+becomes the stream: empty output becomes `Internal Server Error`, while `"0"`
+remains a valid body. Never inject the private reporter middleware already called.
+The built-in JSON and Whoops response factories return their own bodies directly.
+
+Capture reads only when a buffer remains above the caller's entry depth; otherwise
+it uses the generic body without reading the caller's existing output.
+Capture cleanup removes reachable removable buffers above the caller's entry
+level. It stops at protected buffers or no progress, retaining the first cleanup
+failure. A renderer failure takes precedence; otherwise a cleanup failure
+propagates. Renderers must balance their buffers and never close caller-owned
+buffers. Native exit/fatal termination can prevent cleanup or propagation;
+side effects cannot be undone.
 
 ## Verification
 
-Assert exact public body, status, content type, one original private report and
-callback restoration after both success and renderer/reporter failure. For
-capture, also observe caller bytes/levels and primary failure identity. Test
+Assert exact public body, status, content type, one original private report,
+report-before-render ordering and restoration after success or either failure.
+For capture, also observe caller bytes/levels and primary failure identity. Test
 protected/terminating buffers only in bounded children using the application's
 normal PHPUnit setup. Do not override native functions, suppress unrelated
 warnings or claim recovery from process termination.

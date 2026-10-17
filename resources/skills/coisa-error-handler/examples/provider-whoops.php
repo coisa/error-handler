@@ -17,7 +17,7 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
@@ -41,12 +41,12 @@ require_once __DIR__ . '/RecordingThrowableHandler.php';
 require_once __DIR__ . '/ThrowingRequestHandler.php';
 
 if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container')) {
-    throw new RuntimeException('This optional application route needs PHP 8.3+ and fast-forward/container:^1.9.');
+    throw new RuntimeException('This source requires PHP 8.3+ and its FastForward runtime dependency.');
 }
 
 foreach ([ErrorHandlerServiceProvider::class, WhoopsErrorHandlerServiceProvider::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
+        throw new RuntimeException('The selected library installation lacks ' . $class);
     }
 }
 
@@ -91,8 +91,8 @@ $services = container(new AggregateServiceProvider(
     $application,
 ));
 
-if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof ReportingThrowableResponseFactory) {
-    throw new RuntimeException('Expected the explicitly selected HTML reporting profile.');
+if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof WhoopsThrowableResponseFactory) {
+    throw new RuntimeException('Expected the explicitly selected pure HTML profile.');
 }
 
 /** @var ErrorHandlerMiddlewareFactory $middlewareFactory the reusable fresh-scope service */
@@ -129,13 +129,13 @@ if ('text/html; charset=UTF-8' !== $second->getHeaderLine('Content-Type')
     throw new RuntimeException('Expected non-cacheable development HTML.');
 }
 
-if (false !== strpos((string) $second->getBody(), $failures[0]->getMessage())
-    || false === strpos((string) $second->getBody(), $failures[1]->getMessage())) {
+if (str_contains((string) $second->getBody(), $failures[0]->getMessage())
+    ||   !str_contains((string) $second->getBody(), $failures[1]->getMessage())) {
     throw new RuntimeException('Sequential rendering must replace the previous diagnostic.');
 }
 
 if (null !== $page && ($page !== $services->get(PrettyPageHandler::class)
-    || false === strpos((string) $second->getBody(), '<title>Synthetic configured diagnostics</title>'))) {
+    ||   !str_contains((string) $second->getBody(), '<title>Synthetic configured diagnostics</title>'))) {
     throw new RuntimeException('Expected the shared application page and its retained configuration.');
 }
 

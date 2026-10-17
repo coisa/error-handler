@@ -17,7 +17,6 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -68,11 +67,9 @@ if ($debug) {
 
 exampleCheck(0 === $pageCalls, 'Construction must not create a page.');
 
-$responses = new ReportingThrowableResponseFactory($reporter, $renderer);
-
 $errors = new ErrorHandler($reporter);
 
-$middleware = new ErrorHandlerMiddleware($errors, $responses);
+$middleware = new ErrorHandlerMiddleware($errors, $renderer);
 
 $next = new class ($original) implements RequestHandlerInterface {
     /** @var Throwable the synthetic application failure */
@@ -110,7 +107,7 @@ if ($debug) {
     exampleCheck('text/html; charset=UTF-8' === $response->getHeaderLine('Content-Type'), 'Expected HTML.');
     exampleCheck('no-store' === $response->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
     exampleCheck(
-        false !== strpos((string) $response->getBody(), '&lt;synthetic-development-detail&gt;'),
+        str_contains((string) $response->getBody(), '&lt;synthetic-development-detail&gt;'),
         'Expected an escaped diagnostic in the development page.',
     );
 } else {

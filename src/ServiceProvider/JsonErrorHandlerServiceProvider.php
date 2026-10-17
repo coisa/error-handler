@@ -16,9 +16,7 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider;
 
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\InvokableFactory;
@@ -28,7 +26,7 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Declares report-before-render JSON services for explicit composition with the base provider.
+ * Declares pure JSON services for composition after the major middleware reports.
  */
 final class JsonErrorHandlerServiceProvider implements ServiceProviderInterface
 {
@@ -46,7 +44,7 @@ final class JsonErrorHandlerServiceProvider implements ServiceProviderInterface
     }
 
     /**
-     * Composes a private reporter with pure JSON without importing lifecycle definitions.
+     * Selects pure JSON without importing lifecycle or diagnostic-reporting definitions.
      *
      * @return array<string, callable(ContainerInterface): mixed> JSON-only service definitions
      */
@@ -59,12 +57,7 @@ final class JsonErrorHandlerServiceProvider implements ServiceProviderInterface
                 StreamFactoryInterface::class,
                 $this->debug,
             ),
-            ReportingThrowableResponseFactory::class => new InvokableFactory(
-                ReportingThrowableResponseFactory::class,
-                ThrowableHandlerInterface::class,
-                JsonThrowableResponseFactory::class,
-            ),
-            ThrowableResponseFactoryInterface::class => AliasFactory::get(ReportingThrowableResponseFactory::class),
+            ThrowableResponseFactoryInterface::class => AliasFactory::get(JsonThrowableResponseFactory::class),
         ];
     }
 

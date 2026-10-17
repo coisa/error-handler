@@ -21,6 +21,7 @@ use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -36,7 +37,7 @@ require __DIR__ . '/bootstrap.php';
 
 exampleCheck(
     PHP_VERSION_ID >= 80300 && function_exists('FastForward\Container\container'),
-    'Install fast-forward/container:^1.9 in the application and use PHP 8.3 or newer.',
+    'Load the FastForward runtime dependency of this source on PHP 8.3 or newer.',
 );
 $mode = $argv[1] ?? 'public';
 exampleCheck(in_array($mode, ['public', 'debug'], true), 'Choose the public or debug example mode.');
@@ -63,19 +64,19 @@ $application = new ArrayServiceProvider([
     ThrowableHandlerInterface::class => new ServiceFactory($reporter),
 ]);
 
-// Separate providers are first-wins: the JSON selection must precede the base capture alias.
+// Merge the required reporter and renderer after library defaults in one provider.
 if ('debug' === $mode) {
-    $services = container(
+    $services = container(new AggregateServiceProvider(
+        new ErrorHandlerServiceProvider(),
         new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
-        ErrorHandlerServiceProvider::class,
         $application,
-    );
+    ));
 } else {
-    $services = container(
-        JsonErrorHandlerServiceProvider::class,
-        ErrorHandlerServiceProvider::class,
+    $services = container(new AggregateServiceProvider(
+        new ErrorHandlerServiceProvider(),
+        new JsonErrorHandlerServiceProvider(),
         $application,
-    );
+    ));
 }
 
 // Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.

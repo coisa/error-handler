@@ -19,16 +19,16 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies ordered reporting and throwable identity across aggregate composition.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate
- *
- * @uses \CoiSA\ErrorHandler\Handler\CallableThrowableHandler
  */
+#[CoversClass(ThrowableHandlerAggregate::class)]
+#[UsesClass(CallableThrowableHandler::class)]
 final class ThrowableHandlerAggregateTest extends TestCase
 {
     /**
@@ -68,6 +68,64 @@ final class ThrowableHandlerAggregateTest extends TestCase
             ['first', $throwable],
             ['second', $throwable],
             ['attached', $throwable],
+        ], $calls);
+    }
+
+    /** A failed slot stops its pass without replacing the failure or poisoning later invocations. */
+    public function testFailureStopsDeliveryAndAnIndependentPassCanSucceed(): void
+    {
+        $original = new \RuntimeException('First diagnostic');
+        $independent = new \Error('Independent diagnostic');
+        $failure = new \Error('Second reporter failed');
+        $calls = [];
+        $attempts = 0;
+        $aggregate = new ThrowableHandlerAggregate(
+            new CallableThrowableHandler(
+                /** @param \Throwable $received the unchanged diagnostic supplied to the first slot */
+                static function (\Throwable $received) use (&$calls): void {
+                    $calls[] = ['first', $received];
+                },
+            ),
+            new CallableThrowableHandler(
+                /**
+                 * Fail the first pass after recording the original diagnostic.
+                 *
+                 * @param \Throwable $received the unchanged diagnostic supplied to the failing slot
+                 *
+                 * @throws \Error the identical first-pass reporter failure
+                 */
+                static function (\Throwable $received) use (&$calls, &$attempts, $failure): void {
+                    $calls[] = ['second', $received];
+                    if (1 === ++$attempts) {
+                        throw $failure;
+                    }
+                },
+            ),
+            new CallableThrowableHandler(
+                /** @param \Throwable $received the unchanged diagnostic delivered only after earlier slots succeed */
+                static function (\Throwable $received) use (&$calls): void {
+                    $calls[] = ['third', $received];
+                },
+            ),
+        );
+        $this->expectOutputString('');
+
+        try {
+            $aggregate->handleThrowable($original);
+            self::fail('The failing reporter must stop the current pass.');
+        } catch (\Error $caught) {
+            self::assertSame($failure, $caught);
+        }
+        self::assertSame([['first', $original], ['second', $original]], $calls);
+
+        $aggregate->handleThrowable($independent);
+
+        self::assertSame([
+            ['first', $original],
+            ['second', $original],
+            ['first', $independent],
+            ['second', $independent],
+            ['third', $independent],
         ], $calls);
     }
 }

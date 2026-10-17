@@ -49,7 +49,7 @@ final class LogErrorEventListener
      */
     public function __construct(
         LoggerInterface $logger,
-        string $logLevel = LogLevel::ERROR
+        string $logLevel = LogLevel::ERROR,
     ) {
         $this->logger = $logger;
         $this->logLevel = $logLevel;

@@ -40,7 +40,7 @@ final class ReportingThrowableResponseFactory implements ThrowableResponseFactor
      */
     public function __construct(
         ThrowableHandlerInterface $throwableHandler,
-        ThrowableResponseFactoryInterface $responseFactory
+        ThrowableResponseFactoryInterface $responseFactory,
     ) {
         $this->throwableHandler = $throwableHandler;
         $this->responseFactory = $responseFactory;

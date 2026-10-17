@@ -18,7 +18,6 @@ use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 
@@ -28,9 +27,9 @@ require_once __DIR__ . '/RecordingThrowableHandler.php';
 
 require_once __DIR__ . '/ThrowingRequestHandler.php';
 
-foreach ([JsonThrowableResponseFactory::class, ReportingThrowableResponseFactory::class] as $class) {
+foreach ([JsonThrowableResponseFactory::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
+        throw new RuntimeException('The selected library installation lacks ' . $class);
     }
 }
 
@@ -52,9 +51,7 @@ $failure = $createFailure();
 
 $json = new JsonThrowableResponseFactory($http, $http, $configuration['debug']);
 
-$rendering = new ReportingThrowableResponseFactory($reporter, $json);
-
-$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $rendering);
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $json);
 
 $entryLevel = ob_get_level();
 $response = $middleware->process(

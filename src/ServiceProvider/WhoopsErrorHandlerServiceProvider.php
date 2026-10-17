@@ -16,8 +16,6 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider;
 
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use FastForward\Container\Factory\AliasFactory;
@@ -30,7 +28,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Whoops\Handler\PrettyPageHandler;
 
 /**
- * Selects optional development HTML and explicit reporting for the 2.x middleware.
+ * Selects optional pure development HTML after the major middleware reports.
  *
  * Applications supply HTTP factories, a private reporter and trusted development
  * authorization, and compose lifecycle services separately. Discovery creates no
@@ -39,7 +37,7 @@ use Whoops\Handler\PrettyPageHandler;
 final class WhoopsErrorHandlerServiceProvider implements ServiceProviderInterface
 {
     /**
-     * Describes only this profile's page, pure renderer and reporting selection.
+     * Describes only this profile's page, pure renderer and response alias.
      *
      * FastForward caches the configured page. Its lazy callback resolves that service
      * only during rendering, after the renderer checks its optional dependency.
@@ -73,12 +71,7 @@ final class WhoopsErrorHandlerServiceProvider implements ServiceProviderInterfac
                     );
                 },
             ),
-            ReportingThrowableResponseFactory::class => new InvokableFactory(
-                ReportingThrowableResponseFactory::class,
-                ThrowableHandlerInterface::class,
-                WhoopsThrowableResponseFactory::class,
-            ),
-            ThrowableResponseFactoryInterface::class => AliasFactory::get(ReportingThrowableResponseFactory::class),
+            ThrowableResponseFactoryInterface::class => AliasFactory::get(WhoopsThrowableResponseFactory::class),
         ];
     }
 

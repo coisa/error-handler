@@ -50,7 +50,7 @@ final class JsonThrowableResponseFactory implements ThrowableResponseFactoryInte
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
-        bool $debug = false
+        bool $debug = false,
     ) {
         if ($debug && !\function_exists('json_encode')) {
             throw new \LogicException('Debug JSON responses require the JSON extension and json_encode().');
@@ -106,7 +106,7 @@ final class JsonThrowableResponseFactory implements ThrowableResponseFactoryInte
         return json_encode([
             'error' => 'Request failed',
             'exception' => [
-                'class' => \get_class($throwable),
+                'class' => $throwable::class,
                 'message' => $throwable->getMessage(),
                 'file' => $throwable->getFile(),
                 'line' => $throwable->getLine(),

@@ -1,11 +1,11 @@
 ---
 name: coisa-error-handler
-description: Integrate coisa/error-handler with configured private reporters, process callbacks, legacy PSR-11 or ConfigProvider composition, PSR-15 responses and available JSON/Whoops/Interop profiles. Use when an application consumes this library; inspect its installed version before selecting an API.
+description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop providers and pure generic, JSON or Whoops PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
 license: MIT; see LICENSE
-compatibility: coisa/error-handler ^2.4 for common reporting, starting with 2.4.0; PHP ^7.4 || ^8.0 and Composer 2. Advanced JSON/Whoops/Interop routes require ^2.5, first published in 2.5.0, and their named classes in the installed source. Whoops requires optional filp/whoops ^2.18.4; optional FastForward integration requires fast-forward/container ^1.9 and application PHP 8.3+. Applications supply PSR-14/17 implementations and HTTP emission. No agent SDK or global installation is required.
+compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.4 at runtime. No agent SDK or global installation is required.
 metadata:
   author: Felipe Sayão Lobato Abreu
-  api-baseline: "2.4.0"
+  api-baseline: "3.x"
   source_url: https://github.com/coisa/error-handler
 ---
 
@@ -22,29 +22,18 @@ separate tasks.
 Read applicable instructions, Composer files, the application bootstrap and its
 existing reporter configuration. Inspect `composer show coisa/error-handler`,
 the actual PHP runtime and available application implementations. This procedure
-supports `^2.4`; earlier versions are outside its supported API contract. A lockfile
-entry alone does not establish runtime availability. Do not install or upgrade
-dependencies solely to fit this skill.
-
-The common 2.4 baseline does not establish availability of every additive
-JSON/Whoops/provider class. Those routes were published in 2.5.0 and require
-`coisa/error-handler:^2.5`. Before selecting them, inspect the installed version,
-matching source and named symbols using the
-[advanced availability checks](references/json.md#inspect-the-selected-installation).
-If they are absent, use the ordinary route or existing application response
-implementation; do not substitute another API or upgrade automatically.
-For development HTML, also follow the focused
-[Whoops availability and diagnostic checks](references/whoops.md#inspect-the-selected-installation).
-
-For an authorized new application installation:
-
-```sh
-composer require 'coisa/error-handler:^2.4' --no-plugins --no-scripts
-```
+targets the 3.x API with PHP `^8.3`; CI targets PHP 8.3–8.5. Match 2.x
+installations to their version's skill and migration guidance.
+A lockfile entry alone does not establish runtime availability. Inspect the
+selected source and autoloader; do not install or upgrade dependencies solely
+to fit these instructions.
 
 Use the application's configuration and secret mechanisms. Error Handler accepts
-objects; it does not load application configuration files or environment values
-automatically. `ConfigProvider` is a separate legacy container integration.
+handler interfaces or matching callables; it does not load application
+configuration files or environment values automatically. FastForward Container
+is a runtime dependency; the Interop service
+provider is the container integration entrypoint. The old container and
+`ConfigProvider` are removed in this source contract.
 
 ## Configure and verify ordinary reporting
 
@@ -59,14 +48,13 @@ composition is verified.
 declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
 require __DIR__ . '/vendor/autoload.php';
 
 $reports = [];
 
 $configuration = [
-    'reporter' => new CallableThrowableHandler(
+    'reporter' =>
         /**
          * Retain the original synthetic failure without public output.
          *
@@ -75,7 +63,6 @@ $configuration = [
         static function (Throwable $error) use (&$reports): void {
             $reports[] = $error;
         },
-    ),
 ];
 
 $errors = new ErrorHandler($configuration['reporter']);
@@ -100,8 +87,9 @@ For configuration split across files, use the complete
 `config/error-handler.php` supplies the reporter, the application factory applies
 explicit overrides with `array_replace`, and `configured.php` loads the selected
 consumer autoloader. Override keys win; missing or wrong-type reporters fail
-before construction. These keys and the example factory belong to the example
-application, not to a library configuration API.
+before construction. Either an interface instance or a callable can be selected;
+interface instances retain identity and win over `__invoke()`. These keys and the
+example factory belong to the example application, not to a library configuration API.
 
 ```sh
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/configured.php ./vendor/autoload.php
@@ -118,17 +106,25 @@ and does not write logs or contact a service.
 | --- | --- |
 | Explicit reporting | `ErrorHandler::handleThrowable()` as above; original delivered once, execution continues. |
 | PHP warnings or uncaught exceptions | Register at the application bootstrap; follow [process scopes](references/process.md) and verify restoration. |
-| Existing PSR-11 or Laminas application | Supply its reporters to the [legacy container recipe](references/container.md); construction must install no callbacks. |
+| FastForward integration | Supply reporters through the [Interop provider recipe](references/container.md); construction must install no callbacks. |
 | HTTP | Supply PSR-17 implementations and select the [explicit public response recipe](references/http.md); verify private delivery and fixed body separately. |
-| JSON or Interop/FastForward profiles from 2.5.0 | Require `^2.5`, verify the installed symbols, then use [explicit JSON composition](references/json.md); applications select independent providers and trusted debug configuration. |
-| Explicit development HTML from 2.5.0 | Require `^2.5`, verify the installed APIs and optional Whoops, then use [HTML composition](references/whoops.md); the application selects diagnostic exposure and one aggregate for the Whoops profile. |
+| Built-in JSON | Use the [pure JSON renderer or independent JSON provider](references/json.md); enable diagnostic JSON only through trusted application configuration. |
+| Development HTML | Use the [Whoops renderer or independent Whoops provider](references/whoops.md) only in an explicitly selected development pipeline; the renderer does not negotiate requests. |
 | Logging, events, filtering or best-effort reporting | Select [reporter composition](references/reporters.md) only for that integration; supply the actual collaborators. |
 
-The built-in container caches handlers. A fresh wrapper does not establish a
-fresh handler; construct distinct handlers for independent nested scopes.
+FastForward caches services. The provider keeps process and middleware handlers
+separate; invoke its reusable factory services for fresh independent scopes.
+Do not mistake repeated `get()` calls for a transient lifetime.
 Applications own interfaces' implementations, private diagnostic transports,
 callback installation and HTTP emission. Registering a class does not imply
 aggregate membership.
+
+For a required reporter and a selected HTTP profile, compose one
+`AggregateServiceProvider` in base, JSON or Whoops, application order. Each
+library provider declares its own services; the application combines them.
+Application definitions win last inside that aggregate. See
+[provider precedence and fallback](references/container.md) before relying on an
+override: map precedence does not disable concrete autowiring fallback.
 
 ## Verify and report
 
@@ -138,10 +134,13 @@ identical collaborator failure. For callbacks, check enabled/suppressed warnings
 and restoration after success and failure. Native callbacks are process-wide;
 run uncaught/fatal/termination experiments only in bounded child processes.
 
-For HTTP, assert status, exact public body and original private report. The
-legacy captured-output default can expose exception details; silence is not
-redaction. Do not infer successful delivery to an external logger from an
-in-memory example.
+For HTTP, assert status, exact public body and one original private report.
+Middleware reports before invoking a pure renderer. The provider defaults to a
+generic body; JSON and Whoops profiles select pure response factories. Keep
+output capture explicit and never inject the private reporter into that renderer
+again. `ReportingThrowableResponseFactory` is an explicit utility for a pipeline
+that has not already reported; do not wrap this middleware's renderer with it.
+Do not infer successful delivery to an external logger from an in-memory example.
 
 Report installed package/PHP versions, chosen composition, changed files,
 executed checks and concrete limits. Shipping files, copying the package,

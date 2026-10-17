@@ -35,7 +35,7 @@ $failure = new RuntimeException('Private diagnostic detail', 404);
 
 $middleware = new ErrorHandlerMiddleware(
     new ErrorHandler($reporter),
-    new PublicThrowableResponseFactory($reporter, $http, $http),
+    new PublicThrowableResponseFactory($http, $http),
 );
 
 $response = $middleware->process(

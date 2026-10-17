@@ -17,18 +17,20 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 
 use CoiSA\ErrorHandler\Handler\LogThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Verifies direct logger delivery, context identity and unchanged failure propagation.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\LogThrowableHandler
  */
+#[CoversClass(LogThrowableHandler::class)]
 final class LogThrowableHandlerTest extends TestCase
 {
     /**
@@ -45,9 +47,8 @@ final class LogThrowableHandlerTest extends TestCase
      * @param string $message the exact synthetic message, including an empty boundary
      * @param int    $code    the error code that must not determine the log level
      * @param bool   $isError whether to report an Error instead of an Exception
-     *
-     * @dataProvider provideLogsOnceAtErrorWithTheOriginalThrowableCases
      */
+    #[DataProvider('provideLogsOnceAtErrorWithTheOriginalThrowableCases')]
     public function testLogsOnceAtErrorWithTheOriginalThrowable(string $message, int $code, bool $isError): void
     {
         $throwable = $isError ? new \Error($message, $code) : new \RuntimeException($message, $code);
@@ -142,7 +143,7 @@ final class LogThrowableHandlerTest extends TestCase
     {
         $failure = new InvalidArgumentException('Unsupported application level');
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects(self::once())->method('log')->with('application-level', '', self::isType('array'))
+        $logger->expects(self::once())->method('log')->with('application-level', '', self::isArray())
             ->willThrowException($failure)
         ;
         $handler = new LogThrowableHandler($logger, 'application-level');
@@ -183,6 +184,6 @@ final class LogThrowableHandlerTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::never())->method('log');
 
-        new LogThrowableHandler($logger);
+        self::assertInstanceOf(ThrowableHandlerInterface::class, new LogThrowableHandler($logger));
     }
 }

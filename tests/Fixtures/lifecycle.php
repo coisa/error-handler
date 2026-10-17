@@ -21,24 +21,34 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 require dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $case = $argv[1] ?? '';
-$reporter = new CallableThrowableHandler(
-    /**
-     * Records actual events delivered by native exception/shutdown callbacks.
-     *
-     * @param Throwable $event the event supplied by the real handler
-     */
-    static function (Throwable $event): void {
-        echo json_encode([
-            'event' => 'error', 'class' => get_class($event),
-            'severity' => $event instanceof ErrorException ? $event->getSeverity() : null,
-        ], JSON_THROW_ON_ERROR) . "\n";
-    },
-);
+
+/**
+ * Records native events and their last-error snapshot without altering diagnostic metadata.
+ *
+ * @param Throwable $event the event supplied by the real handler
+ */
+$reporter = static function (Throwable $event): void {
+    echo json_encode([
+        'event' => 'error', 'class' => $event::class,
+        'severity' => $event instanceof ErrorException ? $event->getSeverity() : null,
+        'message' => $event->getMessage(), 'file' => $event->getFile(), 'line' => $event->getLine(),
+        'lastError' => error_get_last(),
+    ], JSON_THROW_ON_ERROR) . "\n";
+};
 $handler = new ErrorHandler($reporter);
 
 switch ($case) {
     case 'exception':
+    case 'exception-shutdown':
         $handler->register();
+        if ('exception-shutdown' === $case) {
+            register_shutdown_function(
+                /** Records PHP continuing the shutdown queue after explicit uncaught exit. */
+                static function (): void {
+                    echo "{\"event\":\"shutdown\"}\n";
+                },
+            );
+        }
 
         throw new RuntimeException('synthetic uncaught exception');
 
@@ -52,9 +62,9 @@ switch ($case) {
     case 'type-error':
         $handler->register();
         // @phpstan-ignore argument.type (An owned bounded child verifies the native TypeError path.)
-        (static fn(int $value): int => $value)('not an integer');
+        $unexpected = (static fn(int $value): int => $value)('not an integer');
 
-        break;
+        throw new LogicException('The invalid native argument was accepted: ' . $unexpected);
 
     case 'parse-error':
         $handler->register();
@@ -96,6 +106,29 @@ switch ($case) {
 
         break;
 
+    case 'reregister-shutdown-fatal':
+    case 'fresh-shutdown-fatal':
+        if ('reregister-shutdown-fatal' === $case) {
+            $handler->register();
+            $handler->unregister();
+        }
+        register_shutdown_function(
+            /** Causes an engine fatal before a later handler callback can run. */
+            static function (): void {
+                require __DIR__ . '/compile-fatal.inc';
+            },
+        );
+        $handler->register();
+
+        break;
+
+    case 'unregistered-shutdown':
+        $handler->register();
+        $handler->unregister();
+        echo "{\"event\":\"continued\"}\n";
+
+        break;
+
     case 'restore':
         set_error_handler(
             /**
@@ -134,9 +167,10 @@ switch ($case) {
         throw new RuntimeException('previous exception active');
 
     case 'reporter-throws':
+    case 'shutdown-reporter-throws':
         $handler = new ErrorHandler(new CallableThrowableHandler(
             /**
-             * Records actual recursive delivery in the legacy native failure path.
+             * Records the one actual delivery before a native reporter failure.
              *
              * @param Throwable $event the original or reentered failure delivered by PHP
              *
@@ -149,6 +183,9 @@ switch ($case) {
             },
         ));
         $handler->register();
+        if ('shutdown-reporter-throws' === $case) {
+            require __DIR__ . '/compile-fatal.inc';
+        }
 
         throw new RuntimeException('original failure');
 

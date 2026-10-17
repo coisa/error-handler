@@ -20,25 +20,25 @@ use CoiSA\ErrorHandler\Handler\FilteringThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies selection, strict boolean results and unchanged collaborator failures.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\FilteringThrowableHandler
- *
- * @uses \CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate
  */
+#[CoversClass(FilteringThrowableHandler::class)]
+#[UsesClass(ThrowableHandlerAggregate::class)]
 final class FilteringThrowableHandlerTest extends TestCase
 {
     /**
      * Evaluate once per call, including repeated delivery of the same input object.
      *
      * @param bool $match the explicit inclusion decision
-     *
-     * @dataProvider provideSelectionIsPerInvocationAndPreservesIdentityCases
      */
+    #[DataProvider('provideSelectionIsPerInvocationAndPreservesIdentityCases')]
     public function testSelectionIsPerInvocationAndPreservesIdentity(bool $match): void
     {
         $original = new \RuntimeException('Synthetic repeated input');
@@ -81,9 +81,8 @@ final class FilteringThrowableHandlerTest extends TestCase
      * Reject truthy and false-like values instead of coercing application policy.
      *
      * @param mixed $result the deliberately malformed predicate result
-     *
-     * @dataProvider provideRejectsNonBooleanResultBeforeDeliveryCases
      */
+    #[DataProvider('provideRejectsNonBooleanResultBeforeDeliveryCases')]
     public function testRejectsNonBooleanResultBeforeDelivery($result): void
     {
         $delegate = $this->createMock(ThrowableHandlerInterface::class);
@@ -92,8 +91,11 @@ final class FilteringThrowableHandlerTest extends TestCase
         /** @return mixed the deliberately invalid result used to test the runtime boundary */
         $predicate = static fn(\Throwable $received) => $result;
 
-        // Deliberately violate the documented callable contract to exercise PHP's runtime boundary.
-        /** @var callable(\Throwable): bool $predicate */
+        /**
+         * Deliberately supply a non-boolean callback to verify the handler's strict runtime boundary.
+         *
+         * @phpstan-ignore argument.type (Negative input intentionally violates the documented predicate contract.)
+         */
         $handler = new FilteringThrowableHandler($delegate, $predicate);
 
         $this->expectException(\TypeError::class);
@@ -111,9 +113,8 @@ final class FilteringThrowableHandlerTest extends TestCase
      *
      * @param bool                     $predicateFails whether selection or delivery raises the failure
      * @param class-string<\Throwable> $failureClass   the collaborator's failure type
-     *
-     * @dataProvider provideCollaboratorFailuresPropagateUnchangedCases
      */
+    #[DataProvider('provideCollaboratorFailuresPropagateUnchangedCases')]
     public function testCollaboratorFailuresPropagateUnchanged(bool $predicateFails, string $failureClass): void
     {
         $failure = new $failureClass('Synthetic collaborator failure');

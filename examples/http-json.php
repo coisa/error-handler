@@ -17,7 +17,6 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseInterface;
@@ -54,9 +53,7 @@ $errors = new ErrorHandler($reporter);
 
 $json = new JsonThrowableResponseFactory($messages, $messages, $debug);
 
-$responses = new ReportingThrowableResponseFactory($reporter, $json);
-
-$middleware = new ErrorHandlerMiddleware($errors, $responses);
+$middleware = new ErrorHandlerMiddleware($errors, $json);
 
 $next = new class ($original) implements RequestHandlerInterface {
     /** @var Throwable the synthetic downstream failure */

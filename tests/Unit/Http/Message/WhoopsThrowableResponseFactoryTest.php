@@ -16,10 +16,16 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\Http\Message;
 
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -30,11 +36,9 @@ use Whoops\Inspector\InspectorInterface;
  * Verifies real Whoops rendering, explicit reporting and caller-owned native state.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory
- *
- * @uses \CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory
  */
+#[CoversClass(WhoopsThrowableResponseFactory::class)]
+#[UsesClass(ReportingThrowableResponseFactory::class)]
 final class WhoopsThrowableResponseFactoryTest extends TestCase
 {
     /** @var array<string, array{bool, mixed}> original ambient values, never rendered by these fixtures */
@@ -66,9 +70,8 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
      *
      * @param int|string $code   the native throwable code, including SQLSTATE strings
      * @param int        $status the expected HTTP status
-     *
-     * @dataProvider provideStatusPolicyCases
      */
+    #[DataProvider('provideStatusPolicyCases')]
     public function testStatusPolicy($code, int $status): void
     {
         $original = new class ($code) extends \PDOException {
@@ -152,15 +155,19 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
         );
         $first = new \RuntimeException(base64_encode('unique first rendered diagnostic'));
         $second = new \RuntimeException(base64_encode('unique second rendered diagnostic'));
-        $reporter = $this->createMock(ThrowableHandlerInterface::class);
-        $reporter->expects(self::exactly(2))->method('handleThrowable')
-            ->withConsecutive([self::identicalTo($first)], [self::identicalTo($second)])
-        ;
+        $reported = [];
+        $reporter = new CallableThrowableHandler(
+            /** @param \Throwable $event the original selected for private reporting */
+            static function (\Throwable $event) use (&$reported): void {
+                $reported[] = $event;
+            },
+        );
         $responses = new ReportingThrowableResponseFactory($reporter, $renderer);
 
         $firstResponse = $responses->createResponseFromThrowable($first);
         $secondResponse = $responses->createResponseFromThrowable($second);
 
+        self::assertSame([$first, $second], $reported);
         self::assertSame([$first, $second], $inspected);
         self::assertCount(2, $pages);
         self::assertNotSame($pages[0], $pages[1]);
@@ -174,9 +181,12 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
     public function testPageConfigurationHidesSelectedSyntheticGlobalsAndEscapesMessages(): void
     {
         $messages = new Psr17Factory();
-        $_SERVER['HTTP_AUTHORIZATION'] = base64_encode('synthetic authorization secret');
-        $_COOKIE['session'] = base64_encode('synthetic cookie secret');
-        $_ENV['APP_SECRET'] = base64_encode('synthetic environment secret');
+        $authorization = base64_encode('synthetic authorization secret');
+        $_SERVER['HTTP_AUTHORIZATION'] = $authorization;
+        $cookie = base64_encode('synthetic cookie secret');
+        $_COOKIE['session'] = $cookie;
+        $environment = base64_encode('synthetic environment secret');
+        $_ENV['APP_SECRET'] = $environment;
         $original = new \RuntimeException('<synthetic-tag>');
 
         $default = new WhoopsThrowableResponseFactory(
@@ -202,7 +212,7 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
         );
         $hidden = (string) $configured->createResponseFromThrowable($original)->getBody();
 
-        foreach ([$_SERVER['HTTP_AUTHORIZATION'], $_COOKIE['session'], $_ENV['APP_SECRET']] as $secret) {
+        foreach ([$authorization, $cookie, $environment] as $secret) {
             self::assertStringContainsString($secret, $visible);
             self::assertStringNotContainsString($secret, $hidden);
         }
@@ -245,13 +255,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
      * Preserves caller buffers/callbacks after real rendering and a real Whoops handler failure.
      *
      * @param bool $fails whether the application page fails during Whoops rendering
-     *
-     * @dataProvider provideCallerStateSurvivesRenderingCases
-     *
-     * @runInSeparateProcess
-     *
-     * @preserveGlobalState disabled
      */
+    #[DataProvider('provideCallerStateSurvivesRenderingCases')]
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function testCallerStateSurvivesRendering(bool $fails): void
     {
         $messages = new Psr17Factory();
@@ -314,9 +321,8 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
      * Propagates collaborator failures without retry or duplicate reporting.
      *
      * @param string $stage the collaborator that raises the distinct failure
-     *
-     * @dataProvider provideFailuresPropagateUnchangedCases
      */
+    #[DataProvider('provideFailuresPropagateUnchangedCases')]
     public function testFailuresPropagateUnchanged(string $stage): void
     {
         $failure = new \LogicException('Synthetic ' . $stage . ' failure');
@@ -380,9 +386,8 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
      * Enforces the documented page type at the native PHP return boundary.
      *
      * @param mixed $value the deliberately invalid page-factory result
-     *
-     * @dataProvider provideRejectsInvalidPageCases
      */
+    #[DataProvider('provideRejectsInvalidPageCases')]
     public function testRejectsInvalidPage($value): void
     {
         $messages = new Psr17Factory();
@@ -390,8 +395,7 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
         /** @return mixed a deliberately malformed application result */
         $factory = static fn() => $value;
 
-        // Deliberately violate PHPDoc to exercise the native return-type boundary.
-        /** @var callable(): PrettyPageHandler $factory */
+        // @phpstan-ignore argument.type (Deliberately exercise the runtime page return-type boundary.)
         $renderer = new WhoopsThrowableResponseFactory($messages, $messages, $factory);
 
         $this->expectException(\TypeError::class);

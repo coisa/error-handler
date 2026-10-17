@@ -38,10 +38,10 @@ require __DIR__ . '/bootstrap.php';
 
 exampleCheck(
     PHP_VERSION_ID >= 80300 && function_exists('FastForward\Container\container'),
-    'Install fast-forward/container:^1.9 in the application and use PHP 8.3 or newer.',
+    'Load the FastForward runtime dependency of this source on PHP 8.3 or newer.',
 );
 
-// FastForward integration requires PHP 8.3+ and an application runtime dependency.
+// FastForward is a required runtime dependency of this PHP 8.3+ major.
 // Selecting this profile deliberately chooses diagnostic HTML; no request enables it.
 $mode = $argv[1] ?? 'default';
 exampleCheck(in_array($mode, ['default', 'configured'], true), 'Choose default or configured mode.');
@@ -115,8 +115,7 @@ $failures = [
  *
  * @return RequestHandlerInterface the failing application route
  */
-function exampleWhoopsRoute(Throwable $failure): RequestHandlerInterface
-{
+$route = static function (Throwable $failure): RequestHandlerInterface {
     return new class ($failure) implements RequestHandlerInterface {
         /** @var Throwable the unchanged synthetic route failure */
         private Throwable $failure;
@@ -139,16 +138,16 @@ function exampleWhoopsRoute(Throwable $failure): RequestHandlerInterface
             throw $this->failure;
         }
     };
-}
+};
 
 $first = $firstScope->process(
     $messages->createServerRequest('GET', '/first'),
-    exampleWhoopsRoute($failures[0]),
+    $route($failures[0]),
 );
 
 $second = $secondScope->process(
     $messages->createServerRequest('GET', '/second'),
-    exampleWhoopsRoute($failures[1]),
+    $route($failures[1]),
 );
 
 exampleCheck($failures === $reports, 'Each original must reach the private reporter once.');
@@ -156,18 +155,18 @@ exampleCheck(503 === $first->getStatusCode() && 404 === $second->getStatusCode()
 exampleCheck('text/html; charset=UTF-8' === $first->getHeaderLine('Content-Type'), 'Expected HTML.');
 exampleCheck('no-store' === $first->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
 exampleCheck(
-    false === strpos((string) $second->getBody(), $failures[0]->getMessage()),
+    !str_contains((string) $second->getBody(), $failures[0]->getMessage()),
     'The next page must not retain the first diagnostic.',
 );
 
 if ('configured' === $mode) {
     exampleCheck(1 === $pageCalls, 'Expected one cached configured page for sequential renders.');
     exampleCheck(
-        false !== strpos((string) $first->getBody(), '<title>Synthetic application diagnostics</title>'),
+        str_contains((string) $first->getBody(), '<title>Synthetic application diagnostics</title>'),
         'Expected the application-configured title.',
     );
     exampleCheck(
-        false !== strpos((string) $second->getBody(), '<title>Synthetic application diagnostics</title>'),
+        str_contains((string) $second->getBody(), '<title>Synthetic application diagnostics</title>'),
         'The cached page must retain application configuration.',
     );
 }

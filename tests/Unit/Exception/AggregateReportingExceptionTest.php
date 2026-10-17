@@ -17,15 +17,15 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Test\Unit\Exception;
 
 use CoiSA\ErrorHandler\Exception\AggregateReportingException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Verifies original cause identity and the ordered, nonempty reporter failure list.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Exception\AggregateReportingException
  */
+#[CoversClass(AggregateReportingException::class)]
 final class AggregateReportingExceptionTest extends TestCase
 {
     /** Verifies a single failure retains the original as both explicit input and previous cause. */
@@ -78,7 +78,7 @@ final class AggregateReportingExceptionTest extends TestCase
         $construct = static fn(
             \Throwable $originalThrowable,
             \Throwable $failure,
-            \Throwable ...$failures
+            \Throwable ...$failures,
         ): AggregateReportingException => new AggregateReportingException($originalThrowable, $failure, ...$failures);
 
         $exception = \call_user_func_array($construct, [

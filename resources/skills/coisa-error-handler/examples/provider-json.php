@@ -17,13 +17,14 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -39,12 +40,12 @@ require_once __DIR__ . '/RecordingThrowableHandler.php';
 require_once __DIR__ . '/ThrowingRequestHandler.php';
 
 if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container')) {
-    throw new RuntimeException('This optional application route needs PHP 8.3+ and fast-forward/container:^1.9.');
+    throw new RuntimeException('This source requires PHP 8.3+ and its FastForward runtime dependency.');
 }
 
 foreach ([ErrorHandlerServiceProvider::class, JsonErrorHandlerServiceProvider::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
+        throw new RuntimeException('The selected library installation lacks ' . $class);
     }
 }
 
@@ -67,21 +68,21 @@ $application = new ArrayServiceProvider([
 ]);
 
 if ('debug' === $mode) {
-    $services = container(
+    $services = container(new AggregateServiceProvider(
+        new ErrorHandlerServiceProvider(),
         new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
-        ErrorHandlerServiceProvider::class,
         $application,
-    );
+    ));
 } else {
-    $services = container(
-        JsonErrorHandlerServiceProvider::class,
-        ErrorHandlerServiceProvider::class,
+    $services = container(new AggregateServiceProvider(
+        new ErrorHandlerServiceProvider(),
+        new JsonErrorHandlerServiceProvider(),
         $application,
-    );
+    ));
 }
 
-if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof ReportingThrowableResponseFactory) {
-    throw new RuntimeException('Expected the JSON reporting profile instead of capture fallback.');
+if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof JsonThrowableResponseFactory) {
+    throw new RuntimeException('Expected the pure JSON profile instead of the generic default.');
 }
 
 /** @var ErrorHandlerMiddlewareFactory $middlewareFactory the reusable fresh-scope service */

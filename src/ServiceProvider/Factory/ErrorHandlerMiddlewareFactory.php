@@ -16,32 +16,36 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
 
-use CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Psr\Container\ContainerInterface;
 
-/** Creates a fresh HTTP lifecycle handler without reusing the cached process handler. */
+/**
+ * Builds middleware with a fresh handler separate from the process service.
+ *
+ * @package CoiSA\ErrorHandler\ServiceProvider\Factory
+ */
 final class ErrorHandlerMiddlewareFactory
 {
     /**
-     * Invokes the existing core factory for each new middleware scope.
+     * Creates an independent middleware scope without registering PHP callbacks.
      *
-     * @param ContainerInterface $container application and library definitions
+     * @param ContainerInterface $container the container supplying a reusable handler factory and responses
      *
-     * @return ErrorHandlerMiddleware an unregistered wrapper with a distinct core handler
-     *
-     * @throws \Throwable a dependency or construction failure
+     * @return ErrorHandlerMiddleware middleware owning a fresh, initially unregistered handler
      */
     public function __invoke(ContainerInterface $container): ErrorHandlerMiddleware
     {
-        /** @var ErrorHandlerFactory $errorHandlerFactory */
-        $errorHandlerFactory = $container->get(ErrorHandlerFactory::class);
-        $errorHandler = $errorHandlerFactory($container);
+        /**
+         * @var ErrorHandlerFactory $handlerFactory
+         */
+        $handlerFactory = $container->get(ErrorHandlerFactory::class);
 
-        /** @var ThrowableResponseFactoryInterface $responseFactory */
-        $responseFactory = $container->get(ThrowableResponseFactoryInterface::class);
+        /**
+         * @var ThrowableResponseFactoryInterface $responses
+         */
+        $responses = $container->get(ThrowableResponseFactoryInterface::class);
 
-        return new ErrorHandlerMiddleware($errorHandler, $responseFactory);
+        return new ErrorHandlerMiddleware($handlerFactory($container), $responses);
     }
 }

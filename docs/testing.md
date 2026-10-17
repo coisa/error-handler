@@ -1,186 +1,133 @@
-# PHPUnit testing and coverage
+# Testing
 
-The library declares PHP `^7.4 || ^8.0`. Development integrations can require a
-newer runtime; resolve their actual graph as described in
-[contributor setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md).
+The Composer runtime constraint is `^8.3`. CI exercises PHP 8.3, 8.4 and 8.5;
+that test set does not impose an upper cap on the declared PHP 8.x range.
+Use Composer 2 and resolve development tools on the actual PHP being tested:
 
 ```sh
 composer update --no-plugins --no-scripts --no-interaction --prefer-dist
+composer validate --strict --no-check-publish
+composer check-platform-reqs
 composer --no-plugins check
-vendor/bin/phpunit --testsuite Unit --no-coverage
-vendor/bin/phpunit --testsuite Process --no-coverage
-XDEBUG_MODE=coverage composer --no-plugins test-coverage -- --coverage-cobertura tests/cobertura.xml
+php examples/verify.php
+php tests/Documentation/site.php
 ```
 
-`composer check` runs formatting, PHPCS, all PHPUnit suites and maximum PHPStan
-over source and tests. Coverage needs an enabled Xdebug or PCOV driver. When both
-are installed, select the intended driver explicitly rather than inferring it
-from a successful test run. Raw Cobertura measures source lines; the independent
-coverage job compares the authentic target-branch baseline and permits decreases
-while enforcing an overall minimum. The repository variable
-`MINIMUM_COVERAGE_THRESHOLD` configures that floor, defaulting to **80%** when unset.
-See [coverage reporting](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md#phpunit-coverage-and-pr-notes).
+The library does not track a Composer lock. Applications retain their own locks.
+The check runs the CoiSA formatter, PHPCS, PHPUnit and maximum PHPStan over
+source and tests. The PHPUnit 12.5/13.x graph uses native attributes, not the
+retired PHPUnit 9 annotation metadata. Dependency resolution is version-specific;
+record PHP, Composer and `composer show --locked` rather than assuming all runners
+resolve the same packages. No host runtime installation is required by this guide.
 
-Overall line coverage is covered instrumentable lines divided by all instrumentable
-lines, rather than the average of class percentages. Ten uncovered lines in one
-class and 90 covered lines elsewhere yield 90% overall. An 80% overall floor does
-not require 80% in every class; file colors and negative differences remain visible
-without independently failing the job. At the default floor, a decrease to 80%
-passes and a result below 80% fails. A different configured floor changes that
-boundary. Even 100% overall line coverage does not prove every branch or behavior.
+## Direct and process tests
 
-## Test responsibilities
+The Unit suite exercises handlers, listeners, providers, HTTP adapters and native
+callback ownership directly. Functional tests compose the real FastForward
+provider, explicit application overrides, cached services and fresh factories.
+Only tests that mutate global callbacks request PHPUnit process isolation.
 
-- `tests/Unit`: direct class contracts, including collaborator identity, return
-  values, errors, ordering, configuration, caching, PHP warning metadata,
-  callback restoration and successful/failed output capture. Specific `@covers`
-  annotations describe the subject. Doubles control application-owned services;
-  actual PSR message values and real PHP callbacks are used where relevant.
-  Optional Interop provider cases use the real FastForward development dependency:
-  inert lookup, cached aliases, fresh nested middleware scopes, legacy defaults,
-  JSON/configuration, independent provider responsibilities, JSON-first versus
-  base-first selection, lazy shared Whoops pages, aggregate override precedence,
-  report ordering and failure identity.
-- `tests/Functional`: legacy application/container composition. These tests
-  retain `@coversNothing`; direct class tests measure their runtime subjects
-  independently. Cases installing native callbacks use explicit PHPUnit
-  isolation. Pure tests no longer start an unnecessary PHP interpreter each time.
-- `tests/Process`: genuine uncaught/shutdown/fatal and hazardous output-handler
-  behavior, asserted by PHPUnit through public Symfony Process. External children
-  do not contribute to the parent's unit-coverage XML.
-- `tests/Fixtures`: only the small native lifecycle/output fixtures and unchanged
-  invalid parse/compile inputs. Run them through PHPUnit, never directly in an
-  application, agent or parent test process.
-- `tests/Production`: committed-archive and clean no-dev consumer checks. They
-  prove installed metadata/autoloading across the declared PHP range, which unit
-  tests of a development checkout cannot establish. This includes construction
-  of the optional Interop provider objects without FastForward installed; their
-  service maps are only used in the explicit PHP 8.3+ integration.
+The Process suite uses the public Symfony Process API for actual termination.
+Children run `php -n` with 16 MiB, a two-second timeout and an abort after more
+than 64 KiB of observed output. A one-shot limit prevents the output callback
+from throwing again during cleanup; `finally` stops/reaps the child. A final
+pipe chunk can arrive during stop, so the observed limit is not an exact retained
+byte ceiling. Fixtures use synthetic data, no network, no credentials and no
+application logs. They do not merge child coverage into PHPUnit's parent report.
 
-The old standalone Fire/HTTP runners and custom process helper have been retired.
-Ordinary warnings/capture and the four HTTP response tuples now run directly in
-PHPUnit. No server is needed: the library returns PSR responses and applications
-own emission. Integer 404 stays 404, 503 falls back to 500, ordinary exceptions and
-TypeError produce 500; tests also verify exact captured bodies, original events
-and restored native callbacks. They do not certify an HTTP server or change the
-legacy defaults. The opt-in JSON/provider tests separately assert one private
-report and generic public output; they do not imply the proposed major's default
-rendering policy.
-
-## Process bounds and known limits
-
-Each native fixture runs with `PHP_BINARY -n`, a 16 MiB memory limit, a two-second
-Symfony Process timeout and an interruption threshold of 64 KiB combined output.
-`finally` calls `stop(0)` on the owned child. Output can arrive in a final chunk
-during cleanup; this threshold is not a promise of exact byte-level buffer
-retention. The output callback raises once so cleanup cannot replace that
-exception while draining pipes. Fixtures never spawn descendants or contact
-external domains, credentials, application logs or production services.
-
-Symfony Process is a direct development dependency. Its declared lines 5.4/6.4/
-7.4/8.0 permit resolution appropriate to PHP 7.4 and modern development runtimes;
-record the actual selected versions. Minimum-runtime component probes and native
-CI are evidence for the executed platforms, not universal Windows/signal behavior.
-
-| Real native case | Observed 2.x contract or limitation |
+| Behavior | Evidence |
 | --- | --- |
-| Uncaught Exception/Error/TypeError/ParseError | Original type is reported; process exits 0, a known limitation |
-| Compile fatal and bounded OOM | Exit 255, native diagnostic and fatal-severity reporting; no recovery |
-| Nested fatal handlers | Both report, preserving the known duplicate-delivery limitation |
-| Repeated registrations | Three cycles plus final registration retain four shutdown notifications |
-| Previous native callbacks | Reverse-order restoration preserves their actual delivery/mask/exit behavior |
-| Reporter throws during native delivery | Three deliveries then exit 255, a known reentry limitation |
-| Shutdown adapter throws | Its actual shutdown failure is forwarded to the reporter |
-| Protected output scopes | Caller bytes survive; a protected nested scope prevents deeper cleanup |
-| Output callback throws | Primary failure remains; cleanup continues when PHP removed that buffer and stops without progress |
-| Output callback exits | Its exit status wins; caller catch is never reached |
-| Reporter closes capture at native depth zero | Existing diagnostic fallback is returned with no missing-buffer warning |
+| Warnings, masking and suppression | Direct native warnings, severity/identity metadata and continuation |
+| Uncaught Exception, Error, TypeError and ParseError | Bounded child reports original type and exits 1 |
+| Compile/allocation fatals, nested handler | Native failure remains fatal; only the active owner reports; compile cases preserve message/file/line against the native snapshot and fixture source |
+| Re-registration and callback restoration | One retained shutdown callback, stable closure identities, reverse-order ownership and rejection of either callback's isolated replacement without altering native masks |
+| Failed or recursive reporter | Propagation without retry during registration; direct reuse and lifecycle reset tested separately |
+| Default fail-fast aggregate | The identical reporter failure stops later slots; a subsequent independent invocation can complete |
+| Generic HTTP rendering | One diagnostic report, then a separate renderer; status 400–599 and standard reason phrases |
+| Output capture | Exact nonempty bytes including `0`, generic fallback for empty/closed capture without reading caller output, cleanup on success/failure, primary failure precedence |
+| Capture closed at native depth zero | Generic fallback with no missing-buffer warning, through the existing bounded child rather than closing PHPUnit-owned buffers |
+| Protected/terminating output handlers | Externally bounded Process cases preserve caller ownership and show native termination limits |
+| Fatal in an earlier shutdown callback | Fresh and reused handlers both receive no event; PHP aborts the remaining queue |
 
-Direct tests retain empty/`"0"` diagnostic fallback and successful unbalanced
-capture: the inner output becomes the body and an outer buffer remains. Passing
-characterization does not endorse these limitations or change runtime policy.
-Another direct unit regression closes capture before returning and verifies the
-exact diagnostic fallback, unchanged caller bytes/depth and no premature caller
-callback. Only the depth-zero case runs through the existing bounded child, so
-the test does not close PHPUnit's own output buffers.
+The PHPUnit suites and bounded example verifier cover the meaningful behavior of
+the retired standalone Fire/HTTP parents and Python verification scripts.
+Synthetic builtin overrides and self-tests of the retired runner are not
+equivalent native evidence.
 
-Six instrumentable lines forward a genuinely fatal last error; three stream
-cleanup lines stop protected, failed or non-progressing cleanup. These remain
-outside ordinary unit measurement. A real throwing native cleanup callback is
-tested directly with removable scopes restored in `finally`. Native process
-tests prove the other reachable hazardous operations; synthetic substitutions that made a native
-function return success without closing a buffer were discarded. No private
-reflection, coverage ignores, source exclusions or child-coverage protocol merging
-is used to claim 100%. Consult the implementation PR for exact reports and SHAs.
+## Production and documentation
 
-## Consumer examples and documentation
+CI exports the committed Git archive, verifies development-file exclusions and
+installs it into a fresh consumer with `--no-dev --no-plugins --no-scripts`.
+Production jobs run PHP 8.3–8.5; lower-bound runtime graphs run on 8.3 and 8.5.
+The consumer requires only this library, so FastForward/Interop/PSR dependencies
+must resolve transitively. See [production checks](https://github.com/coisa/error-handler/blob/master/tests/Production/README.md).
+The archive gate also requires every file of the canonical consumer skill,
+including nested examples and its license, with exact source bytes. Functional
+PHPUnit cases reject missing, changed and unrelated resource assets; the bundled
+application programs use an explicit consumer autoloader. See the
+[skill examples](../resources/skills/coisa-error-handler/examples/README.md).
+FastForward may normalize construction failures and retry autowiring: failed
+required construction is asserted without promising one attempt or original cause.
 
-### Direct logging compatibility
+`php examples/verify.php` checks every complete recipe and documented mode,
+including the adapters and JSON/Whoops profiles delivered in 2.x. The existing Symfony Process verifier uses
+five-second/64 MiB children and aborts above 16 KiB of observed output. It clears
+inherited environment variables except the selected autoloader/fixture marker.
+`php tests/Documentation/site.php` checks local source links, anchors and all
+seventeen complete cookbook recipes against executable source, omitting only the
+leading license header. Duplicate, changed or missing recipes fail; a new
+executable recipe needs its own complete entry. Bootstrap, assertion helper and
+verifier are setup tools, not recipes. The site retains its source-parity checks.
+Neither command starts a server or publishes Pages.
 
-The opt-in `LogThrowableHandler` consumes the existing `psr/log`
-`^1.1 || ^2.0 || ^3.0` interface without supplying a logger implementation.
-Verify each major explicitly: an ordinary highest/lowest dependency matrix can
-omit 2.x. Resolve an isolated application on its actual PHP, select the PSR-3
-major there, then run the focused `LogThrowableHandlerTest` PHPUnit cases and
-[logging recipe](https://github.com/coisa/error-handler/blob/master/examples/logging.php).
-PHP 7.4 needs a compatible 1.x resolution; modern fixtures can exercise 2.x/3.x.
-Do not bypass platform requirements or change the library's dependency range.
-Recording-log tests establish calls, messages, context and failure propagation,
-not delivery to a real backend. Consult the implementation PR for the exact
-runtimes, resolved versions and measured coverage.
+## Coverage and current evidence
 
-### Cookbook and site
+The PHP 8.5/Xdebug job exports native Clover and Cobertura for all `src/` files.
+The inherited master policy permits overall decreases and fails below the
+repository variable `MINIMUM_COVERAGE_THRESHOLD`, defaulting to **80%** when unset.
+The workflow emits per-file differences/colors and a sticky report. Verify which
+target or stack baseline the actual run selected before interpreting the delta.
+At the default floor, 80% passes and a result below it
+fails; a configured variable overrides that default. No variable is changed by
+the workflow. Execution, invalid-report and artifact failures remain failures.
 
-Run `php examples/verify.php` after installing the development/application
-dependencies. The [cookbook](https://github.com/coisa/error-handler/blob/master/examples/README.md)
-and [verifier guide](https://github.com/coisa/error-handler/blob/master/examples/verify.md)
-describe its real inputs, expected outputs and separate bounded native-fatal
-example. It uses Symfony Process directly and no test helper framework.
+Overall coverage weights instrumentable lines, not class percentages: ten
+uncovered lines plus 90 covered lines elsewhere produce 90% overall. An 80%
+overall floor is not an 80% floor per class. Even 100% of lines does not prove all
+branches or behaviors.
+The sticky note identifies the head SHA, tested merge SHA and workflow run.
+Read those exact identities; a historical note or a running review is not approval.
+Runtime coverage includes all source files without merged child coverage or
+artificial coverage ignores. PHPStan's output-buffer stub supplies analysis
+metadata only and is never loaded by the runtime/autoloader/test suite.
 
-With PHP 8.3+ and `fast-forward/container:^1.9`, run
-`php examples/verify.php --with-fast-forward` to include both JSON and both Whoops
-provider modes in the same bounded runner, with Whoops installed for HTML. The default remains independent of this optional
-runtime. Core production consumers install no library development dependencies;
-Quality PHP 8.3–8.5 runs the provider unit tests and maximum PHPStan with the actual
-FastForward graph. This adds no new runner or alternate analysis stubs.
+Resolve development dependencies on the actual PHP runtime. PHP 8.3 uses the
+admitted PHPUnit `^12.5` line; PHPUnit `^13.4` requires PHP 8.4.1 or later.
+Symfony Process similarly admits `^7.4` for PHP 8.3 and `^8.1` for PHP 8.4.1+.
+The manifest retains both compatible lines without raising the library's PHP floor.
+Native coverage requires the recorded Xdebug or PCOV version; a lockfile or
+successful resolution alone does not prove execution on another PHP version.
 
-Run `php tests/Documentation/site.php` with PHP 7.4+ and DOM to verify displayed
-source excerpts, unique IDs, anchors and links in `docs/index.html`. It also checks
-every complete recipe in [the 2.x cookbook](examples.md) against executable source,
-omitting only its leading license header. Duplicate, changed or missing recipes
-fail validation; new executable recipes need a matching complete entry. The shared
-bootstrap, assertion helper and verifier are setup tools rather than recipes.
-Browser layout, keyboard navigation and accessibility require separate visual evidence.
-The [documentation workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/pages.yml)
-performs these read-only checks on PRs and manual runs. GitHub Pages publishes
-the configured branch's `/docs` folder (currently `master`) through its native
-branch deployment; the workflow has no upload or deployment job. See GitHub's
-[publishing-source documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+FastForward Container `^1.10` requires Config `^1.6`, removing PHP-DI and
+DotAccessData from that runtime graph. The Nyholm development minimum is 1.8.2,
+which includes its PHP 8.5 nullable-parameter fixes. Applications select their
+own PSR-17 implementation. Keep dependency diagnostics under `E_ALL` visible and
+record the graph, test totals, native uncovered lines and hosted SHA in PR evidence.
 
-Native PHP CI provides style/tests/PHPStan/coverage and clean consumer evidence.
-The retired Scrutinizer requested additional data-flow security analysis; PHPStan
-and PHPCS are not equivalent to that capability. Repository cleanup does not
-alter the external service. FPM/Apache, Windows, concurrency, arbitrary reporter
-side effects and production load still require application-specific validation.
+## Limits
 
-### Bundled consumer programs
+PHP-FPM, Apache, Windows, concurrent fibers/requests, signals, remote transports and
+production load need application-specific tests. Startup failures, SIGKILL and
+fatal errors that abort a shutdown queue cannot be recovered. Output callbacks
+can terminate PHP or have arbitrary side effects; cleanup only removes reachable
+removable scopes and stops without progress. Reporters own private diagnostics;
+a safe PSR response body cannot prevent an application reporter from echoing.
 
-`ConsumerSkillExamplesTest` runs the canonical skill's complete application
-programs with an explicit consumer autoloader in bounded children. The optional
-Whoops cases include direct HTML and both aggregate-provider page configurations;
-their programs require `^2.5` for JSON/Whoops/provider APIs published in 2.5.0 and
-reject unavailable symbols rather than treating the common `^2.4` baseline as proof
-of every additive class. Installed-package checks run the
-same programs with the consumer's real dependencies. The archive guard requires
-every canonical file and its source bytes, including focused references, examples
-and license; these checks do not install or activate an agent skill.
+An output-handler object's destructor can open a replacement buffer after PHP
+removes its original scope. The direct stream-factory unit test verifies cleanup
+stops when depth does not decrease, preserves the original failure and caller
+bytes, and never creates a stream. The test explicitly removes its replacement
+scopes and restores the fixture in finally; the factory does not promise to
+remove every scope after native callbacks or destructors change the stack.
 
-### Optional Whoops HTML adapter
-
-`WhoopsThrowableResponseFactoryTest` uses real Whoops pages and PSR messages. Synthetic superglobal tables have positive exposure controls before configured key hiding and are restored after every test. Tests cover status boundaries/string SQLSTATE, original identity, one report, fresh sequential pages/bodies, escaped text and unchanged collaborator failures. The method touching native callback stacks uses PHPUnit's standard separate-process isolation. Caller output/buffers and continuation are tested without mocking native functions. Native CGI headers require separate bounded SAPI evidence, not CLI header assertions.
-
-Whoops is a development dependency for these tests, optional for consumers. Verify the supported `^2.18.4` lower bound as well as the current version on actual PHP; a declared constraint alone is not execution proof. Production consumers without Whoops must load core/container and the adapter class, then receive a useful `LogicException` only if they select its constructor. Do not fake dependency absence inside the installed development autoloader. Consult the implementation PR for actual graphs and SHAs.
-
-The optional Whoops provider uses real FastForward in PHPUnit: default/custom page services remain lazy and cached, configuration persists and sequential diagnostic/GET data is replaced. Tests exercise the exact provider map and both separate-provider orders, plus application overrides through one aggregate. With the selected Whoops integration present, rendering reports the original once and reporter/Whoops failures retain identity. Tests distinguish a failing concrete page factory's autowiring fallback from incompatible returned services and actual rendering failures. Native lifecycle cases are isolated and verify distinct active handlers and restoration; pure rendering cases install no callbacks. The bounded provider recipe then exercises the complete middleware/render/report path from a real source file. Installed consumers additionally verify profile construction without Whoops, the missing-dependency hint through the recommended aggregate, the separate-provider fallback limit and an application `--no-dev` graph with FastForward and Whoops explicitly required. Core PHP 7.4 and optional FastForward PHP 8.3+ are separate platform checks.
-
-The [HTTP guide](http.md#opt-in-development-html-with-whoops) records the separately reproduced STDIN trace limitation on PHP 8.5.11/Whoops 2.18.6. PHPUnit's generated stdin harness can encounter the same upstream source-reading path. Keep lifecycle assertions isolated and pure rendering independent; neither a trace rewrite nor warning suppression establishes a production fix.
+Release maintenance uses the existing [Changesets procedure](releases.md).

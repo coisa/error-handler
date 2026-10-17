@@ -62,13 +62,13 @@ foreach ($document->getElementsByTagName('*') as $element) {
 $links = 0;
 foreach ($document->getElementsByTagName('a') as $link) {
     $href = $link->getAttribute('href');
-    if (0 === strpos($href, '#')) {
+    if (str_starts_with($href, '#')) {
         if (!isset($ids[substr($href, 1)])) {
             throw new \RuntimeException('Missing site anchor: ' . $href);
         }
-    } elseif (0 === strpos($href, 'https://')) {
+    } elseif (str_starts_with($href, 'https://')) {
         $prefix = 'https://github.com/coisa/error-handler/blob/master/';
-        if (0 === strpos($href, $prefix) && !is_file($root . '/' . substr($href, \strlen($prefix)))) {
+        if (str_starts_with($href, $prefix) && !is_file($root . '/' . substr($href, \strlen($prefix)))) {
             throw new \RuntimeException('Missing repository link target: ' . $href);
         }
     } else {
@@ -85,13 +85,32 @@ foreach ($document->getElementsByTagName('pre') as $pre) {
         throw new \RuntimeException('Every source excerpt needs exactly one code element.');
     }
 
-    $source = $code->getAttribute('data-source');
+    $source = $code->getAttribute('data-example') ?: $code->getAttribute('data-source');
+    if ('' === $source) {
+        // Commands have no source excerpt; executable PHP recipes always name their source.
+        if (1 !== preg_match('~^(git |cd |composer |php |vendor/bin/phpunit )~', trim($code->textContent))) {
+            throw new \RuntimeException('An executable source block must name its example.');
+        }
+
+        continue;
+    }
     if (1 !== preg_match('~^examples/[a-z-]+\.php$~', $source)) {
-        throw new \RuntimeException('Every source excerpt must name an executable example: ' . $source);
+        throw new \RuntimeException('Invalid executable example path: ' . $source);
     }
 
     $snippet = $code->textContent;
-    if ('' === trim($snippet) || false === strpos($readFile($root . '/' . $source), $snippet)) {
+    $contents = $readFile($root . '/' . $source);
+    if ($code->hasAttribute('data-example')) {
+        // Licensing headers are retained in source and omitted only from displayed recipes.
+        $contents = preg_replace('~/\*\*.*?\*/\s*\n~s', '', $contents, 1);
+        if (null === $contents || trim($snippet) !== trim($contents)) {
+            throw new \RuntimeException('Displayed complete recipe differs from source: ' . $source);
+        }
+        $cookbook = $readFile($root . '/docs/examples.md');
+        if (!str_contains($cookbook, trim($snippet))) {
+            throw new \RuntimeException('The cookbook is missing the complete recipe: ' . $source);
+        }
+    } elseif ('' === trim($snippet) || !str_contains($contents, $snippet)) {
         throw new \RuntimeException('Displayed source differs from its executable example: ' . $source);
     }
     ++$snippets;
@@ -154,7 +173,8 @@ if ([] !== $unexpectedRecipes) {
 }
 
 printf(
-    "Static 2.x documentation passed: %d source excerpts, %d links, %d unique anchors and %d complete recipes.\n",
+    'Static major documentation passed: %d source excerpts, %d links, '
+    . "%d unique anchors and %d complete recipes.\n",
     $snippets,
     $links,
     \count($ids),

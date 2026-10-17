@@ -19,17 +19,14 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 
 require __DIR__ . '/bootstrap.php';
 
-$errors = new ErrorHandler(new CallableThrowableHandler(
-    /**
-     * Print only the synthetic message used by this executable example.
-     *
-     * @param Throwable $error the synthetic failure to report
-     */
-    static function (Throwable $error): void {
-        echo 'reported: ' . $error->getMessage() . PHP_EOL;
-    },
-));
+$reporter = new CallableThrowableHandler(static function (Throwable $error): void {
+    fwrite(STDERR, $error::class . ': ' . $error->getMessage() . PHP_EOL);
+});
 
-$errors->handleThrowable(new RuntimeException('Example failure'));
+$handler = new ErrorHandler($reporter);
 
-echo 'continued' . PHP_EOL;
+$handler->register();
+
+trigger_error('Example warning; execution continues.', E_USER_WARNING);
+
+throw new RuntimeException('Example uncaught exception; exit status is 1.');

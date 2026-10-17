@@ -18,6 +18,8 @@ namespace CoiSA\ErrorHandler\Test\Unit\Http\Message;
 
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -27,9 +29,8 @@ use Psr\Http\Message\StreamInterface;
  * Verifies explicit JSON status, representation and PSR factory failure boundaries.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory
  */
+#[CoversClass(JsonThrowableResponseFactory::class)]
 final class JsonThrowableResponseFactoryTest extends TestCase
 {
     /** Requires rendering to return data without printing diagnostics. */
@@ -43,9 +44,8 @@ final class JsonThrowableResponseFactoryTest extends TestCase
      *
      * @param int|string $code           the native exception or SQLSTATE-like code
      * @param int        $expectedStatus the public HTTP error status
-     *
-     * @dataProvider provideCreatesGenericJsonWithoutUsingDiagnosticMessagesCases
      */
+    #[DataProvider('provideCreatesGenericJsonWithoutUsingDiagnosticMessagesCases')]
     public function testCreatesGenericJsonWithoutUsingDiagnosticMessages($code, int $expectedStatus): void
     {
         $throwable = new class ($code) extends \PDOException {
@@ -300,7 +300,7 @@ final class JsonThrowableResponseFactoryTest extends TestCase
 
         self::assertSame(404, $response->getStatusCode());
         self::assertSame('Not Found', $response->getReasonPhrase());
-        self::assertSame(\get_class($throwable), $exception['class']);
+        self::assertSame($throwable::class, $exception['class']);
         self::assertSame("Private \u{FFFD} diagnostic", $exception['message']);
         self::assertSame("source-\u{FFFD}.php", $exception['file']);
         self::assertSame(42, $exception['line']);

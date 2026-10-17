@@ -6,29 +6,33 @@ does not negotiate `Accept`, infer an environment or enable debug from a header.
 
 ## Inspect the selected installation
 
-The Whoops renderer and Interop profile were published in 2.5.0 and require
-`coisa/error-handler ^2.5`. The common `^2.4` baseline does not establish their
-availability. Inspect `composer show coisa/error-handler`, the matching installed
-source and its autoloader before selecting this route:
+This route requires PHP `^8.3`. Inspect `composer show coisa/error-handler`,
+the matching source, PHP version and its autoloader before selecting this route:
 
 ```sh
-php -r 'require "vendor/autoload.php"; foreach (["CoiSA\\ErrorHandler\\Http\\Message\\WhoopsThrowableResponseFactory", "CoiSA\\ErrorHandler\\Http\\Message\\ReportingThrowableResponseFactory"] as $class) { if (!class_exists($class)) { throw new RuntimeException("Selected installation lacks " . $class); } }'
+php -r 'require "vendor/autoload.php"; if (!class_exists("CoiSA\\ErrorHandler\\Http\\Message\\WhoopsThrowableResponseFactory")) { throw new RuntimeException("Selected installation lacks the Whoops renderer"); }'
 ```
 
 The application supplies PSR-17 response/stream factories and
 `filp/whoops:^2.18.4`. The patch minimum includes Whoops's PHP 8.5 deprecation
 repair. A library development dependency is not installed transitively in a
 consumer. Core and unrelated integration remain usable without Whoops.
-Use the installation's own supported route when these APIs are absent; do not
-upgrade or substitute another API automatically.
+Renderer classes also exist in published 2.5.0, but the middleware described here
+reports before rendering. Class discovery alone does not establish that contract.
+Use matching source and skill; do not upgrade or substitute an API automatically.
 
 For an authorized development installation, follow the
 [complete setup and program](../examples/README.md#development-html).
-Direct construction retains PHP 7.4-compatible syntax. Construct
+Construct
 `WhoopsThrowableResponseFactory($responses, $streams, $pageFactory)`, where
 `$pageFactory` is a trusted `callable(): Whoops\Handler\PrettyPageHandler`:
 
 ```php
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
+use Whoops\Handler\PrettyPageHandler;
+
 $html = new WhoopsThrowableResponseFactory(
     $responses,
     $streams,
@@ -42,9 +46,7 @@ $html = new WhoopsThrowableResponseFactory(
     },
 );
 
-$rendering = new ReportingThrowableResponseFactory($reporter, $html);
-
-$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $rendering);
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $html);
 ```
 
 The complete [program](../examples/whoops.php) includes imports, private reporter,
@@ -59,11 +61,11 @@ the adapter cannot undo arbitrary collaborator effects.
 
 The result has `text/html; charset=UTF-8`, `Cache-Control: no-store`, an integer
 throwable status from 400–599 or fallback 500, and the PSR-17 default reason.
-The decorator delivers the identical original once before rendering for the 2.x
-middleware, which does not report independently first. Reporter failure prevents
-rendering; callback/Whoops/PSR-17 failures propagate without retry. Do not decorate
-legacy capture, which already reports. A report-before-render middleware needs
-the pure renderer directly rather than another reporting decorator.
+Middleware delivers the identical original once before rendering. Reporter
+failure prevents rendering; callback/Whoops/PSR-17 failures propagate without
+retry. Supply this pure renderer directly. The retained
+`ReportingThrowableResponseFactory` is an explicit utility for other pipelines;
+adding it here would report the original twice.
 
 ## Compose the independent Whoops profile
 
@@ -71,7 +73,7 @@ First verify that the selected installation contains
 `ServiceProvider\WhoopsErrorHandlerServiceProvider`, the base
 `ServiceProvider\ErrorHandlerServiceProvider` and
 `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`. The application must
-run PHP 8.3+ and require `fast-forward/container:^1.9` at runtime.
+run PHP 8.3+; FastForward `^1.10` is required by this source at runtime.
 
 The [complete provider program](../examples/provider-whoops.php) supplies the
 PSR-17 interfaces and private reporter through its application provider. Compose
@@ -106,9 +108,10 @@ An aggregate fixes binding precedence, not fail-closed construction: FastForward
 may autowire a default page after a concrete page factory throws. Preparing a
 page before composition does not change that fallback policy. An incompatible
 returned page raises `TypeError`; an actual `handle()` failure propagates.
-Separate Whoops/base/application providers can fall back to reporting around
-legacy capture without Whoops and report the original twice. Use the one-aggregate
-route, which preserves the missing-package cause/hint in the verified consumer.
+Separate providers can also continue after PSR-11 resolution errors and select
+another response definition. Use one aggregate to select the intended profile
+and application bindings, then test the actual missing-package and failed-factory
+behavior. Do not infer a particular renderer or exception chain from map order.
 
 ## Verify diagnostic and delivery limits
 

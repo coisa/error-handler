@@ -20,15 +20,19 @@ use CoiSA\ErrorHandler\Exception\AggregateReportingException;
 use CoiSA\ErrorHandler\Handler\BestEffortThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Verifies ordered, single-pass reporting and complete failure preservation.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\BestEffortThrowableHandlerAggregate
  */
+#[CoversClass(BestEffortThrowableHandlerAggregate::class)]
+#[UsesClass(AggregateReportingException::class)]
+#[UsesClass(CallableThrowableHandler::class)]
 final class BestEffortThrowableHandlerAggregateTest extends TestCase
 {
     /** Requires the aggregate to leave diagnostic output to its delegates. */
@@ -43,16 +47,15 @@ final class BestEffortThrowableHandlerAggregateTest extends TestCase
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::never())->method('handleThrowable');
 
-        new BestEffortThrowableHandlerAggregate($reporter);
+        self::assertInstanceOf(ThrowableHandlerInterface::class, new BestEffortThrowableHandlerAggregate($reporter));
     }
 
     /**
      * Verifies zero, one and many successful reporters return normally in order.
      *
      * @param int $count the number of independently recorded slots
-     *
-     * @dataProvider provideSuccessfulSlotsReceiveTheOriginalOnceInOrderCases
      */
+    #[DataProvider('provideSuccessfulSlotsReceiveTheOriginalOnceInOrderCases')]
     public function testSuccessfulSlotsReceiveTheOriginalOnceInOrder(int $count): void
     {
         $original = new \Error('original');
@@ -93,9 +96,8 @@ final class BestEffortThrowableHandlerAggregateTest extends TestCase
      * Verifies every slot is attempted before any ordered aggregate failure escapes.
      *
      * @param list<bool> $failing which configured slots throw their distinct failure
-     *
-     * @dataProvider provideAttemptsEverySlotAndPreservesAllFailuresCases
      */
+    #[DataProvider('provideAttemptsEverySlotAndPreservesAllFailuresCases')]
     public function testAttemptsEverySlotAndPreservesAllFailures(array $failing): void
     {
         $original = new \RuntimeException('original');

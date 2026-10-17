@@ -1,8 +1,8 @@
 # Release notes and version PRs
 
 Changesets is development tooling for the Composer package `coisa/error-handler`.
-The private npm manifest starts at the published `2.0.0` baseline and tracks the
-next version. It is never published to npm. Composer continues to derive its
+The private npm workspace `@coisa/error-handler` tracks the release version.
+It is never published to npm. Composer continues to derive its
 version from Git tags; do not add a `version` field to `composer.json`.
 
 Installing or using the PHP library does not require Node.js. The tooling,
@@ -26,7 +26,7 @@ Select `@coisa/error-handler`, choose the appropriate bump, and describe the
 consumer-visible change in English. Commit the generated `.changeset/*.md` file
 with the change. Use `patch` for compatible fixes or maintenance and `minor` for
 compatible additions. Changes to public contracts or supported PHP versions need
-separate major-release planning. This setup includes only a maintenance patch.
+separate major-release planning.
 
 Keep `package-lock.json` committed to make development dependencies reproducible.
 Do not run the version command as part of an ordinary feature PR.
@@ -91,8 +91,9 @@ jobs skip `dependabot/` branches because the writer already creates the note; th
 do not depend on the writer. The general Changesets validation remains independent.
 No PR code is executed by the writer.
 
-This activates after merge. Observe the first real bot PR and rebase then; local
-checks do not establish hosted write permissions. `GITHUB_TOKEN` commits
+Verify the generated note and its commit on the current Dependabot PR after
+updates or rebases; local checks do not establish hosted write permissions.
+`GITHUB_TOKEN` commits
 [do not trigger ordinary PR workflows](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow),
 so the generated commit does not automatically get another validation run. The
 existing `workflow_dispatch` trigger can validate the updated branch manually.
@@ -187,9 +188,9 @@ after creating a tag but before creating its GitHub release, inspect that tag
 and finish the missing release with the matching changelog entry; this minimal
 workflow does not add a separate recovery implementation.
 
-The first live version PR and release must still be observed after an
-owner-authorized merge. Review prerelease needs separately before adding a
-prerelease policy to this stable 2.x flow.
+After an owner-authorized version-PR merge, verify the workflow run, immutable
+tag, matching GitHub release and Packagist reference. Review prerelease needs
+separately before adding a prerelease policy to this stable-release flow.
 
 ## Maintain the changelog introduction and history
 
@@ -220,9 +221,11 @@ git diff -- package.json package-lock.json CHANGELOG.md .changeset
 Never commit the token. Adding notes and running `changeset:status` do not need
 a GitHub token.
 
-With only the initial maintenance note, expect `2.0.1` in both manifests, a patch
-changelog entry, and removal of that note. `composer.json` and `src/` must remain
-unchanged; any ignored local `composer.lock` is outside release preparation.
+Derive the expected version and bump from the current `changeset:status` release
+plan. The rehearsal must write that version to both npm manifests, add the
+matching changelog entry and consume the planned notes. `composer.json` and
+`src/` must remain unchanged; any ignored local `composer.lock` is outside
+release preparation.
 A second run with no pending notes must not bump
 the version again; Changesets 3 exits with code 1 for that no-op. The validation
 job skips this command when the release plan is empty. Do not commit a local

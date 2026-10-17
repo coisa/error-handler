@@ -22,6 +22,7 @@ use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 
@@ -29,20 +30,14 @@ use Psr\Http\Message\ResponseInterface;
  * Verifies one explicit diagnostic delivery before pure response rendering.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory
  */
+#[CoversClass(ReportingThrowableResponseFactory::class)]
 final class ReportingThrowableResponseFactoryTest extends TestCase
 {
-    /** Requires the decorator itself to produce no public output. */
-    protected function setUp(): void
-    {
-        $this->expectOutputString('');
-    }
-
     /** Reporting precedes rendering with exact throwable and response identities. */
     public function testReportsOnceBeforeRenderingTheSameThrowable(): void
     {
+        $this->expectOutputString('');
         $throwable = new \Error('Original diagnostic');
         $response = (new Psr17Factory())->createResponse(500);
         $calls = [];
@@ -86,6 +81,7 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
     /** A reporter failure blocks rendering and propagates as the same object. */
     public function testReporterFailurePreventsRendering(): void
     {
+        $this->expectOutputString('');
         $throwable = new \RuntimeException('Original diagnostic');
         $failure = new \LogicException('Private reporter failed');
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
@@ -109,6 +105,7 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
     /** A renderer failure does not cause a second diagnostic delivery. */
     public function testPropagatesRendererFailureWithoutReportingAgain(): void
     {
+        $this->expectOutputString('');
         $throwable = new \RuntimeException('Original diagnostic');
         $failure = new \LogicException('Response renderer failed');
         $reporter = $this->createMock(ThrowableHandlerInterface::class);

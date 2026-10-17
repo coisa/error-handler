@@ -32,7 +32,7 @@ final class ConfiguredErrorHandlerFactory
      * @param array<string, mixed> $configuration application configuration
      * @param array<string, mixed> $overrides     explicit application or test overrides
      *
-     * @return ErrorHandler a new handler using the selected reporter
+     * @return ErrorHandler a new handler using the selected interface or callable reporter
      *
      * @throws \InvalidArgumentException when the selected reporter is absent or invalid
      */
@@ -41,8 +41,8 @@ final class ConfiguredErrorHandlerFactory
         $settings = array_replace($configuration, $overrides);
         $reporter = $settings['reporter'] ?? null;
 
-        if (!$reporter instanceof ThrowableHandlerInterface) {
-            throw new \InvalidArgumentException('Configure a ThrowableHandlerInterface reporter.');
+        if (!$reporter instanceof ThrowableHandlerInterface && !\is_callable($reporter)) {
+            throw new \InvalidArgumentException('Configure an interface or callable reporter.');
         }
 
         return new ErrorHandler($reporter);

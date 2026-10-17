@@ -1,71 +1,80 @@
-# Legacy PSR-11 and ConfigProvider composition
+# FastForward and Interop composition
 
-Read when an application already uses a PSR-11 container or Laminas discovery.
-Use the complete [container program](../examples/container.php) and its
-[dependency/verification instructions](../examples/README.md#legacy-container).
-For an application choosing the separate Interop/FastForward integration, first
-inspect installed symbols and use [the optional JSON/provider route](json.md).
-That route was published in 2.5.0, requires `coisa/error-handler ^2.5` and
-application PHP 8.3+, and does not replace these legacy APIs or their `^2.4` baseline.
+Read when an application uses the Interop service provider. The complete
+[container program](../examples/container.php) and its
+[setup instructions](../examples/README.md#fastforward-container) supply a private
+reporter, resolve a cached handler and create a distinct scope. FastForward
+Container `^1.10` is required at runtime by the library; do not restore the removed
+`ErrorHandlerContainer`, `ConfigProvider` or Laminas metadata.
 
-The application binds its private reporter under
-`CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface`, then passes the parent
-to `CoiSA\ErrorHandler\Container\ErrorHandlerContainer`. The parent wins for an
-ID it reports as present; otherwise the library resolves its aliases/factories.
-Construction/resolution installs no callbacks. A parent lookup that throws is a
-failure, not an instruction to silently choose another reporter.
+FastForward 1.10 requires Config `^1.6`; these versions no longer use PHP-DI or
+DotAccessData. Inspect the actual locked graph and runtime result; Composer
+resolution alone does not establish a warning-free application. Keep diagnostics
+under `E_ALL` visible and separate dependency evidence from the library's behavior.
 
-Repeated `get(ErrorHandler::class)` returns the cached handler. Direct
-`(new ErrorHandlerFactory())($services)` constructs another core with possibly
-shared dependencies. `ErrorHandlerMiddlewareFactory` constructs a wrapper but
-resolves its handler from the container, so the handler can still be cached.
-Construct a distinct core and middleware for independent nested scopes.
+For optional reporter discovery and external PSR implementations, ordinary
+composition uses `container(ErrorHandlerServiceProvider::class, $application)`
+from `FastForward\Container`. The application is an Interop provider. The library
+discovers an available `CallableThrowableHandler` and PSR-14 adapters when their
+dispatcher is available. An empty default aggregate is silent. A logger,
+filtering reporter or best-effort aggregate is not automatically attached.
 
-The default aggregate is empty and silent. It attaches an available
-`CallableThrowableHandler`; when an application `EventDispatcherInterface` is
-present, it also attaches available raw-throwable and ErrorEvent adapters.
-Providing only `LoggerInterface`, a filtering reporter or best-effort aggregate
-does not automatically attach those services. Compose those reporters explicitly.
+The optional callable lookup skips not-found and FastForward's structural
+`AutowiringException` when no callback can be inferred. A dispatcher alone still
+receives the original throwable and its `ErrorEvent` wrapper. Other construction
+failures leave the aggregate factory; in FastForward 1.10.0 an executing provider
+factory's failure is wrapped with its cause. The final container may still
+autowire and cache an empty concrete aggregate after such a failure. Check actual
+deliveries after invocation, and bind `ThrowableHandlerInterface` explicitly for
+a required reporter; the default aggregate is not a fail-closed boundary.
 
-A Laminas-style application can merge its library configuration with
-application definitions:
+For a required reporter or renderer interface override, merge definitions in one
+`FastForward\Container\ServiceProvider\AggregateServiceProvider`: library
+first, application last, then pass that provider to `container()`. The bundled
+program uses `ArrayServiceProvider` and `ServiceFactory` for that application map.
+Separate variadic providers prioritize the first successful source and may fall
+back after a PSR container error; they do not establish a required override.
+An aggregate fixes binding precedence but does not make concrete service
+construction fail closed against FastForward's autowiring fallback.
 
-```php
-<?php
+## Select a response profile
 
-declare(strict_types=1);
+The base provider selects `ThrowableResponseFactory` with the pure
+`GenericThrowableStreamFactory`. Its optional reporter aggregate can be empty
+and silent. A configured private reporter remains an application responsibility.
+The independent profiles replace only the selected response services:
 
-use CoiSA\ErrorHandler\Container\ConfigProvider;
-use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use Laminas\ServiceManager\ServiceManager;
+- `JsonErrorHandlerServiceProvider` declares its pure JSON renderer and response
+  alias. Its optional boolean constructor input enables diagnostic JSON.
+- `WhoopsErrorHandlerServiceProvider` declares `PrettyPageHandler`, its pure
+  Whoops renderer and response alias. It has no constructor; customize the page
+  through the `PrettyPageHandler::class` application service.
 
-require __DIR__ . '/vendor/autoload.php';
-require __DIR__ . '/RecordingThrowableHandler.php';
+For a required reporter and a selected profile, use one aggregate in base,
+selected profile, application order. The later profile replaces the base response
+alias, and the application supplies its required reporter and PSR-17 bindings.
+Library providers do not instantiate or merge another provider. Follow the
+complete [JSON](json.md#compose-independent-providers) or
+[Whoops](whoops.md#compose-the-independent-whoops-profile) route. Select one
+profile explicitly; these providers do not inspect `Accept` or environment values.
 
-$definitions = (new ConfigProvider())->getDependencies();
-$definitions['services'][ThrowableHandlerInterface::class] = new RecordingThrowableHandler();
+Construction and discovery install no PHP callbacks. Repeated
+`get(ErrorHandler::class)` returns a cached handler. Resolve
+`CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory` and invoke it
+with the container for a fresh core; resolve and invoke the corresponding
+`ErrorHandlerMiddlewareFactory` for a fresh HTTP scope. Provider-created
+middleware has its own handler, separate from the cached process service.
+Register only at the actual application boundary and unwind distinct nested
+scopes in reverse order.
 
-$services = new ServiceManager($definitions);
-```
+Supply PSR-17 response and stream implementations. Middleware reports once before
+rendering with the selected pure factory; it does not need a reporting decorator.
+Keep output capture explicit and do not pass it the private reporter again.
+See [HTTP composition](http.md).
 
-Copy the bundled same-named reporter file beside this application example or
-substitute the existing application reporter. The library provider exposes
-aliases/factories; its Composer Laminas metadata does not register callbacks.
-Resolve the core and explicitly select the process/request owner.
-
-HTTP requires application PSR-17 implementations. Any global
-`ThrowableHandlerInterface` override also affects the legacy captured-output
-renderer: a silent private logger or nonmatching filter can leave empty output
-and expose diagnostic fallback text. Select the application
-[public response policy](http.md) explicitly.
-
-Unknown IDs use the library PSR-11 NotFoundException. Library factory failures can
-be wrapped in ContainerException; direct parent delegation retains its own
-failure behavior. Starting with 2.4.2, both public container-exception factories
-preserve the exact original as `getPrevious()`; integer codes are copied and
-string codes use 0 on the wrapper, retaining the string on the cause. Do not
-assume that patch repair in an older installed 2.4 release.
-
-Check application overrides, cached identity, fresh explicit construction,
-unknown IDs, missing required implementations and a failing parent factory.
+FastForward can retry construction and normalize failures to PSR-11 exceptions.
+Assert failed required-interface construction, not one factory attempt or an
+unchanged exception/cause through every supported container version. This does
+not change the reporter's own no-retry behavior. Check precedence, cached and
+fresh identities, no registration during lookup, missing implementations and
+reporter delivery/failure in the actual application graph.

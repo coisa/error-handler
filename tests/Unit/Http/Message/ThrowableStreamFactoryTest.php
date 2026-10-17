@@ -22,6 +22,9 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamFactoryInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies captured bytes, exceptional cleanup and primary failure propagation.
@@ -29,20 +32,17 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
  * Dangerous output callbacks are verified by PHPUnit Process tests and bounded fixtures.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory
- *
- * @uses \CoiSA\ErrorHandler\Handler\CallableThrowableHandler
  */
+#[CoversClass(ThrowableStreamFactory::class)]
+#[UsesClass(CallableThrowableHandler::class)]
 final class ThrowableStreamFactoryTest extends TestCase
 {
     /**
-     * Preserves successful bytes, legacy fallback and exact PSR stream delegation.
+     * Preserves successful bytes, the generic fallback and exact PSR stream delegation.
      *
      * @param string $output the synthetic reporter output
-     *
-     * @dataProvider provideCapturesOutputAndPreservesLegacyFallbackCases
      */
+    #[DataProvider('provideCapturesOutputAndPreservesLegacyFallbackCases')]
     public function testCapturesOutputAndPreservesLegacyFallback(string $output): void
     {
         $original = new \RuntimeException('Synthetic incoming event');
@@ -60,7 +60,7 @@ final class ThrowableStreamFactoryTest extends TestCase
             $received = $throwable;
             echo $output;
         });
-        $expected = $output ?: (string) $original;
+        $expected = '' === $output ? 'Internal Server Error' : $output;
         $stream = (new Psr17Factory())->createStream($expected);
         $messages = $this->createMock(StreamFactoryInterface::class);
         $messages->expects(self::once())->method('createStream')->with($expected)->willReturn($stream);
@@ -75,7 +75,7 @@ final class ThrowableStreamFactoryTest extends TestCase
     }
 
     /**
-     * Supplies ordinary output and both established diagnostic-fallback triggers.
+     * Supplies ordinary bytes, empty output and the nonempty string zero.
      *
      * @return array<string, array{string}> synthetic reporter bytes
      */
@@ -124,9 +124,8 @@ final class ThrowableStreamFactoryTest extends TestCase
      * Discards partial reporter output while preserving its distinct failure and caller.
      *
      * @param int $nestedBuffers the extra removable buffers opened before failure
-     *
-     * @dataProvider provideCleansFailedCaptureAndPreservesPrimaryAndCallerCases
      */
+    #[DataProvider('provideCleansFailedCaptureAndPreservesPrimaryAndCallerCases')]
     public function testCleansFailedCaptureAndPreservesPrimaryAndCaller(int $nestedBuffers): void
     {
         $original = new \Error('Synthetic incoming event');
@@ -235,30 +234,29 @@ final class ThrowableStreamFactoryTest extends TestCase
     }
 
     /**
-     * Uses the legacy fallback after capture closes without reading or invoking the caller's buffer.
+     * Uses a generic body after capture closes without reading or invoking the caller's buffer.
      */
-    public function testPreservesCallerWhenReporterClosesCaptureAndReturns(): void
+    public function testDoesNotCaptureCallerOutputWhenRendererClosesCapture(): void
     {
-        $original = new \RuntimeException('Synthetic incoming event');
+        $original = new \RuntimeException('Private failure');
         $received = null;
         $callerCalls = 0;
-        $reporter = new CallableThrowableHandler(
-            /**
-             * Closes only the factory's capture and returns normally.
-             *
-             * @param \Throwable $event the original reporting event
-             */
-            static function (\Throwable $event) use (&$received): void {
-                $received = $event;
-                ob_end_clean();
-            },
-        );
-        $entry = ob_get_level();
+
+        /**
+         * Closes only the factory buffer, then returns without producing a body.
+         *
+         * @param \Throwable $throwable the reported event
+         */
+        $reporter = new CallableThrowableHandler(static function (\Throwable $throwable) use (&$received): void {
+            $received = $throwable;
+            ob_end_clean();
+        });
+        $entryLevel = ob_get_level();
         ob_start(
             /**
-             * Records any premature callback invocation on the caller's private bytes.
+             * Records premature callback invocation without modifying caller-owned bytes.
              *
-             * @param string $buffer the caller-owned bytes
+             * @param string $buffer the caller's private bytes
              *
              * @return string the same caller-owned bytes
              */
@@ -268,7 +266,7 @@ final class ThrowableStreamFactoryTest extends TestCase
                 return $buffer;
             },
         );
-        echo 'private caller marker';
+        echo 'private caller output';
         $callerLevel = ob_get_level();
 
         try {
@@ -277,27 +275,27 @@ final class ThrowableStreamFactoryTest extends TestCase
             ;
 
             self::assertSame($original, $received);
-            self::assertSame((string) $original, (string) $stream);
-            self::assertStringNotContainsString('private caller marker', (string) $stream);
+            self::assertSame('Internal Server Error', (string) $stream);
+            self::assertStringNotContainsString('private caller output', (string) $stream);
             self::assertSame($callerLevel, ob_get_level());
-            self::assertSame('private caller marker', ob_get_contents());
+            self::assertSame('private caller output', ob_get_contents());
             self::assertSame(0, $callerCalls);
         } finally {
-            while (ob_get_level() > $entry) {
+            while (ob_get_level() > $entryLevel) {
                 ob_end_clean();
             }
         }
 
         self::assertSame(1, $callerCalls);
-        self::assertSame($entry, ob_get_level());
+        self::assertSame($entryLevel, ob_get_level());
     }
 
-    /** Verifies successful unbalanced capture retains its existing inner-body/outer-buffer behavior. */
-    public function testUnbalancedSuccessRetainsLegacyOuterBuffer(): void
+    /** Verifies successful unbalanced rendering discards all reachable renderer-owned buffers. */
+    public function testUnbalancedSuccessCleansRendererBuffers(): void
     {
         $reporter = new CallableThrowableHandler(
             /**
-             * Leaves one ordinary nested scope for the successful legacy capture to consume.
+             * Leaves one ordinary nested scope for the successful capture to consume.
              *
              * @param \Throwable $event the supplied reporting event
              */
@@ -317,9 +315,7 @@ final class ThrowableStreamFactoryTest extends TestCase
                 ->createStreamFromThrowable(new \RuntimeException('incoming'))
             ;
             self::assertSame('inner', (string) $stream);
-            self::assertSame($caller + 1, ob_get_level());
-            self::assertSame('outer', ob_get_contents());
-            ob_end_clean();
+            self::assertSame($caller, ob_get_level());
             self::assertSame('caller:', ob_get_contents());
         } finally {
             while (ob_get_level() > $entry) {
@@ -336,7 +332,7 @@ final class ThrowableStreamFactoryTest extends TestCase
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::once())->method('handleThrowable')->with(self::identicalTo($original));
         $streams = $this->createMock(StreamFactoryInterface::class);
-        $streams->method('createStream')->willThrowException($primary);
+        $streams->expects(self::once())->method('createStream')->willThrowException($primary);
         $entry = ob_get_level();
 
         try {
@@ -352,9 +348,8 @@ final class ThrowableStreamFactoryTest extends TestCase
      * Continues cleanup after a throwing native callback removed its buffer.
      *
      * @param int $nestedBuffers the ordinary removable buffers below the throwing callback
-     *
-     * @dataProvider provideCleanupCallbackFailurePreservesPrimaryAndCallerCases
      */
+    #[DataProvider('provideCleanupCallbackFailurePreservesPrimaryAndCallerCases')]
     public function testCleanupCallbackFailurePreservesPrimaryAndCaller(int $nestedBuffers): void
     {
         $original = new \Error('incoming report');
@@ -376,7 +371,7 @@ final class ThrowableStreamFactoryTest extends TestCase
                 $primary,
                 $secondary,
                 &$callbackCalls,
-                &$received
+                &$received,
             ): void {
                 $received = $event;
                 for ($index = 0; $index < $nestedBuffers; ++$index) {
@@ -460,5 +455,184 @@ final class ThrowableStreamFactoryTest extends TestCase
     public static function provideCleanupCallbackFailurePreservesPrimaryAndCallerCases(): iterable
     {
         return ['factory buffer' => [0], 'nested buffers' => [2]];
+    }
+
+    /** Verifies a cleanup-only callback failure propagates after successful rendering. */
+    public function testCleanupOnlyFailurePropagatesWithoutCreatingAStream(): void
+    {
+        $original = new \Error('private diagnostic');
+        $secondary = new \LogicException('public renderer cleanup');
+        $calls = 0;
+        $received = null;
+        $renderer = new CallableThrowableHandler(
+            /**
+             * Returns normally after opening a removable callback-owned output scope.
+             *
+             * @param \Throwable $event the unchanged input supplied for public rendering
+             */
+            static function (\Throwable $event) use ($secondary, &$received, &$calls): void {
+                $received = $event;
+                ob_start(
+                    /**
+                     * Fails once while PHP discards the renderer's native output scope.
+                     *
+                     * @param string $bytes the public bytes being discarded
+                     *
+                     * @return string unchanged bytes on a later native callback
+                     *
+                     * @throws \LogicException the original cleanup failure
+                     */
+                    static function (string $bytes) use ($secondary, &$calls): string {
+                        if (1 === ++$calls) {
+                            throw $secondary;
+                        }
+
+                        return $bytes;
+                    },
+                );
+                echo 'public template';
+            },
+        );
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->expects(self::never())->method('createStream');
+        $entry = ob_get_level();
+        ob_start();
+        echo 'caller:';
+        $caller = ob_get_level();
+
+        try {
+            try {
+                (new ThrowableStreamFactory($streams, $renderer))->createStreamFromThrowable($original);
+                self::fail('The original cleanup failure must propagate.');
+            } catch (\LogicException $caught) {
+                self::assertSame($secondary, $caught);
+            }
+            self::assertSame($original, $received);
+            self::assertSame(1, $calls);
+            self::assertSame($caller, ob_get_level());
+            self::assertSame('caller:', ob_get_contents());
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+    }
+
+    /**
+     * Stops bounded cleanup when a native handler destructor replaces its removed buffer.
+     *
+     * The replacement remains removable for fixture cleanup; the caller's bytes and
+     * callback remain untouched until this test explicitly discards its own scopes.
+     */
+    public function testCleanupStopsWhenAHandlerDestructorReplacesItsBuffer(): void
+    {
+        $original = new \Error('incoming event before native destruction');
+        $primary = new \RuntimeException('renderer failure before native destruction');
+        $received = null;
+
+        /** @var \ArrayObject<string, int> $events observed native callback and destructor counts */
+        $events = new \ArrayObject(['callback' => 0, 'destructor' => 0, 'caller' => 0]);
+        $renderer = new CallableThrowableHandler(
+            /**
+             * Leaves the native output stack as the sole owner of its invokable handler.
+             *
+             * @param \Throwable $event the unchanged incoming event
+             *
+             * @throws \RuntimeException the primary renderer failure
+             */
+            static function (\Throwable $event) use ($primary, $events, &$received): void {
+                $received = $event;
+                ob_start(
+                    // Replaces its native output scope only when PHP releases this object.
+                    new class ($events) {
+                        /**
+                         * Shares observations without retaining a reference to this handler.
+                         *
+                         * @param \ArrayObject<string, int> $events native callback/destructor counts
+                         */
+                        public function __construct(private \ArrayObject $events)
+                        {
+                        }
+
+                        /**
+                         * Receives bytes during the actual native buffer close.
+                         *
+                         * @param string $bytes the renderer-owned output being discarded
+                         *
+                         * @return string the same bytes, with no stack manipulation in the callback
+                         */
+                        public function __invoke(string $bytes): string
+                        {
+                            ++$this->events['callback'];
+
+                            return $bytes;
+                        }
+
+                        /** Opens a removable replacement after PHP has popped the original buffer. */
+                        public function __destruct()
+                        {
+                            ++$this->events['destructor'];
+                            ob_start();
+                            echo 'replacement renderer bytes';
+                        }
+                    },
+                );
+                echo 'discarded renderer bytes';
+
+                throw $primary;
+            },
+        );
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->expects(self::never())->method('createStream');
+        $entry = ob_get_level();
+        ob_start(
+            /**
+             * Records premature cleanup of the caller while retaining its original bytes.
+             *
+             * @param string $bytes the caller-owned output
+             *
+             * @return string unchanged caller-owned bytes
+             */
+            static function (string $bytes) use ($events): string {
+                ++$events['caller'];
+
+                return $bytes;
+            },
+        );
+        echo 'caller-owned bytes';
+        $caller = ob_get_level();
+
+        try {
+            try {
+                (new ThrowableStreamFactory($streams, $renderer))->createStreamFromThrowable($original);
+                self::fail('The primary renderer failure must propagate.');
+            } catch (\RuntimeException $caught) {
+                self::assertSame($primary, $caught);
+            }
+
+            self::assertSame($original, $received);
+            self::assertSame(1, $events['callback']);
+            self::assertSame(1, $events['destructor']);
+            self::assertSame(0, $events['caller']);
+            self::assertSame($caller + 2, ob_get_level());
+            self::assertSame('replacement renderer bytes', ob_get_contents());
+            $flags = ob_get_status()['flags'];
+            self::assertIsInt($flags);
+            self::assertSame(PHP_OUTPUT_HANDLER_REMOVABLE, $flags & PHP_OUTPUT_HANDLER_REMOVABLE);
+
+            ob_end_clean();
+            ob_end_clean();
+
+            self::assertSame($caller, ob_get_level());
+            self::assertSame('caller-owned bytes', ob_get_contents());
+            self::assertSame(0, $events['caller']);
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+
+        self::assertSame($entry, ob_get_level());
+        self::assertSame(1, $events['caller']);
     }
 }

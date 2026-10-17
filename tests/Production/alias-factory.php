@@ -14,94 +14,88 @@
 
 declare(strict_types=1);
 
-use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
-use CoiSA\ErrorHandler\Container\Factory\AliasFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use Psr\Container\ContainerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Psr\Container\ContainerExceptionInterface;
+
+use function FastForward\Container\container;
 
 require $argv[1] ?? dirname(__DIR__, 2) . '/vendor/autoload.php';
 
-$values = [null, false, true, 0, 42, 0.5, '', 'service value', [], ['service' => true], new stdClass()];
+$reported = [];
+$reporter = new CallableThrowableHandler(
+    /**
+     * Record the required application override's exact diagnostic input.
+     *
+     * @param Throwable $throwable the original synthetic event
+     *
+     * @return void
+     */
+    static function (Throwable $throwable) use (&$reported): void {
+        $reported[] = $throwable;
+    },
+);
 
-foreach ($values as $value) {
-    $container = new class ($value) implements ContainerInterface {
-        /** @var mixed The exact value delegated by the synthetic container. */
-        private $value;
+$application = new ArrayServiceProvider([
+    // @return ThrowableHandlerInterface the application override, not the default empty aggregate
+    ThrowableHandlerInterface::class => static fn(): ThrowableHandlerInterface => $reporter,
+]);
+$services = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $application));
+$handler = $services->get(ErrorHandlerInterface::class);
 
-        /** @param mixed $value the synthetic service value */
-        public function __construct($value)
-        {
-            $this->value = $value;
-        }
-
-        /** @return mixed the original value for the expected opaque identifier */
-        public function get(string $id)
-        {
-            if ('fixture-service' !== $id) {
-                throw new RuntimeException('AliasFactory changed the delegated service identifier.');
-            }
-
-            return $this->value;
-        }
-
-        /** Report whether this synthetic container owns the identifier. */
-        public function has(string $id): bool
-        {
-            return 'fixture-service' === $id;
-        }
-    };
-
-    if ((new AliasFactory('fixture-service'))($container) !== $value) {
-        throw new RuntimeException('AliasFactory must preserve exact service values and object identity.');
-    }
+if (
+    !$handler instanceof ErrorHandler || $services->get(ErrorHandler::class) !== $handler
+    || $services->get(ThrowableHandlerInterface::class) !== $reporter
+) {
+    throw new RuntimeException('Merged application definitions must win without replacing service identities.');
 }
 
-$failure = new RuntimeException('Synthetic delegate failure.');
-$throwingContainer = new class ($failure) implements ContainerInterface {
-    /** @var RuntimeException The exact delegate failure. */
-    private RuntimeException $failure;
+$original = new RuntimeException('Synthetic required-override diagnostic.');
+$handler->handleThrowable($original);
+if ([$original] !== $reported) {
+    throw new RuntimeException('The required override must receive the original event once.');
+}
 
-    /** Store the synthetic failure thrown by lookup. */
-    public function __construct(RuntimeException $failure)
-    {
-        $this->failure = $failure;
-    }
+$failure = new LogicException('Synthetic required reporter construction failure.');
+$attempts = 0;
+$failingApplication = new ArrayServiceProvider([
+    /*
+     * Reject required reporter construction through the actual provider graph.
+     *
+     * @return ThrowableHandlerInterface this configured factory never returns
+     *
+     * @throws LogicException the original synthetic application failure
+     */
+    ThrowableHandlerInterface::class => static function () use ($failure, &$attempts): ThrowableHandlerInterface {
+        ++$attempts;
 
-    /** @return mixed lookup always throws the original synthetic failure */
-    public function get(string $id)
-    {
-        throw $this->failure;
-    }
-
-    /** This fixture owns the entry whose construction fails. */
-    public function has(string $id): bool
-    {
-        return true;
-    }
-};
+        throw $failure;
+    },
+]);
+$failingServices = container(new AggregateServiceProvider(new ErrorHandlerServiceProvider(), $failingApplication));
+$caught = null;
 
 try {
-    (new AliasFactory('fixture-service'))($throwingContainer);
-
-    throw new LogicException('AliasFactory must propagate delegate failures.');
-} catch (RuntimeException $exception) {
-    if ($exception !== $failure) {
-        throw new LogicException('AliasFactory replaced the original delegate failure.');
-    }
+    $failingServices->get(ErrorHandlerInterface::class);
+} catch (Throwable $throwable) {
+    $caught = $throwable;
 }
 
-$legacy = new ErrorHandlerContainer();
-$aggregate = $legacy->get(ThrowableHandlerInterface::class);
-$handler = $legacy->get(ErrorHandler::class);
-
-if (!$aggregate instanceof ThrowableHandlerAggregate || !$handler instanceof ErrorHandler) {
-    throw new RuntimeException('Legacy aliases and the core factory must resolve on the declared runtime.');
+if ($attempts < 1 || null === $caught) {
+    throw new RuntimeException('Required construction must fail instead of silently yielding a default handler.');
 }
 
-if ($legacy->get(ThrowableHandlerInterface::class) !== $aggregate || $legacy->get(ErrorHandler::class) !== $handler) {
-    throw new RuntimeException('Legacy alias and handler caching must remain unchanged.');
+if ($caught !== $failure && !$caught instanceof ContainerExceptionInterface) {
+    throw new RuntimeException(
+        'FastForward must expose the original or its PSR-11-normalized construction failure.',
+        0,
+        $caught,
+    );
 }
 
-echo 'AliasFactory values, failures and legacy composition passed on PHP ' . PHP_VERSION . PHP_EOL;
+echo 'Production provider aliases and required overrides passed on PHP ' . PHP_VERSION . PHP_EOL;
