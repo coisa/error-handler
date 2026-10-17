@@ -83,4 +83,6 @@ Examples return response objects and synthetic log records. They do not deliver 
 
 The HTTP example's valid single-line reason remains unchanged by the [reason-phrase repair](https://github.com/coisa/error-handler/issues/89). With that repair present, forbidden controls select the PSR-17 default reason; the original throwable and capture/empty/zero body behavior remain unchanged. See [the HTTP reason contract](../docs/http.md#existing-response-and-output-capture) before emitting responses.
 
+Capture reporters must balance their own output buffers. If a reporter closes capture and returns, the stream factory uses its existing diagnostic fallback while leaving caller buffers, bytes and output callbacks alone. This does not redact the fallback or undo the reporter's own buffer changes. The HTTP example retains its ordinary capture, empty and `"0"` paths; PHPUnit covers the closed-capture ownership boundary directly.
+
 Continue with [core API](../docs/api.md), [container composition](../docs/container.md), and [HTTP behavior](../docs/http.md).

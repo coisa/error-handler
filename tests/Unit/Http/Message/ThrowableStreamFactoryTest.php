@@ -234,6 +234,64 @@ final class ThrowableStreamFactoryTest extends TestCase
         }
     }
 
+    /**
+     * Uses the legacy fallback after capture closes without reading or invoking the caller's buffer.
+     */
+    public function testPreservesCallerWhenReporterClosesCaptureAndReturns(): void
+    {
+        $original = new \RuntimeException('Synthetic incoming event');
+        $received = null;
+        $callerCalls = 0;
+        $reporter = new CallableThrowableHandler(
+            /**
+             * Closes only the factory's capture and returns normally.
+             *
+             * @param \Throwable $event the original reporting event
+             */
+            static function (\Throwable $event) use (&$received): void {
+                $received = $event;
+                ob_end_clean();
+            },
+        );
+        $entry = ob_get_level();
+        ob_start(
+            /**
+             * Records any premature callback invocation on the caller's private bytes.
+             *
+             * @param string $buffer the caller-owned bytes
+             *
+             * @return string the same caller-owned bytes
+             */
+            static function (string $buffer) use (&$callerCalls): string {
+                ++$callerCalls;
+
+                return $buffer;
+            },
+        );
+        echo 'private caller marker';
+        $callerLevel = ob_get_level();
+
+        try {
+            $stream = (new ThrowableStreamFactory(new Psr17Factory(), $reporter))
+                ->createStreamFromThrowable($original)
+            ;
+
+            self::assertSame($original, $received);
+            self::assertSame((string) $original, (string) $stream);
+            self::assertStringNotContainsString('private caller marker', (string) $stream);
+            self::assertSame($callerLevel, ob_get_level());
+            self::assertSame('private caller marker', ob_get_contents());
+            self::assertSame(0, $callerCalls);
+        } finally {
+            while (ob_get_level() > $entry) {
+                ob_end_clean();
+            }
+        }
+
+        self::assertSame(1, $callerCalls);
+        self::assertSame($entry, ob_get_level());
+    }
+
     /** Verifies successful unbalanced capture retains its existing inner-body/outer-buffer behavior. */
     public function testUnbalancedSuccessRetainsLegacyOuterBuffer(): void
     {

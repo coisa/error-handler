@@ -36,6 +36,15 @@ safe public renderer. Writing JSON through `echo` can produce a body but couples
 diagnostics to public content; the application response recipe avoids that
 coupling and does not require output buffering.
 
+If a reporter closes capture and returns, the stream factory uses the same
+diagnostic fallback without reading or closing a caller buffer at or below its
+entry depth or invoking that buffer's output callback. Verify the selected
+installation contains the [capture ownership repair](https://github.com/coisa/error-handler/issues/112)
+before relying on this boundary; the common `^2.4` baseline alone does not
+guarantee it. Missing capture with no caller buffer also reaches fallback.
+This cannot undo the reporter's own output or buffer changes: reporters still
+own balanced buffer use, and fallback still contains diagnostic details.
+
 The built-in `ThrowableResponseFactory` maps integer codes 400–500 inclusive
 to status; other integers and string codes use 500. It uses diagnostic exception
 messages as reason phrases where accepted. From 2.4.2, forbidden controls omit
