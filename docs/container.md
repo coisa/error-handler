@@ -91,7 +91,11 @@ The library requires only the small Interop contract; FastForward is optional fo
 With the application map from the [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php), import `ServiceProvider\JsonErrorHandlerServiceProvider`, `ServiceProvider\ErrorHandlerServiceProvider` and `FastForward\Container\container`, then select public JSON:
 
 ```php
-$services = container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application);
+$services = container(
+    JsonErrorHandlerServiceProvider::class,
+    ErrorHandlerServiceProvider::class,
+    $application,
+);
 ```
 
 Each provider declares only its own services; the JSON profile does not include the base provider. Register JSON **before** the base when passing them separately to `container()`: FastForward selects the first successful definition of `ThrowableResponseFactoryInterface`. Putting the base first selects legacy capture even when JSON is also present.

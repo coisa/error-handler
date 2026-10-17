@@ -135,9 +135,17 @@ ServiceProvider\ErrorHandlerServiceProvider and JsonErrorHandlerServiceProvider.
 The application needs PHP 8.3+ and fast-forward/container:^1.9 in its own require,
 not only require-dev. The core keeps PHP 7.4 and the legacy integration intact.
 Provide ResponseFactoryInterface, StreamFactoryInterface and a private
-ThrowableHandlerInterface reporter through the application provider. Select
-container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application)
-for public JSON with report-before-render composition appropriate to the 2.x middleware.
+ThrowableHandlerInterface reporter through the application provider. Select public
+JSON with report-before-render composition appropriate to the 2.x middleware:
+
+```php
+$services = container(
+    JsonErrorHandlerServiceProvider::class,
+    ErrorHandlerServiceProvider::class,
+    $application,
+);
+```
+
 Each provider declares only its own services: JSON must precede the separate base
 provider so its response alias wins over legacy capture. The
 base ErrorHandlerServiceProvider alone retains legacy capture defaults and

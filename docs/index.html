@@ -261,7 +261,11 @@ $process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
         <p>For a source/release containing the optional Interop providers, an application using PHP 8.3+ can install <code>fast-forward/container:^1.9</code> as its own runtime dependency. Supply PSR-17 response/stream factories and a private <code>ThrowableHandlerInterface</code> reporter, then choose JSON explicitly:</p>
         <figure>
           <figcaption>Public JSON selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · the complete recipe provides application services and imports</figcaption>
-          <pre tabindex="0" aria-label="Interop JSON provider PHP source"><code data-source="examples/provider-json.php">$services = container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application);</code></pre>
+          <pre tabindex="0" aria-label="Interop JSON provider PHP source"><code data-source="examples/provider-json.php">    $services = container(
+        JsonErrorHandlerServiceProvider::class,
+        ErrorHandlerServiceProvider::class,
+        $application,
+    );</code></pre>
         </figure>
         <p>Each provider declares only its own services. Register JSON before the separate base provider so its response alias wins over legacy capture. The JSON profile composes one private report before pure rendering for the existing 2.x middleware. Public JSON is the default. A constructor bool, passed from trusted Config values before container construction, enables development details deliberately; no request header or environment name enables them. Use strict typing and real bool values rather than casting the string <code>"false"</code>.</p>
         <figure>

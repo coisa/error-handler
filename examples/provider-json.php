@@ -71,7 +71,11 @@ if ('debug' === $mode) {
         $application,
     );
 } else {
-    $services = container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application);
+    $services = container(
+        JsonErrorHandlerServiceProvider::class,
+        ErrorHandlerServiceProvider::class,
+        $application,
+    );
 }
 
 // Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.
