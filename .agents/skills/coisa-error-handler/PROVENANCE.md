@@ -14,6 +14,9 @@ The additive Interop/JSON provider guidance follows the separately approved 2.x
 composition in PR #92, based on `775f6cb87d97d74922524e057b156bc4c718be62` and the
 current source changes. It keeps FastForward optional for library consumers,
 uses the existing report-before-render decorator and preserves legacy APIs.
+Each provider exposes only its own map, following the owner's explicit-composition
+request. Separate providers select JSON before the base; a single aggregate
+uses base, JSON, application order for required application overrides.
 The actual development verification graph includes FastForward Container 1.9.1,
 Config 1.6.0 and Interop Service Provider 0.4.1; pending changes are not published
 release claims.

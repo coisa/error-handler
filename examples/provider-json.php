@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
@@ -62,13 +63,15 @@ $application = new ArrayServiceProvider([
     ThrowableHandlerInterface::class => new ServiceFactory($reporter),
 ]);
 
+// Separate providers are first-wins: the JSON selection must precede the base capture alias.
 if ('debug' === $mode) {
     $services = container(
         new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
+        ErrorHandlerServiceProvider::class,
         $application,
     );
 } else {
-    $services = container(JsonErrorHandlerServiceProvider::class, $application);
+    $services = container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application);
 }
 
 // Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.

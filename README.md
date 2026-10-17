@@ -76,7 +76,7 @@ a real application. Read the guide for your integration:
 - [Legacy container, ConfigProvider and optional Interop providers](docs/container.md).
 - [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
 - [Opt-in JSON responses with one explicit private report](docs/http.md#opt-in-json-responses-and-explicit-reporting) and the [complete JSON recipe](examples/http-json.php); verify the selected source/release contains both response adapters.
-- [Optional FastForward JSON profile](docs/container.md#optional-interop-and-fastforward-providers) and its [complete provider recipe](examples/provider-json.php): application PHP 8.3+, PSR-17 and a private reporter; core PHP 7.4 and legacy defaults remain supported.
+- [Optional FastForward JSON profile](docs/container.md#optional-interop-and-fastforward-providers) and its [complete provider recipe](examples/provider-json.php): compose JSON before the base provider with application PHP 8.3+, PSR-17 and a private reporter; core PHP 7.4 and legacy defaults remain supported.
 - [Complete 2.x cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
   and [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
 - [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),

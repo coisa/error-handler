@@ -28,7 +28,7 @@ The optional Interop provider recipe additionally requires application PHP 8.3+ 
 composer require 'fast-forward/container:^1.9' --no-plugins --no-scripts --no-interaction
 ```
 
-Its application map supplies PSR-17 and a private reporter. `JsonErrorHandlerServiceProvider` selects reporting plus JSON, while its scope factory creates a new handler for the middleware. Config passes a real bool to the profile before container construction. No environment/header autodetection or output capture is added. Select a source/release containing these optional providers; the existing core recipes remain usable without FastForward.
+Its application map supplies PSR-17 and a private reporter. Each library provider declares only its own services: register `JsonErrorHandlerServiceProvider` before `ErrorHandlerServiceProvider` to select reporting plus JSON ahead of the base capture alias. The base supplies the scope factory, which creates a new handler for the middleware. Config passes a real bool to the JSON profile before container construction. No environment/header autodetection or output capture is added. Select a source/release containing these optional providers; the existing core recipes remain usable without FastForward.
 
 Individual recipes need only their application dependencies. The bounded
 verifier additionally uses Symfony Process as a development tool. Add it in the

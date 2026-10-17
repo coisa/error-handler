@@ -16,11 +16,14 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\ServiceProvider;
 
+use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\ServiceFactory;
@@ -28,6 +31,7 @@ use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -46,14 +50,65 @@ use function FastForward\Container\container;
  */
 final class JsonErrorHandlerServiceProviderTest extends TestCase
 {
-    /** The class-string initializer selects public JSON and one private report by default. */
+    /** The JSON provider does not implicitly register the separately selected lifecycle provider. */
+    public function testJsonProfileLeavesLifecycleCompositionToTheApplication(): void
+    {
+        $reporter = self::createStub(ThrowableHandlerInterface::class);
+        $services = container(JsonErrorHandlerServiceProvider::class, $this->application($reporter));
+
+        self::assertFalse($services->has(ErrorHandlerInterface::class));
+        $this->expectException(NotFoundExceptionInterface::class);
+        $services->get(ErrorHandlerInterface::class);
+    }
+
+    /** Separate providers select the first response alias without relying on a failed factory. */
+    public function testProviderOrderSelectsJsonOrLegacyCapture(): void
+    {
+        $this->expectOutputString('');
+        $original = new \RuntimeException('Legacy fallback details', 503);
+        $reporter = $this->createMock(ThrowableHandlerInterface::class);
+        $reporter->expects(self::exactly(2))->method('handleThrowable')->with(self::identicalTo($original));
+        $application = $this->application($reporter);
+        $jsonServices = container(
+            JsonErrorHandlerServiceProvider::class,
+            ErrorHandlerServiceProvider::class,
+            $application,
+        );
+        $legacyServices = container(
+            ErrorHandlerServiceProvider::class,
+            JsonErrorHandlerServiceProvider::class,
+            $application,
+        );
+
+        /** @var ReportingThrowableResponseFactory $json */
+        $json = $jsonServices->get(ThrowableResponseFactoryInterface::class);
+        self::assertInstanceOf(ReportingThrowableResponseFactory::class, $json);
+        $jsonResponse = $json->createResponseFromThrowable($original);
+        self::assertSame(503, $jsonResponse->getStatusCode());
+        self::assertSame('application/json', $jsonResponse->getHeaderLine('Content-Type'));
+        self::assertSame('{"error":"Request failed"}', (string) $jsonResponse->getBody());
+
+        /** @var ThrowableResponseFactory $legacy */
+        $legacy = $legacyServices->get(ThrowableResponseFactoryInterface::class);
+        self::assertInstanceOf(ThrowableResponseFactory::class, $legacy);
+        $legacyResponse = $legacy->createResponseFromThrowable($original);
+        self::assertSame(500, $legacyResponse->getStatusCode());
+        self::assertSame('', $legacyResponse->getHeaderLine('Content-Type'));
+        self::assertSame((string) $original, (string) $legacyResponse->getBody());
+    }
+
+    /** The explicitly composed JSON-first providers select public JSON and one private report. */
     public function testDefaultProfileReportsOnceAndKeepsTheConcreteRendererPure(): void
     {
         $this->expectOutputString('');
         $original = new \RuntimeException('Private downstream details', 599);
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::once())->method('handleThrowable')->with(self::identicalTo($original));
-        $services = container(JsonErrorHandlerServiceProvider::class, $this->application($reporter));
+        $services = container(
+            JsonErrorHandlerServiceProvider::class,
+            ErrorHandlerServiceProvider::class,
+            $this->application($reporter),
+        );
 
         /** @var JsonThrowableResponseFactory $pure */
         $pure = $services->get(JsonThrowableResponseFactory::class);
@@ -86,7 +141,11 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
         self::assertIsBool($configured);
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::once())->method('handleThrowable');
-        $services = container(new JsonErrorHandlerServiceProvider($configured), $this->application($reporter));
+        $services = container(
+            new JsonErrorHandlerServiceProvider($configured),
+            ErrorHandlerServiceProvider::class,
+            $this->application($reporter),
+        );
 
         /** @var ThrowableResponseFactoryInterface $renderer */
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
@@ -136,7 +195,11 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
         $definitions = $this->application($reporter)->getFactories();
         $definitions[ThrowableResponseFactoryInterface::class] = new ServiceFactory($override);
         $application = new ArrayServiceProvider($definitions);
-        $separate = container(JsonErrorHandlerServiceProvider::class, $application);
+        $separate = container(
+            JsonErrorHandlerServiceProvider::class,
+            ErrorHandlerServiceProvider::class,
+            $application,
+        );
 
         /** @var ThrowableResponseFactoryInterface $firstWins */
         $firstWins = $separate->get(ThrowableResponseFactoryInterface::class);
@@ -145,7 +208,11 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
             (string) $firstWins->createResponseFromThrowable($original)->getBody(),
         );
 
-        $aggregated = container(new AggregateServiceProvider(new JsonErrorHandlerServiceProvider(), $application));
+        $aggregated = container(new AggregateServiceProvider(
+            new ErrorHandlerServiceProvider(),
+            new JsonErrorHandlerServiceProvider(),
+            $application,
+        ));
 
         /** @var ThrowableResponseFactoryInterface $lastWins */
         $lastWins = $aggregated->get(ThrowableResponseFactoryInterface::class);
@@ -196,7 +263,11 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
             $responses->expects(self::once())->method('createResponse')->with(503)->willReturn($expected);
         }
 
-        $services = container(JsonErrorHandlerServiceProvider::class, $this->application($reporter, $responses));
+        $services = container(
+            JsonErrorHandlerServiceProvider::class,
+            ErrorHandlerServiceProvider::class,
+            $this->application($reporter, $responses),
+        );
 
         /** @var ErrorHandlerMiddlewareFactory $factory */
         $factory = $services->get(ErrorHandlerMiddlewareFactory::class);

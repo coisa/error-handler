@@ -88,11 +88,13 @@ composer require 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins -
 
 The library requires only the small Interop contract; FastForward is optional for library consumers and present in the library's development graph for its PHPUnit checks. Installing it only as the application's `require-dev` would leave a production `--no-dev` installation without its chosen container. Applications still own PSR-17 factories, their private `ThrowableHandlerInterface` reporter and response emission. The providers do not install an emitter or choose a logging destination.
 
-With the application map from the [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php), import `ServiceProvider\JsonErrorHandlerServiceProvider` and `FastForward\Container\container`, then select public JSON:
+With the application map from the [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php), import `ServiceProvider\JsonErrorHandlerServiceProvider`, `ServiceProvider\ErrorHandlerServiceProvider` and `FastForward\Container\container`, then select public JSON:
 
 ```php
-$services = container(JsonErrorHandlerServiceProvider::class, $application);
+$services = container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application);
 ```
+
+Each provider declares only its own services; the JSON profile does not include the base provider. Register JSON **before** the base when passing them separately to `container()`: FastForward selects the first successful definition of `ThrowableResponseFactoryInterface`. Putting the base first selects legacy capture even when JSON is also present.
 
 The JSON profile declares its pure concrete renderer and selects `ReportingThrowableResponseFactory` under `ThrowableResponseFactoryInterface`. The existing 2.x middleware therefore reports the original privately once before rendering. Generic JSON is the default; it preserves integer HTTP 400–599 codes and returns `{"error":"Request failed"}` without diagnostic text. A reporter that prints still owns that output; use one that writes no public diagnostics. The concrete JSON factory remains pure when resolved directly.
 
@@ -107,6 +109,7 @@ $settings = FastForward\Config\config([
 
 $services = container(
     new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
+    ErrorHandlerServiceProvider::class,
     $application,
 );
 ```
@@ -133,11 +136,12 @@ The native lifecycle remains 2.x: unregister restores callbacks, but PHP cannot 
 
 ### Required application overrides
 
-Separate FastForward providers prioritize the first successful resolution. The simple call works for the required application PSR-17/reporter services because this base does not define them. For a required replacement of a service the library already defines, merge application definitions last in one aggregate:
+Separate FastForward providers prioritize the first successful resolution. The simple JSON → base → application call works for the required application PSR-17/reporter services because neither library provider defines them. For a required replacement of a service the library already defines, combine the maps in one aggregate in the order **base → JSON → application**; the last definition wins inside this aggregate:
 
 ```php
 $services = container(
     new FastForward\Container\ServiceProvider\AggregateServiceProvider(
+        new ErrorHandlerServiceProvider(),
         new JsonErrorHandlerServiceProvider(),
         $application,
     ),

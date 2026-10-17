@@ -136,8 +136,10 @@ The application needs PHP 8.3+ and fast-forward/container:^1.9 in its own requir
 not only require-dev. The core keeps PHP 7.4 and the legacy integration intact.
 Provide ResponseFactoryInterface, StreamFactoryInterface and a private
 ThrowableHandlerInterface reporter through the application provider. Select
-container(JsonErrorHandlerServiceProvider::class, $application) for public JSON
-with report-before-render composition appropriate to the 2.x middleware. The
+container(JsonErrorHandlerServiceProvider::class, ErrorHandlerServiceProvider::class, $application)
+for public JSON with report-before-render composition appropriate to the 2.x middleware.
+Each provider declares only its own services: JSON must precede the separate base
+provider so its response alias wins over legacy capture. The
 base ErrorHandlerServiceProvider alone retains legacy capture defaults and
 requires the application's reporter; it does not discover a silent aggregate.
 
@@ -146,8 +148,9 @@ trusted application configuration. FastForward Config supplies values before
 container construction; it does not hydrate constructor scalars. Use a strict
 entrypoint, and never cast the string "false" to bool or infer debug from headers.
 For a required override of a library-defined service, use one
-AggregateServiceProvider with the application definitions last; separate providers
-prioritize the first successful resolution and may fall back after PSR failures.
+AggregateServiceProvider in base, JSON, application order: the last definition wins
+inside the aggregate. Separate providers prioritize the first successful resolution
+and may fall back after PSR failures.
 Read the source-matching
 [provider guide](https://github.com/coisa/error-handler/blob/master/docs/container.md#optional-interop-and-fastforward-providers)
 and [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php).
