@@ -20,7 +20,16 @@
     "extra": {
         "laminas": {
             "config-provider": "CoiSA\\ErrorHandler\\Container\\ConfigProvider"
+        },
+        "skills": {
+            "source": "resources/skills"
         }
+    },
+    "suggest": {
+        "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8.",
+        "fast-forward/container": "^1.9",
+        "filp/whoops": "Install ^2.18.4 for optional development HTML responses.",
+        "llm/skills": "Optionally synchronize the bundled agent skill in consumer projects."
     },
     "require": {
         "php": "^7.4 || ^8.0",
@@ -31,11 +40,6 @@
         "psr/event-dispatcher": "^1.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
-    "suggest": {
-        "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8.",
-        "fast-forward/container": "^1.9",
-        "filp/whoops": "Install ^2.18.4 for optional development HTML responses."
-    },
     "autoload": {
         "psr-4": {
             "CoiSA\\ErrorHandler\\": "src/"
@@ -43,7 +47,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "CoiSA\\ErrorHandler\\Test\\": "tests/"
+            "CoiSA\\ErrorHandler\\Test\\": "tests/",
+            "CoiSA\\ErrorHandler\\Example\\": "resources/skills/coisa-error-handler/examples/"
         },
         "exclude-from-classmap": [
             "/tests/Fixtures/compile-fatal.inc"

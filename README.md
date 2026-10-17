@@ -82,8 +82,11 @@ a real application. Read the guide for your integration:
 - [Optional Whoops profile](docs/container.md#development-html-profile) and its [complete provider recipe](examples/provider-whoops.php): explicit development HTML, a lazy configurable page service and fresh middleware scopes.
 - [Complete 2.x cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
   and [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
-- [Portable coisa-error-handler consumer skill](https://github.com/coisa/error-handler/blob/master/.agents/skills/coisa-error-handler/SKILL.md),
-  retaining source identity when copied into a project; no global installation is required.
+- [Portable coisa-error-handler consumer skill](resources/skills/coisa-error-handler/SKILL.md)
+  for the `^2.4` API, with complete bundled application examples.
+- [Optional agent skill installation](docs/agent-skill.md), including project
+  synchronization, guarded copies and update/removal ownership. Composer ships
+  the files; installing or activating the skill is a consumer choice.
 
 The [static HTML guide](https://coisa.github.io/error-handler/) is published by
 GitHub Pages from the configured branch's `/docs` folder (currently `master`).

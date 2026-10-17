@@ -158,6 +158,17 @@ and PHPCS are not equivalent to that capability. Repository cleanup does not
 alter the external service. FPM/Apache, Windows, concurrency, arbitrary reporter
 side effects and production load still require application-specific validation.
 
+### Bundled consumer programs
+
+`ConsumerSkillExamplesTest` runs the canonical skill's complete application
+programs with an explicit consumer autoloader in bounded children. The optional
+Whoops cases include direct HTML and both aggregate-provider page configurations;
+their programs reject unavailable installed APIs rather than treating the common
+`^2.4` baseline as proof of every additive class. Installed-package checks run the
+same programs with the consumer's real dependencies. The archive guard requires
+every canonical file and its source bytes, including focused references, examples
+and license; these checks do not install or activate an agent skill.
+
 ### Optional Whoops HTML adapter
 
 `WhoopsThrowableResponseFactoryTest` uses real Whoops pages and PSR messages. Synthetic superglobal tables have positive exposure controls before configured key hiding and are restored after every test. Tests cover status boundaries/string SQLSTATE, original identity, one report, fresh sequential pages/bodies, escaped text and unchanged collaborator failures. The method touching native callback stacks uses PHPUnit's standard separate-process isolation. Caller output/buffers and continuation are tested without mocking native functions. Native CGI headers require separate bounded SAPI evidence, not CLI header assertions.

@@ -10,6 +10,12 @@ GitHub changelog formatter and change categories.
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 Pending changes live in `.changeset/` until a version PR is prepared.
 
+## 2.4.3
+
+### Patch Changes
+
+- [#101](https://github.com/coisa/error-handler/pull/101) [`2ee7bdf`](https://github.com/coisa/error-handler/commit/2ee7bdf6ddd0c74c2260d176fe0f45486e0de27a) - Ship the portable coisa-error-handler consumer skill in Composer distributions, with a supported 2.4 API contract, complete application examples and optional project synchronization instructions.
+
 ## 2.4.2
 
 ### Patch Changes
