@@ -1,142 +1,134 @@
 # CoiSA Error Handler
 
-[![PHP Version][ico-php]][link-packagist]
-[![Latest Version on Packagist][ico-version]][link-packagist]
-[![Software License][ico-license]](LICENSE)
-[![PHP CI][ico-build]][link-build]
-[![Total Downloads][ico-downloads]][link-downloads]
+Report PHP errors and throwables through application-owned handlers. Add native
+PHP callbacks, PSR-3 logging, PSR-14 events or PSR-15 HTTP middleware when needed.
 
-## Install
+[![PHP Version][ico-php]][link-packagist]
+[![Composer Package][ico-package]][link-packagist]
+[![Tests][ico-build]][link-build]
+[![Docs][ico-docs]][link-docs]
+[![License][ico-license]](LICENSE)
+
+## 📦 Installation
 
 ```sh
-$ composer require coisa/error-handler
+composer require 'coisa/error-handler:^2.4' --no-plugins --no-scripts
 ```
 
-See the [changelog](CHANGELOG.md) for published release history.
+Requires PHP `^7.4 || ^8.0` and Composer 2. Applications supply their logger,
+event dispatcher, HTTP factories and response emitter as needed.
 
-## Throwable response codes
+This README describes the 2.x API. Check `composer show coisa/error-handler`
+and the [release history](CHANGELOG.md) for your installed version; a pending
+Changeset is not a published Composer release.
 
-`ThrowableResponseFactory` uses integer exception codes from 400 through 500
-inclusive as HTTP status codes. Other integers and string codes, including PDO
-SQLSTATE values and numeric-looking strings, fall back to status 500. SQLSTATE
-values are not interpreted as HTTP statuses.
+## 🛠️ Quick start
 
-The response retains a valid exception message unchanged as its reason phrase,
-including horizontal tabs and opaque high bytes. With the
-[reason-phrase repair](https://github.com/coisa/error-handler/issues/89), messages
-containing CR, LF, NUL, DEL or another forbidden control byte omit the reason
-argument so the application's PSR-17 factory can select its default. Empty
-messages are still passed explicitly, preserving existing implementation-specific
-behavior. See the [HTTP contract](docs/http.md#existing-response-and-output-capture)
-and verify that the selected checkout/release contains this repair.
+Create `report.php` beside your application's `vendor/` directory:
 
-The body comes from the configured `ThrowableStreamFactoryInterface`, which
-receives the same throwable instance. Applications control the content produced
-by that factory; reason validation does not redact diagnostic body content.
-
-## Use the 2.x API
-
-The library declares PHP `^7.4 || ^8.0`. Applications own reporters, PSR
-implementations, HTTP emission and when native PHP callbacks are installed.
-These guides describe the existing 2.x API; a pending Changeset is not a published
-Composer release. Check the installed version and its matching source before
-using a maintenance fix or instructions from a different major.
-
-After loading Composer's autoloader and importing `CoiSA\ErrorHandler\ErrorHandler`
-and `CoiSA\ErrorHandler\Handler\CallableThrowableHandler`, explicit reporting needs
-no global registration:
-
-<!-- example: examples/direct.php -->
 ```php
-$errors = new ErrorHandler(new CallableThrowableHandler(
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+
+require __DIR__ . '/vendor/autoload.php';
+
+$reports = [];
+
+$reporter = new CallableThrowableHandler(
     /**
-     * Print only the synthetic message used by this executable example.
+     * Retain the synthetic failure without public diagnostic output.
      *
-     * @param Throwable $error the synthetic failure to report
+     * @param Throwable $error the failure to report
      */
-    static function (Throwable $error): void {
-        echo 'reported: ' . $error->getMessage() . PHP_EOL;
+    static function (Throwable $error) use (&$reports): void {
+        $reports[] = $error;
     },
-));
+);
 
-$errors->handleThrowable(new RuntimeException('Example failure'));
+$errors = new ErrorHandler($reporter);
+$failure = new RuntimeException('Example failure');
 
-echo 'continued' . PHP_EOL;
+$errors->handleThrowable($failure);
+
+echo count($reports) . ' report; execution continued' . PHP_EOL;
 ```
 
-The complete [direct example](https://github.com/coisa/error-handler/blob/master/examples/direct.php)
-prints a synthetic diagnostic, then continues. Use an appropriate private sink in
-a real application. Read the guide for your integration:
+Run `php report.php`; it prints `1 report; execution continued`. Construction
+installs no PHP callbacks, and direct reporting returns when the reporter
+returns. Reporter failures propagate. Replace the in-memory reporter with your
+application's private diagnostic sink.
 
-- [Core API, callbacks, adapters and events/logging](docs/api.md).
-- [Opt-in direct PSR-3 logging](docs/api.md#direct-psr-3-logging); verify that the selected checkout/release contains `LogThrowableHandler`.
-- [Opt-in conditional reporting](docs/api.md#conditional-reporting) and its [runnable filtering example](examples/filtering.php).
-- [Opt-in best-effort reporting](docs/api.md#best-effort-reporting) and its [ordered failure example](examples/best-effort.php); verify that the selected checkout/release contains `BestEffortThrowableHandlerAggregate` and `AggregateReportingException`.
-- [Explicit PHP-error callbacks](docs/api.md#callable-php-error-policy) and their [runnable policy example](examples/php-errors.php).
-- [Legacy container, ConfigProvider and application dependencies](docs/container.md).
-- [HTTP middleware, output capture/fallback and safe application rendering](docs/http.md).
-- [Complete 2.x cookbook](docs/examples.md), [application setup](https://github.com/coisa/error-handler/blob/master/examples/README.md)
-  and [bounded verifier](https://github.com/coisa/error-handler/blob/master/examples/verify.md).
-- [Portable coisa-error-handler consumer skill](resources/skills/coisa-error-handler/SKILL.md)
-  for the `^2.4` API, with complete bundled application examples.
-- [Optional agent skill installation](docs/agent-skill.md), including project
-  synchronization, guarded copies and update/removal ownership. Composer ships
-  the files; installing or activating the skill is a consumer choice.
+## 🧰 Choose an integration
 
-The [static HTML guide](https://coisa.github.io/error-handler/) is published by
-GitHub Pages from the configured branch's `/docs` folder (currently `master`).
-Its [source](https://github.com/coisa/error-handler/blob/master/docs/index.html)
-can also be opened locally. The documentation workflow validates excerpts and
-links in pull requests or manual checks; it does not deploy the site.
+| Need | Entry point and guide |
+| --- | --- |
+| Report a throwable | `ErrorHandler::handleThrowable()` and [reporter composition][link-reporters]. |
+| Handle warnings or uncaught exceptions | `register()` / `unregister()` and [native callbacks][link-lifecycle]. |
+| Send diagnostics to a logger or dispatcher | [PSR-3 logging][link-logging] and [PSR-14 events][link-events]. |
+| Filter or fan out | [Filtering][link-filtering], [aggregates][link-aggregates] and [best effort][link-best-effort]. |
+| Use a PSR-11 or Laminas application | [`ErrorHandlerContainer`, `ConfigProvider` and factories](docs/container.md). |
+| Return an HTTP response | [PSR-15 middleware and PSR-17 composition](docs/http.md). |
 
-The original 2.x runtime metadata and PHP 7.4 alias defects are tracked in
-[#13](https://github.com/coisa/error-handler/issues/13) and
-[#40](https://github.com/coisa/error-handler/issues/40). Use a checkout or published
-patch containing both for a clean PHP 7.4 container installation. The proposed
-major's FastForward provider, pure default renderer and changed exit policy are
-not existing 2.x APIs.
+## Lifecycle and HTTP boundaries
 
-## Development
+- PHP callbacks are process-wide. Use distinct handlers for nested scopes and
+  unregister in reverse order. Shutdown callbacks remain queued after
+  `unregister()`; repeated cycles are not a bounded worker scope manager.
+- Reporting does not recover a fatal error or guarantee a nonzero exit for an
+  uncaught exception. Applications own their process exit policy.
+- The built-in container caches handlers and starts with an empty reporter
+  aggregate. Configure diagnostics explicitly; a fresh middleware wrapper can
+  still share its cached handler. Service resolution installs no callbacks.
+- The built-in HTTP stream factory captures reporter output. Empty output or
+  `"0"` falls back to exception text, and the response factory retains valid
+  exception messages as reason phrases. A silent private logger therefore does
+  not produce a safe public response. Use the
+  [explicit application response recipe](docs/http.md#a-safe-application-response)
+  for a private report and fixed public body. The application emits the response.
 
-Development tools are installed through Composer's development dependencies and
-are not required to use the library. Dependency resolution produces an ignored
-local lockfile, as described in the contributor guide below.
+See the [HTTP contract](docs/http.md#existing-response-and-output-capture) for
+status-code mapping, reason validation and output-buffer cleanup limits.
 
-Pull requests run the [PHP style workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/php-style.yml), which
-calls the CoiSA formatter's reusable workflow. It installs development
-dependencies with Composer plugins and scripts disabled, then checks
-only changed PHP files within the existing Finder scope. It does not apply fixes.
-For a full local preview, run `composer --no-plugins cs-check`; the new preset also
-reports existing formatting differences outside the files changed in a PR.
+## 📚 Guides and examples
 
-See [testing and characterization](docs/testing.md) for bounded failure probes,
-loopback HTTP fixtures, supported commands and known 2.x limitations.
+- [Complete 2.x cookbook](docs/examples.md), [application setup](examples/README.md)
+  and [bounded example verification](examples/verify.md).
+- [Published documentation][link-docs] and [API reference](docs/api.md).
+- [Portable `coisa-error-handler` consumer skill](resources/skills/coisa-error-handler/SKILL.md)
+  with complete application examples; [optional installation](docs/agent-skill.md)
+  remains a consumer choice.
+- [Packagist][link-packagist], [release history](CHANGELOG.md) and
+  [repository](https://github.com/coisa/error-handler).
 
-## Contributing release notes
+## 🤝 Contributing
 
-See [contributor dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for local Composer resolution
-and the policy for library and application lockfiles.
-
-Maintainers use [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md)
-to record changes and review version PRs. Merging a generated version PR starts
-Git tag and GitHub release publication. Node.js is needed only for this
-development tooling.
-
-## Credits
-
-- [Felipe Sayão Lobato Abreu][link-author]
+Follow the [contributor guide](CONTRIBUTING.md) for dependency setup and
+`composer --no-plugins check`. See [testing](docs/testing.md) for process fixtures
+and platform evidence, and [Changesets](.changeset/README.md) for release notes.
+Node.js is used only by development release tooling.
 
 ## License
 
-Please see [License File](LICENSE) for more information.
+[MIT](LICENSE), by [Felipe Sayão Lobato Abreu][link-author].
 
-[ico-version]: https://img.shields.io/packagist/v/coisa/error-handler.svg?style=flat-square
-[ico-php]: https://img.shields.io/packagist/php-v/coisa/error-handler.svg?style=flat-square
-[ico-license]: https://img.shields.io/github/license/coisa/error-handler.svg?style=flat-square
-[ico-build]: https://github.com/coisa/error-handler/actions/workflows/ci.yml/badge.svg?branch=master
-[ico-downloads]: https://img.shields.io/packagist/dt/coisa/error-handler.svg?style=flat-square
+[ico-php]: https://img.shields.io/packagist/php-v/coisa/error-handler?logo=php&logoColor=white
+[ico-package]: https://img.shields.io/badge/composer-coisa%2Ferror--handler-F28D1A?logo=composer&logoColor=white
+[ico-build]: https://img.shields.io/github/actions/workflow/status/coisa/error-handler/ci.yml?branch=master&logo=githubactions&logoColor=white&label=tests
+[ico-docs]: https://img.shields.io/badge/docs-2.x-38BDF8?logo=readthedocs&logoColor=white
+[ico-license]: https://img.shields.io/badge/license-MIT-64748B
 
 [link-packagist]: https://packagist.org/packages/coisa/error-handler
 [link-build]: https://github.com/coisa/error-handler/actions/workflows/ci.yml
-[link-downloads]: https://packagist.org/packages/coisa/error-handler
+[link-docs]: https://coisa.github.io/error-handler/
 [link-author]: https://github.com/coisa
+[link-reporters]: docs/api.md#choose-a-reporter-and-scope
+[link-lifecycle]: docs/api.md#native-callbacks
+[link-logging]: docs/api.md#direct-psr-3-logging
+[link-events]: docs/api.md#events-and-logging
+[link-filtering]: docs/api.md#conditional-reporting
+[link-aggregates]: docs/api.md#aggregation-and-every-built-in-adapter
+[link-best-effort]: docs/api.md#best-effort-reporting
