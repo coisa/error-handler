@@ -54,6 +54,8 @@ The factory uses integer codes from 400 through 500 inclusive as status, and 500
 
 `ThrowableStreamFactory` starts an output buffer, invokes its configured reporter, then uses the captured text. If that text is empty or false-like (including the string `"0"`), it falls back to the throwable's string representation, including diagnostic details and stack information. A private logger that prints nothing therefore does not produce a safe generic body.
 
+If the reporter closes capture and returns normally, the factory uses that same diagnostic fallback. It does not read or close a caller-owned buffer at or below the entry depth, or invoke that buffer's output callback. With no caller buffer, the missing capture also reaches fallback without calling `ob_get_clean()`. This ownership boundary cannot undo a reporter's own writes, flushes or buffer changes; reporters must still balance their buffers.
+
 The executable modes verify these actual paths:
 
 | Mode | Observed result |

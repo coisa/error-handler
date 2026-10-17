@@ -130,7 +130,7 @@ final class ProcessBehaviorTest extends TestCase
     }
 
     /**
-     * Verifies protected and throwing native output handlers without corrupting PHPUnit's protocol.
+     * Verifies protected, throwing and absent output scopes without corrupting PHPUnit's protocol.
      *
      * @param string $case      the hazardous native fixture selection
      * @param int    $remaining the established number of remaining scopes above entry
@@ -178,6 +178,17 @@ final class ProcessBehaviorTest extends TestCase
             return;
         }
         self::assertSame(0, $process->getExitCode());
+
+        if ('closed-capture-without-caller' === $case) {
+            self::assertSame('', $process->getErrorOutput());
+            self::assertSame(
+                ['entryLevel' => 0, 'remaining' => 0, 'fallbackSame' => true],
+                json_decode(trim($process->getOutput()), true, 512, JSON_THROW_ON_ERROR),
+            );
+
+            return;
+        }
+
         self::assertSame('C0:C1:', $process->getOutput());
         $event = json_decode(trim($process->getErrorOutput()), true, 512, JSON_THROW_ON_ERROR);
         self::assertIsArray($event);
@@ -187,7 +198,7 @@ final class ProcessBehaviorTest extends TestCase
         ], $event);
     }
 
-    /** @return array<string, array{string, int, int}> only genuine hazardous native operations */
+    /** @return array<string, array{string, int, int}> native output cases requiring a bounded child */
     public static function provideHazardousOutputHandlersCases(): iterable
     {
         return [
@@ -195,6 +206,7 @@ final class ProcessBehaviorTest extends TestCase
             'protected nested scope' => ['protected-top', 2, 0],
             'capture callback throws' => ['capture-throws', 0, 1],
             'cleanup callback exits' => ['terminates', 0, 0],
+            'capture closed at native depth zero' => ['closed-capture-without-caller', 0, 0],
         ];
     }
 }
