@@ -38,7 +38,7 @@ foreach (new RecursiveIteratorIterator($archive) as $file) {
     $path = substr($file->getPathname(), strlen($prefix));
 
     // Runtime code, useful guides and the canonical consumer skill are distribution assets.
-    $allowed = in_array($path, ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md'], true)
+    $allowed = in_array($path, ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'SECURITY.md'], true)
         || 0 === strpos($path, 'src/')
         || 0 === strpos($path, 'docs/')
         || 0 === strpos($path, 'resources/skills/coisa-error-handler/');
@@ -54,7 +54,7 @@ foreach (new RecursiveIteratorIterator($archive) as $file) {
     $files[$path] = true;
 }
 
-$required = ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md'];
+$required = ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'SECURITY.md'];
 
 foreach (['src', 'resources/skills/coisa-error-handler'] as $directory) {
     /** @var SplFileInfo $source A required runtime or consumer skill file from the selected source. */

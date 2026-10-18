@@ -94,10 +94,15 @@ CI are evidence for the executed platforms, not universal Windows/signal behavio
 | Protected output scopes | Caller bytes survive; a protected nested scope prevents deeper cleanup |
 | Output callback throws | Primary failure remains; cleanup continues when PHP removed that buffer and stops without progress |
 | Output callback exits | Its exit status wins; caller catch is never reached |
+| Reporter closes capture at native depth zero | Existing diagnostic fallback is returned with no missing-buffer warning |
 
 Direct tests retain empty/`"0"` diagnostic fallback and successful unbalanced
 capture: the inner output becomes the body and an outer buffer remains. Passing
 characterization does not endorse these limitations or change runtime policy.
+Another direct unit regression closes capture before returning and verifies the
+exact diagnostic fallback, unchanged caller bytes/depth and no premature caller
+callback. Only the depth-zero case runs through the existing bounded child, so
+the test does not close PHPUnit's own output buffers.
 
 Six instrumentable lines forward a genuinely fatal last error; three stream
 cleanup lines stop protected, failed or non-progressing cleanup. These remain

@@ -60,6 +60,8 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * This method SHALL process the throwable using the handler and convert
      * its output into a PSR-7 compatible stream.
+     * If the handler closes capture before returning, the diagnostic fallback
+     * is used without reading or closing buffers at or below the entry level.
      * On capture failure, removable buffers above the entry level are discarded
      * best-effort. Cleanup stops on failure or lack of progress and never replaces
      * the primary throwable. Output-handler side effects cannot be undone.
@@ -82,6 +84,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * When cleanup returns, the primary reporter or capture failure is rethrown.
      * Successful capture retains its existing nested-buffer behavior.
+     * Missing capture uses the same fallback without consuming caller buffers.
      *
      * @param \Throwable $throwable the throwable passed unchanged to the reporter
      *
@@ -96,6 +99,10 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
 
         try {
             $this->throwableHandler->handleThrowable($throwable);
+
+            if (ob_get_level() <= $entryLevel) {
+                return (string) $throwable;
+            }
 
             return ob_get_clean() ?: (string) $throwable;
         } catch (\Throwable $failure) {

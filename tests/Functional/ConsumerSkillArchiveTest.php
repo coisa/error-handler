@@ -86,6 +86,18 @@ final class ConsumerSkillArchiveTest extends TestCase
     }
 
     /**
+     * Composer packages must retain the policy that identifies confidential reporting.
+     */
+    public function testMissingSecurityPolicyIsRejected(): void
+    {
+        $this->createArchive('SECURITY.md');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Required runtime or consumer metadata is missing: SECURITY.md');
+
+        $this->verifyArchive();
+    }
+
+    /**
      * Packaging cannot silently substitute different consumer instructions.
      */
     public function testChangedConsumerBytesAreRejected(): void
@@ -125,7 +137,7 @@ final class ConsumerSkillArchiveTest extends TestCase
     private function createArchive(?string $omittedPath = null): \PharData
     {
         $root = \dirname(__DIR__, 2);
-        $paths = ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md'];
+        $paths = ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'SECURITY.md'];
 
         foreach (['src', 'resources/skills/coisa-error-handler'] as $directory) {
             $sourceFiles = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/' . $directory));

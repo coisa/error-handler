@@ -1,238 +1,280 @@
 # Changelog
 
-Notable changes to `coisa/error-handler`, with the newest release first.
+All notable changes to this project will be documented in this file.
 
-This file is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
-and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-New entries are collected from independent Markdown fragments by
-[Fast Forward Changelog](https://github.com/php-fast-forward/changelog).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
-Pending changes live in `.changelog/` until a version PR is prepared.
 
-## 2.5.1
+## [2.5.2] - 2026-10-17
 
-### Patch Changes
+### Added
 
-- [#109](https://github.com/coisa/error-handler/pull/109) [`af43a68`](https://github.com/coisa/error-handler/commit/af43a68f809664831af99bef4eb3aebf94e129d1) - Document published 2.5.0 as the minimum for JSON, Whoops and Interop provider routes in the guides and bundled consumer skill, while retaining the common 2.4 baseline and existing 2.x behavior.
+- Document security support for the latest stable release and the existing private reporting channel. Include the security policy in Composer distributions and link it from the README and consumer skill. ([#116](https://github.com/coisa/error-handler/pull/116))
 
-## 2.5.0
+### Fixed
 
-### Minor Changes
+- Preserve caller-owned output buffers when a capture reporter closes the factory's buffer and returns normally. Use the existing diagnostic fallback without consuming caller bytes or invoking their output callbacks; retain empty-output and `"0"` fallback behavior. ([#114](https://github.com/coisa/error-handler/pull/114))
 
-- [#92](https://github.com/coisa/error-handler/pull/92) [`fb418fb`](https://github.com/coisa/error-handler/commit/fb418fba4f342f2113a34cd8dfbb15418c0ade87) - Add an opt-in pure JSON throwable response factory with generic public output, integer HTTP 400–599 status preservation and an explicit development mode with metadata-only traces and no-store caching. Add a separate report-before-render response decorator for the existing 2.x middleware and independent Interop providers for explicit legacy or JSON composition with fresh HTTP scopes. Applications select the JSON provider before the base provider and supply PSR-17 factories and a private reporter; the FastForward integration requires PHP 8.3+ and an application runtime dependency, while the core retains PHP 7.4 and existing container/output-capture defaults. Debug alone needs the optional JSON extension on PHP 7.4.
+## [2.5.1] - 2026-10-17
 
-- [#92](https://github.com/coisa/error-handler/pull/92) [`fae2d58`](https://github.com/coisa/error-handler/commit/fae2d58471e72136d3e9967f54bd81a7fc38bc48) - Add an optional Whoops HTML response renderer with application-controlled development activation and page configuration. Provide an independent opt-in Interop profile using the application's PSR-17 factories and private reporter, with a lazy configurable PrettyPageHandler service. Applications compose the base and Whoops maps in one aggregate and obtain fresh middleware scopes through FastForward on PHP 8.3+. Sequential rendering preserves page configuration and replaces diagnostic state, with a fresh Run, response and stream. Reuse explicit reporting composition without changing existing middleware, capture defaults or HTTP negotiation; service resolution and fallback remain the container's policy. Bundle focused HTML guidance and executable consumer programs in the canonical skill, with installed-API availability checks. Require optional Whoops ^2.18.4 or later within 2.x, including the upstream PHP 8.5 fix to avoid its additional PHP deprecation report during rendering. Core PHP 7.4 and ordinary production installations still do not require Whoops or FastForward.
+### Changed
 
-### Patch Changes
+- Document published 2.5.0 as the minimum for JSON, Whoops and Interop provider routes in the guides and bundled consumer skill, while retaining the common 2.4 baseline and existing 2.x behavior. ([#109](https://github.com/coisa/error-handler/pull/109))
 
-- [#105](https://github.com/coisa/error-handler/pull/105) [`723e985`](https://github.com/coisa/error-handler/commit/723e985899b86deef2a936e6e1c1b2267110b948) - Clarify the 2.x learning path, integration prerequisites, service aliases and factories, application extension contracts, and reporting/HTTP troubleshooting while retaining the existing Markdown guides and static documentation site.
+## [2.5.0] - 2026-10-17
 
-## 2.4.4
+### Added
 
-### Patch Changes
+- Add an opt-in pure JSON throwable response factory with generic public output, integer HTTP 400–599 status preservation and an explicit development mode with metadata-only traces and no-store caching. Add a separate report-before-render response decorator for the existing 2.x middleware and independent Interop providers for explicit legacy or JSON composition with fresh HTTP scopes. Applications select the JSON provider before the base provider and supply PSR-17 factories and a private reporter; the FastForward integration requires PHP 8.3+ and an application runtime dependency, while the core retains PHP 7.4 and existing container/output-capture defaults. Debug alone needs the optional JSON extension on PHP 7.4. ([#92](https://github.com/coisa/error-handler/pull/92))
 
-- [#103](https://github.com/coisa/error-handler/pull/103) [`e77e590`](https://github.com/coisa/error-handler/commit/e77e5908718f009260938ba29179c9812926de3e) - Make the 2.x README easier to use with a complete quick start, focused integration
-  guides and explicit lifecycle and HTTP boundaries.
+- Add an optional Whoops HTML response renderer with application-controlled development activation and page configuration. Provide an independent opt-in Interop profile using the application's PSR-17 factories and private reporter, with a lazy configurable PrettyPageHandler service. Applications compose the base and Whoops maps in one aggregate and obtain fresh middleware scopes through FastForward on PHP 8.3+. Sequential rendering preserves page configuration and replaces diagnostic state, with a fresh Run, response and stream. Reuse explicit reporting composition without changing existing middleware, capture defaults or HTTP negotiation; service resolution and fallback remain the container's policy. Bundle focused HTML guidance and executable consumer programs in the canonical skill, with installed-API availability checks. Require optional Whoops ^2.18.4 or later within 2.x, including the upstream PHP 8.5 fix to avoid its additional PHP deprecation report during rendering. Core PHP 7.4 and ordinary production installations still do not require Whoops or FastForward. ([#96](https://github.com/coisa/error-handler/pull/96))
 
-## 2.4.3
+### Changed
 
-### Patch Changes
+- Clarify the 2.x learning path, integration prerequisites, service aliases and factories, application extension contracts, and reporting/HTTP troubleshooting while retaining the existing Markdown guides and static documentation site. ([#105](https://github.com/coisa/error-handler/pull/105))
 
-- [#101](https://github.com/coisa/error-handler/pull/101) [`2ee7bdf`](https://github.com/coisa/error-handler/commit/2ee7bdf6ddd0c74c2260d176fe0f45486e0de27a) - Ship the portable coisa-error-handler consumer skill in Composer distributions, with a supported 2.4 API contract, complete application examples and optional project synchronization instructions.
+## [2.4.4] - 2026-10-17
 
-## 2.4.2
+### Changed
 
-### Patch Changes
+- Make the 2.x README easier to use with a complete quick start, focused integration guides and explicit lifecycle and HTTP boundaries. ([#103](https://github.com/coisa/error-handler/pull/103))
 
-- [#93](https://github.com/coisa/error-handler/pull/93) [`e39b363`](https://github.com/coisa/error-handler/commit/e39b363f9467434ebd3c7907fc99bf6351cb9b54) - Preserve the original failure when wrapping container exceptions with string codes such as PDO SQLSTATE. Integer codes remain unchanged; string codes use zero on the wrapper and remain available on its previous throwable.
+## [2.4.3] - 2026-10-17
 
-- [#91](https://github.com/coisa/error-handler/pull/91) [`9e4876d`](https://github.com/coisa/error-handler/commit/9e4876da10dceb857fc55e130c3ee8ef35f93339) - Use the application's PSR-17 default reason phrase when an exception message contains forbidden HTTP status-line control bytes. Preserve valid messages, the existing 400–500 status mapping, original throwable reporting and response body behavior.
+### Added
 
-## 2.4.1
+- Ship the portable coisa-error-handler consumer skill in Composer distributions, with a supported 2.4 API contract, complete application examples and optional project synchronization instructions. ([#101](https://github.com/coisa/error-handler/pull/101))
 
-### Patch Changes
+## [2.4.2] - 2026-10-16
 
-- [#86](https://github.com/coisa/error-handler/pull/86) [`94055d2`](https://github.com/coisa/error-handler/commit/94055d2b2c869cb11a8c92a0d7d754ebf6aed992) - Expose all existing 2.x recipes in a complete source-checked cookbook. Preserve
-  website excerpt validation and verify every full recipe against executable PHP,
-  with application setup, consumer guidance and navigation aligned.
+### Fixed
 
-- [#87](https://github.com/coisa/error-handler/pull/87) [`85d8488`](https://github.com/coisa/error-handler/commit/85d8488c9eb161f9ea870d802dfe5ff13b3683c1) - Permit coverage decreases while requiring an overall line-coverage minimum of
-  80% by default, configurable with MINIMUM_COVERAGE_THRESHOLD. Preserve authentic
-  baseline comparisons, per-file differences and the existing sticky PR report.
+- Preserve the original failure when wrapping container exceptions with string codes such as PDO SQLSTATE. Integer codes remain unchanged; string codes use zero on the wrapper and remain available on its previous throwable. ([#93](https://github.com/coisa/error-handler/pull/93))
 
-- [#84](https://github.com/coisa/error-handler/pull/84) [`f095afe`](https://github.com/coisa/error-handler/commit/f095afec6e075bd5b9186a615012f7cdac4b6f11) - Continue exceptional output-buffer cleanup when PHP removes a buffer before its
-  output callback throws. Preserve the original reporter/capture failure and
-  caller-owned buffers while discarding remaining reachable removable scopes.
+- Use the application's PSR-17 default reason phrase when an exception message contains forbidden HTTP status-line control bytes. Preserve valid messages, the existing 400–500 status mapping, original throwable reporting and response body behavior. ([#91](https://github.com/coisa/error-handler/pull/91))
 
-- [#83](https://github.com/coisa/error-handler/pull/83) [`e40dddd`](https://github.com/coisa/error-handler/commit/e40dddd0a4e06e77900b12eb1ef5d16eaf69fe49) - Describe the released logging and best-effort adapters as available opt-in 2.x APIs across the guides, cookbook, static site and consumer skill. Retain installed-version checks and the distinction between pending Changesets and published releases.
+## [2.4.1] - 2026-10-16
 
-## 2.4.0
+### Added
 
-### Minor Changes
+- Expose all existing 2.x recipes in a complete source-checked cookbook. Preserve website excerpt validation and verify every full recipe against executable PHP, with application setup, consumer guidance and navigation aligned. ([#86](https://github.com/coisa/error-handler/pull/86))
 
-- [#80](https://github.com/coisa/error-handler/pull/80) [`6fa8ed0`](https://github.com/coisa/error-handler/commit/6fa8ed06f9bfb9cd2345ea9c5ef336a3841fa230) - Add an opt-in BestEffortThrowableHandlerAggregate that attempts every configured reporter in order and then exposes all reporter failures through AggregateReportingException, preserving the original throwable. Existing fail-fast aggregation, defaults, callback lifecycle and HTTP behavior remain unchanged.
+### Changed
 
-### Patch Changes
+- Permit coverage decreases while requiring an overall line-coverage minimum of 80% by default, configurable with MINIMUM_COVERAGE_THRESHOLD. Preserve authentic baseline comparisons, per-file differences and the existing sticky PR report. ([#87](https://github.com/coisa/error-handler/pull/87))
 
-- [#81](https://github.com/coisa/error-handler/pull/81) [`76ca4d3`](https://github.com/coisa/error-handler/commit/76ca4d36a80af8db158fb8acd6912bb557a58ac9) - Remove the unused manual Pages upload/deployment jobs now that GitHub Pages publishes the configured branch's docs folder. Keep read-only source, link and excerpt validation and align the publication guidance.
+- Describe the released logging and best-effort adapters as available opt-in 2.x APIs across the guides, cookbook, static site and consumer skill. Retain installed-version checks and the distinction between pending Changesets and published releases. ([#83](https://github.com/coisa/error-handler/pull/83))
 
-## 2.3.1
+### Fixed
 
-### Patch Changes
+- Continue exceptional output-buffer cleanup when PHP removes a buffer before its output callback throws. Preserve the original reporter/capture failure and caller-owned buffers while discarding remaining reachable removable scopes. ([#84](https://github.com/coisa/error-handler/pull/84))
 
-- [#77](https://github.com/coisa/error-handler/pull/77) [`d88c6d3`](https://github.com/coisa/error-handler/commit/d88c6d366d337dd99804a66088cfcf916467fe83) - Expand direct PHPUnit class coverage with meaningful contract and failure assertions, remove strictly subsumed legacy tests and scope process isolation to native global state. Document measured coverage and native limits without changing the 2.x runtime or coverage policy.
+## [2.4.0] - 2026-10-16
 
-- [#77](https://github.com/coisa/error-handler/pull/77) [`bac5992`](https://github.com/coisa/error-handler/commit/bac599295f412909d388d261c9a8255ea3d9a439) - Replace standalone failure and HTTP test runners with PHPUnit contracts and bounded Symfony Process fixtures, declaring the development dependency directly and updating the cookbook verifier and testing entrypoints.
+### Added
 
-## 2.3.0
+- Add an opt-in BestEffortThrowableHandlerAggregate that attempts every configured reporter in order and then exposes all reporter failures through AggregateReportingException, preserving the original throwable. Existing fail-fast aggregation, defaults, callback lifecycle and HTTP behavior remain unchanged. ([#80](https://github.com/coisa/error-handler/pull/80))
 
-### Minor Changes
+### Removed
 
-- [#73](https://github.com/coisa/error-handler/pull/73) [`018edbf`](https://github.com/coisa/error-handler/commit/018edbf30c845d2c0b78020af7c3a4f7120e82c9) - Add the explicit CallablePhpErrorHandler adapter for four-argument application callbacks. Preserve the void boundary, ignored callback returns, application-owned mask policy and unchanged typed ErrorHandler constructor.
+- Remove the unused manual Pages upload/deployment jobs now that GitHub Pages publishes the configured branch's docs folder. Keep read-only source, link and excerpt validation and align the publication guidance. ([#81](https://github.com/coisa/error-handler/pull/81))
 
-## 2.2.0
+## [2.3.1] - 2026-10-16
 
-### Minor Changes
+### Changed
 
-- [#69](https://github.com/coisa/error-handler/pull/69) [`9068a5d`](https://github.com/coisa/error-handler/commit/9068a5dda9759376c01bf5f95c593938d0f4ef8d) - Add the opt-in LogThrowableHandler adapter for direct PSR-3 reporting with the exact throwable message, configured level and original exception context. Preserve logger failures, existing discovery, application-owned transports and PHP 7.4 compatibility; add runnable examples and matching integration guidance.
+- Expand direct PHPUnit class coverage with meaningful contract and failure assertions, remove strictly subsumed legacy tests and scope process isolation to native global state. Document measured coverage and native limits without changing the 2.x runtime or coverage policy. ([#74](https://github.com/coisa/error-handler/pull/74))
 
-## 2.1.0
+- Replace standalone failure and HTTP test runners with PHPUnit contracts and bounded Symfony Process fixtures, declaring the development dependency directly and updating the cookbook verifier and testing entrypoints. ([#77](https://github.com/coisa/error-handler/pull/77))
 
-### Minor Changes
+## [2.3.0] - 2026-10-16
 
-- [#68](https://github.com/coisa/error-handler/pull/68) [`efb5cb2`](https://github.com/coisa/error-handler/commit/efb5cb258c7152ef559899b174f48b0b80ffbfd0) - Add the opt-in FilteringThrowableHandler decorator with an explicit boolean predicate, original-object delivery and fail-fast collaborator errors. Keep default discovery, PHP suppression and HTTP response policy unchanged.
+### Added
 
-### Patch Changes
+- Add the explicit CallablePhpErrorHandler adapter for four-argument application callbacks. Preserve the void boundary, ignored callback returns, application-owned mask policy and unchanged typed ErrorHandler constructor. ([#73](https://github.com/coisa/error-handler/pull/73))
 
-- [#58](https://github.com/coisa/error-handler/pull/58) [`c012aa2`](https://github.com/coisa/error-handler/commit/c012aa249836573a39294de8c4e5057d6ac7081b) - Attempt to discard removable output buffers above the stream factory's entry level when reporting or capture throws. If cleanup returns, the primary failure propagates; output callbacks that terminate the process or trigger an engine fatal can prevent that return. Cleanup stops on protected buffers, failed closes, absent progress or callback failure. Successful capture and empty/`0` fallback bytes remain unchanged.
+## [2.2.0] - 2026-10-16
 
-## 2.0.9
+### Added
 
-### Patch Changes
+- Add the opt-in LogThrowableHandler adapter for direct PSR-3 reporting with the exact throwable message, configured level and original exception context. Preserve logger failures, existing discovery, application-owned transports and PHP 7.4 compatibility; add runnable examples and matching integration guidance. ([#69](https://github.com/coisa/error-handler/pull/69))
 
-- [#64](https://github.com/coisa/error-handler/pull/64) [`6fb45d7`](https://github.com/coisa/error-handler/commit/6fb45d7d00465d394b0917d26f02fc50b3c98ef5) - Exclude the intentionally invalid compile-fatal fixture from optimized development classmaps while preserving its explicit bounded fire-test execution.
+## [2.1.0] - 2026-10-16
 
-- [#63](https://github.com/coisa/error-handler/pull/63) [`0157fcc`](https://github.com/coisa/error-handler/commit/0157fccc27aab0771bb3a8934c79a246b0712017) - Retire the historical Scrutinizer configuration and badges after verifying that its latest public inspection predates the 2.x line. Link the current PHP CI and document its security-analysis limits without changing runtime code or external service settings.
+### Added
 
-- [#59](https://github.com/coisa/error-handler/pull/59) [`c82fbab`](https://github.com/coisa/error-handler/commit/c82fbabb6a35f28b07d69f913f2587ee5ed4cb24) - Add a static 2.x documentation guide with checked example excerpts and a manual Pages workflow.
+- Add the opt-in FilteringThrowableHandler decorator with an explicit boolean predicate, original-object delivery and fail-fast collaborator errors. Keep default discovery, PHP suppression and HTTP response policy unchanged. ([#68](https://github.com/coisa/error-handler/pull/68))
 
-## 2.0.8
+### Fixed
 
-### Patch Changes
+- Attempt to discard removable output buffers above the stream factory's entry level when reporting or capture throws. If cleanup returns, the primary failure propagates; output callbacks that terminate the process or trigger an engine fatal can prevent that return. Cleanup stops on protected buffers, failed closes, absent progress or callback failure. Successful capture and empty/`0` fallback bytes remain unchanged. ([#58](https://github.com/coisa/error-handler/pull/58))
 
-- [#60](https://github.com/coisa/error-handler/pull/60) [`2b69625`](https://github.com/coisa/error-handler/commit/2b69625faacc99dd371432bb9c27e126b5cbbf6e) - Add regression coverage for aggregate reporter order, appended handlers and preservation of the original throwable instance.
+## [2.0.9] - 2026-10-16
 
-- [#53](https://github.com/coisa/error-handler/pull/53) [`cde8f16`](https://github.com/coisa/error-handler/commit/cde8f1675bcd980148e84126e41a114608ed0e8f) - Add PHPUnit line-coverage artifacts, overall baseline regression checks and a configurable minimum, with a SHA-aware sticky note for eligible same-repository pull requests. Verify that throwable listeners preserve event identity when callbacks return a replacement.
+### Added
 
-## 2.0.7
+- Add a static 2.x documentation guide with checked example excerpts and a manual Pages workflow. ([#59](https://github.com/coisa/error-handler/pull/59))
 
-### Patch Changes
+### Removed
 
-- [#56](https://github.com/coisa/error-handler/pull/56) [`1946d88`](https://github.com/coisa/error-handler/commit/1946d884a3ab871ea47a4c7a2f2ac6c68e0f966e) - Document the existing 2.x lifecycle, reporting, container and HTTP APIs with PHP 7.4-compatible runnable examples, bounded example verification and matching portable consumer guidance. Keep application-owned dependencies and observed output/exit limitations explicit.
+- Retire the historical Scrutinizer configuration and badges after verifying that its latest public inspection predates the 2.x line. Link the current PHP CI and document its security-analysis limits without changing runtime code or external service settings. ([#63](https://github.com/coisa/error-handler/pull/63))
 
-## 2.0.6
+### Fixed
 
-### Patch Changes
+- Exclude the intentionally invalid compile-fatal fixture from optimized development classmaps while preserving its explicit bounded fire-test execution. ([#64](https://github.com/coisa/error-handler/pull/64))
 
-- [#43](https://github.com/coisa/error-handler/pull/43) [`642ee2a`](https://github.com/coisa/error-handler/commit/642ee2a8c51a2d06772b2a0dcb018bdeca554ba4) - Add bounded child-process and loopback HTTP characterization for the existing 2.x behavior, including explicit known limitations and harness timeout/output-cap cleanup checks. Runtime code and public contracts are unchanged.
+## [2.0.8] - 2026-10-16
 
-- [#55](https://github.com/coisa/error-handler/pull/55) [`b4e6ccb`](https://github.com/coisa/error-handler/commit/b4e6ccb1fc665d2341f26b953f8911beeae264df) - Align the internal functional middleware test namespace with its PSR-4 path so Composer's strict optimized autoloader includes it. Test assertions and runtime behavior are unchanged.
+### Added
 
-- [#47](https://github.com/coisa/error-handler/pull/47) [`bfd7005`](https://github.com/coisa/error-handler/commit/bfd700501e426e8b8278cabec00e88a12e976a84) - Remove the obsolete PHP 7.2/Xdebug 2.6 development Docker wrappers and document the native Composer/PHP checks. The library's PHP requirements, public API and runtime dependencies are unchanged.
+- Add PHPUnit line-coverage artifacts, overall baseline regression checks and a configurable minimum, with a SHA-aware sticky note for eligible same-repository pull requests. Verify that throwable listeners preserve event identity when callbacks return a replacement. ([#53](https://github.com/coisa/error-handler/pull/53))
 
-- [#51](https://github.com/coisa/error-handler/pull/51) [`3655296`](https://github.com/coisa/error-handler/commit/36552960b7deb3c794e9dd7d16d7fa6963a21c2b) - Remove the unused PHP-CS-Fixer 2 configuration and its distribution exclusion. The tested PHP-CS-Fixer 3 configuration remains the formatter entrypoint.
+### Changed
 
-- [#52](https://github.com/coisa/error-handler/pull/52) [`010dd85`](https://github.com/coisa/error-handler/commit/010dd856957cc4b37e178e27210f236c221fdcab) - Remove the Makefile and its privileged Composer bootstrap. Use the documented native Composer commands for dependency installation and quality checks.
+- Add regression coverage for aggregate reporter order, appended handlers and preservation of the original throwable instance. ([#60](https://github.com/coisa/error-handler/pull/60))
 
-## 2.0.5
+## [2.0.7] - 2026-10-16
 
-### Patch Changes
+### Added
 
-- [#48](https://github.com/coisa/error-handler/pull/48) [`5213f01`](https://github.com/coisa/error-handler/commit/5213f01150dd7f95e7a17955c966d0e62d1d77d7) - Check the complete development quality suite on PHP 8.3–8.5 and clean production distributions on PHP 7.4 and 8.0–8.5, including lowest runtime dependency resolutions at both endpoints.
+- Document the existing 2.x lifecycle, reporting, container and HTTP APIs with PHP 7.4-compatible runnable examples, bounded example verification and matching portable consumer guidance. Keep application-owned dependencies and observed output/exit limitations explicit. ([#56](https://github.com/coisa/error-handler/pull/56))
 
-## 2.0.4
+## [2.0.6] - 2026-10-16
 
-### Patch Changes
+### Added
 
-- [#45](https://github.com/coisa/error-handler/pull/45) [`7584519`](https://github.com/coisa/error-handler/commit/758451907ca2bb61d5afa32475b896bd0e91aa00) - Exclude the development-only formatter configuration and Docker ignore file from Composer distribution archives while preserving all runtime source and useful consumer metadata.
+- Add bounded child-process and loopback HTTP characterization for the existing 2.x behavior, including explicit known limitations and harness timeout/output-cap cleanup checks. Runtime code and public contracts are unchanged. ([#43](https://github.com/coisa/error-handler/pull/43))
 
-- [#44](https://github.com/coisa/error-handler/pull/44) [`7a3e867`](https://github.com/coisa/error-handler/commit/7a3e867782b29dedb5ebd03314d6daca992339df) - Complete legacy service and fixture PHPDoc, correct file headers, and apply the shared coding-style preset while preserving PHP 7.4 support and the public runtime API.
+### Removed
 
-## 2.0.3
+- Remove the obsolete PHP 7.2/Xdebug 2.6 development Docker wrappers and document the native Composer/PHP checks. The library's PHP requirements, public API and runtime dependencies are unchanged. ([#47](https://github.com/coisa/error-handler/pull/47))
 
-### Patch Changes
+- Remove the unused PHP-CS-Fixer 2 configuration and its distribution exclusion. The tested PHP-CS-Fixer 3 configuration remains the formatter entrypoint. ([#51](https://github.com/coisa/error-handler/pull/51))
 
-- [#37](https://github.com/coisa/error-handler/pull/37) [`8846d6f`](https://github.com/coisa/error-handler/commit/8846d6fe75b6b60556f1d0c6a4d8c682c730dc41) - Declare `psr/container` as a runtime dependency so the existing container and its factories load in production installations. Require `^1.1 || ^2.0`, matching the existing typed identifiers without changing public APIs or the supported PHP range.
+- Remove the Makefile and its privileged Composer bootstrap. Use the documented native Composer commands for dependency installation and quality checks. ([#52](https://github.com/coisa/error-handler/pull/52))
 
-- [#42](https://github.com/coisa/error-handler/pull/42) [`8a101be`](https://github.com/coisa/error-handler/commit/8a101bed2c9997e5e8eee5589f67d8cda817fbd6) - Fix alias resolution on the declared PHP 7.4 runtime by retaining AliasFactory's unrestricted return contract in PHPDoc instead of a PHP 8 native `mixed` declaration. Preserve exact delegated values, object identity, exceptions and modern PHP behavior.
+### Fixed
 
-- [#39](https://github.com/coisa/error-handler/pull/39) [`83bd9a0`](https://github.com/coisa/error-handler/commit/83bd9a04d9ac0eb1fa958938d07b8faa4367f732) - Restore the development-only Prophecy integrations, update PHPUnit 9 configuration, separate ordinary tests from optional coverage reporting, use the fixer's own file header as its template, and limit multiline trailing commas to PHP 7.4-compatible locations.
+- Align the internal functional middleware test namespace with its PSR-4 path so Composer's strict optimized autoloader includes it. Test assertions and runtime behavior are unchanged. ([#55](https://github.com/coisa/error-handler/pull/55))
 
-- [#38](https://github.com/coisa/error-handler/pull/38) [`63986d0`](https://github.com/coisa/error-handler/commit/63986d072fe25a34eac4563dcdbac39475ba4539) - Handle string exception codes such as PDO SQLSTATE values without a secondary TypeError when creating an HTTP response. Preserve the 2.x integer 400–500 mapping, original reason phrase and throwable stream delegation; string codes fall back to status 500.
+## [2.0.5] - 2026-10-16
 
-## 2.0.2
+### Added
 
-### Patch Changes
+- Check the complete development quality suite on PHP 8.3–8.5 and clean production distributions on PHP 7.4 and 8.0–8.5, including lowest runtime dependency resolutions at both endpoints. ([#48](https://github.com/coisa/error-handler/pull/48))
 
-- [#36](https://github.com/coisa/error-handler/pull/36) [`2468eec`](https://github.com/coisa/error-handler/commit/2468eeca15df2b5a93c2e9fd3f38f9e242da35c0) - chore(deps-dev): Update squizlabs/php_codesniffer requirement from ^3.13 to ^3.13 || ^4.0
+## [2.0.4] - 2026-10-16
 
-- [#34](https://github.com/coisa/error-handler/pull/34) [`bc9dd4e`](https://github.com/coisa/error-handler/commit/bc9dd4e06314f0969925bb02fa4b673fa5068eb3) - Add weekly Composer, npm and GitHub Actions dependency checks with automatic, reviewable Changesets for Dependabot pull requests.
+### Changed
 
-- [#35](https://github.com/coisa/error-handler/pull/35) [`65baacb`](https://github.com/coisa/error-handler/commit/65baacb0a5d98d77b72c743180d5d6cca46be834) - Stop tracking the library's Composer lockfile and ignore contributor-local locks. Document fresh dependency resolution and application-owned lockfiles while retaining the Node tooling lockfile and the existing PHP runtime requirements and public API.
+- Complete legacy service and fixture PHPDoc, correct file headers, and apply the shared coding-style preset while preserving PHP 7.4 support and the public runtime API. ([#44](https://github.com/coisa/error-handler/pull/44))
 
-- [#32](https://github.com/coisa/error-handler/pull/32) [`ea28301`](https://github.com/coisa/error-handler/commit/ea2830100d60b58a2821c4ba598ca62743f701fa) - Update the development-only PHP_CodeSniffer dependency to the patched 3.x series to address CVE-2026-67434, without changing the library's runtime requirements.
+### Fixed
 
-- [#28](https://github.com/coisa/error-handler/pull/28) [`2e91d7f`](https://github.com/coisa/error-handler/commit/2e91d7fa88ebf659aa75ef70f66411539eed116e) - Update development tooling to CoiSA PHP CS Fixer 3 and PHPUnit 9.6, which provides the shared diff dependency required by the current formatter. Check changed PHP files in pull requests through the formatter's reusable workflow. Preserve the library's existing runtime requirements and public API.
+- Exclude the development-only formatter configuration and Docker ignore file from Composer distribution archives while preserving all runtime source and useful consumer metadata. ([#45](https://github.com/coisa/error-handler/pull/45))
 
-## 2.0.1
+## [2.0.3] - 2026-10-16
 
-### Patch Changes
+### Fixed
 
-- [#27](https://github.com/coisa/error-handler/pull/27) [`d8973f4`](https://github.com/coisa/error-handler/commit/d8973f4b8c2a861490bf24ce99db103dd6e3ff29) - Add development-only Changesets tooling, GitHub-linked changelogs, reviewed version PRs and GitHub releases after those PRs are merged, preserving the PHP runtime requirements and public API of the 2.x line.
+- Declare `psr/container` as a runtime dependency so the existing container and its factories load in production installations. Require `^1.1 || ^2.0`, matching the existing typed identifiers without changing public APIs or the supported PHP range. ([#37](https://github.com/coisa/error-handler/pull/37))
 
-## 2.0.0
+- Fix alias resolution on the declared PHP 7.4 runtime by retaining AliasFactory's unrestricted return contract in PHPDoc instead of a PHP 8 native `mixed` declaration. Preserve exact delegated values, object identity, exceptions and modern PHP behavior. ([#42](https://github.com/coisa/error-handler/pull/42))
 
-[Release](https://github.com/coisa/error-handler/releases/tag/2.0.0) ·
-[Changes since 1.0.0](https://github.com/coisa/error-handler/compare/1.0.0...2.0.0)
+- Restore the development-only Prophecy integrations, update PHPUnit 9 configuration, separate ordinary tests from optional coverage reporting, use the fixer's own file header as its template, and limit multiline trailing commas to PHP 7.4-compatible locations. ([#39](https://github.com/coisa/error-handler/pull/39))
 
-### Major Changes
+- Handle string exception codes such as PDO SQLSTATE values without a secondary TypeError when creating an HTTP response. Preserve the 2.x integer 400–500 mapping, original reason phrase and throwable stream delegation; string codes fall back to status 500. ([#38](https://github.com/coisa/error-handler/pull/38))
+
+## [2.0.2] - 2026-10-16
+
+### Added
+
+- Add weekly Composer, npm and GitHub Actions dependency checks with automatic, reviewable Changesets for Dependabot pull requests. ([#34](https://github.com/coisa/error-handler/pull/34))
+
+### Changed
+
+- Expand the development-only PHP_CodeSniffer requirement from `^3.13` to `^3.13 || ^4.0`. ([#36](https://github.com/coisa/error-handler/pull/36))
+
+- Update development tooling to CoiSA PHP CS Fixer 3 and PHPUnit 9.6, which provides the shared diff dependency required by the current formatter. Check changed PHP files in pull requests through the formatter's reusable workflow. Preserve the library's existing runtime requirements and public API. ([#28](https://github.com/coisa/error-handler/pull/28))
+
+- Omit automatic author acknowledgements from generated release notes while retaining delivery references. ([#31](https://github.com/coisa/error-handler/pull/31))
+
+### Removed
+
+- Stop tracking the library's Composer lockfile and ignore contributor-local locks. Document fresh dependency resolution and application-owned lockfiles while retaining the Node tooling lockfile and the existing PHP runtime requirements and public API. ([#35](https://github.com/coisa/error-handler/pull/35))
+
+### Security
+
+- Update the development-only PHP_CodeSniffer dependency to the patched 3.x series to address CVE-2026-67434, without changing the library's runtime requirements. ([#32](https://github.com/coisa/error-handler/pull/32))
+
+## [2.0.1] - 2026-10-15
+
+### Added
+
+- Add development-only Changesets tooling, GitHub-linked changelogs, reviewed version PRs and GitHub releases after those PRs are merged, preserving the PHP runtime requirements and public API of the 2.x line. ([#27](https://github.com/coisa/error-handler/pull/27))
+
+## [2.0.0] - 2024-12-27
+
+### Added
+
+- PSR-14 integration for dispatching throwables and error events, with listener providers, callable listeners and a PSR-3 logging listener. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+- PSR-15 error-handling middleware and throwable response/stream factories built on PSR-17 HTTP factories. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+- A PSR-11 error-handler container, service factories and a `ConfigProvider` with Laminas discovery metadata. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+- Callable throwable and shutdown adapters, a throwable-handler aggregate, and dedicated PHP error and last-error shutdown handlers. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+### Changed
 
 - Require PHP `^7.4 || ^8.0` instead of `^7.1`.
-- Replace the callable-based `ErrorHandler` constructor with a
-  `ThrowableHandlerInterface` dependency. Construction no longer installs PHP
-  callbacks or starts output buffering; applications call `register()` and
-  `unregister()` explicitly.
-- Separate throwable reporting, PHP error handling and shutdown handling into
-  `ThrowableHandlerInterface`, `PhpErrorHandlerInterface` and
-  `ShutdownHandlerInterface`, with configurable error and shutdown handlers.
-- Replace the invokable `HandlerInterface` and `CollectionHandler` API, and
-  remove the output-specific handlers (`ErrorLogHandler`, `HtmlHandler`,
-  `JsonHandler`, `VarDumpHandler`, `VarExportHandler`), `DebugHandler`,
-  `DebugHelper` and `ExceptionHelper`.
-- Change the declared package license from Apache 2.0 to MIT.
+
+- Replace the callable-based `ErrorHandler` constructor with a `ThrowableHandlerInterface` dependency. Construction no longer installs PHP callbacks or starts output buffering; applications call `register()` and `unregister()` explicitly. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+- Separate throwable reporting, PHP error handling and shutdown handling into `ThrowableHandlerInterface`, `PhpErrorHandlerInterface` and `ShutdownHandlerInterface`, with configurable error and shutdown handlers. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+- Change the declared package license from Apache 2.0 to MIT. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+### Removed
+
+- Replace the invokable `HandlerInterface` and `CollectionHandler` API, and remove the output-specific handlers (`ErrorLogHandler`, `HtmlHandler`, `JsonHandler`, `VarDumpHandler`, `VarExportHandler`), `DebugHandler`, `DebugHelper` and `ExceptionHelper`. ([#1](https://github.com/coisa/error-handler/pull/1))
+
+## [1.0.0] - 2019-09-23
+
+This version is marked as a prerelease on GitHub.
 
 ### Added
 
-- PSR-14 integration for dispatching throwables and error events, with listener
-  providers, callable listeners and a PSR-3 logging listener.
-- PSR-15 error-handling middleware and throwable response/stream factories
-  built on PSR-17 HTTP factories.
-- A PSR-11 error-handler container, service factories and a `ConfigProvider`
-  with Laminas discovery metadata.
-- Callable throwable and shutdown adapters, a throwable-handler aggregate,
-  and dedicated PHP error and last-error shutdown handlers.
+- PHP errors, uncaught exceptions and shutdown handling under the `CoiSA\ErrorHandler` namespace, registered during `ErrorHandler` construction.
 
-## 1.0.0
-
-[Initial release](https://github.com/coisa/error-handler/releases/tag/1.0.0)
-(marked as a prerelease on GitHub).
-
-### Added
-
-- PHP errors, uncaught exceptions and shutdown handling under the
-  `CoiSA\ErrorHandler` namespace, registered during `ErrorHandler` construction.
 - Callable throwable handling and an invokable handler collection.
-- Built-in `error_log`, HTML, JSON, `var_dump` and `var_export` output handlers,
-  with exception and debug output helpers.
+
+- Built-in `error_log`, HTML, JSON, `var_dump` and `var_export` output handlers, with exception and debug output helpers.
+
 - A Composer library requiring PHP `^7.1`, with Apache 2.0 licensing.
+
+[2.5.2]: https://github.com/coisa/error-handler/compare/v2.5.1...v2.5.2
+[2.5.1]: https://github.com/coisa/error-handler/compare/v2.5.0...v2.5.1
+[2.5.0]: https://github.com/coisa/error-handler/compare/v2.4.4...v2.5.0
+[2.4.4]: https://github.com/coisa/error-handler/compare/v2.4.3...v2.4.4
+[2.4.3]: https://github.com/coisa/error-handler/compare/v2.4.2...v2.4.3
+[2.4.2]: https://github.com/coisa/error-handler/compare/v2.4.1...v2.4.2
+[2.4.1]: https://github.com/coisa/error-handler/compare/v2.4.0...v2.4.1
+[2.4.0]: https://github.com/coisa/error-handler/compare/v2.3.1...v2.4.0
+[2.3.1]: https://github.com/coisa/error-handler/compare/v2.3.0...v2.3.1
+[2.3.0]: https://github.com/coisa/error-handler/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/coisa/error-handler/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/coisa/error-handler/compare/v2.0.9...v2.1.0
+[2.0.9]: https://github.com/coisa/error-handler/compare/v2.0.8...v2.0.9
+[2.0.8]: https://github.com/coisa/error-handler/compare/v2.0.7...v2.0.8
+[2.0.7]: https://github.com/coisa/error-handler/compare/v2.0.6...v2.0.7
+[2.0.6]: https://github.com/coisa/error-handler/compare/v2.0.5...v2.0.6
+[2.0.5]: https://github.com/coisa/error-handler/compare/v2.0.4...v2.0.5
+[2.0.4]: https://github.com/coisa/error-handler/compare/v2.0.3...v2.0.4
+[2.0.3]: https://github.com/coisa/error-handler/compare/v2.0.2...v2.0.3
+[2.0.2]: https://github.com/coisa/error-handler/compare/v2.0.1...v2.0.2
+[2.0.1]: https://github.com/coisa/error-handler/compare/2.0.0...v2.0.1
+[2.0.0]: https://github.com/coisa/error-handler/compare/1.0.0...2.0.0
+[1.0.0]: https://github.com/coisa/error-handler/releases/tag/1.0.0

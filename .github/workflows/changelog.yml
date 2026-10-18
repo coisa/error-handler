@@ -21,8 +21,8 @@ jobs:
       issues: read
       statuses: write
 
-    # The upstream release line currently has no major tag; pin its reviewed runtime.
-    uses: php-fast-forward/changelog/.github/workflows/changelog.yml@ddcbe0fab5009d8c5c5e504a6a7b9a20682e6d32
+    # Official v0 compatibility branch; reviewed against v0.2.0.
+    uses: php-fast-forward/changelog/.github/workflows/changelog.yml@v0
 
     with:
       source: tags
