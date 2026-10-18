@@ -63,6 +63,10 @@ jobs:
       - name: Run formatting, PHPCS, PHPUnit and maximum src-plus-tests analysis
         run: composer --no-plugins check
 
+      - name: Lint the upstream Changelog skill on its tooling runtime
+        if: matrix.php == '8.5'
+        run: git ls-files -z -- '.agents/skills/fast-forward-changelog/*.php' | xargs -0 -n1 php -l
+
   production:
     name: Production / PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
     runs-on: ubuntu-latest
@@ -94,8 +98,9 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Lint all tracked PHP on the actual runtime
-        run: git ls-files -z -- '*.php' | xargs -0 -n1 php -l
+      - name: Lint library PHP on the actual runtime
+        # The upstream release-tooling example has its own PHP requirement.
+        run: git ls-files -z -- '*.php' ':(exclude).agents/skills/fast-forward-changelog/**' | xargs -0 -n1 php -l
 
       - name: Verify the committed distribution and create a clean consumer
         run: |

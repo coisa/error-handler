@@ -89,8 +89,10 @@ Dependency installation in a fresh checkout resolves a local lockfile; subsequen
 installs can reuse it. CI must record the actual resolution for its runner, and
 cache keys must not require a committed Composer lockfile.
 
-`package-lock.json` remains tracked for the independent Node release tooling.
-Node.js is not a runtime dependency of the Composer library.
+Add one independent `.changelog/*.md` fragment for observable changes, including
+dependencies and workflows. The [release process](docs/releases.md) describes the
+format, PR checks and reviewed version PR. Release automation supplies its own
+runtime; it adds no PHP or Node dependency to this library.
 
 ## Native development environment
 

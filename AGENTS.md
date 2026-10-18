@@ -5,7 +5,7 @@ Maintain `coisa/error-handler` under `CoiSA\ErrorHandler` as a small PHP library
 ## Compatibility and ownership
 
 - Preserve the declared PHP `^7.4 || ^8.0` range and existing 2.x public classes, interfaces, factories, ConfigProvider and Laminas discovery metadata. Keep executable example syntax compatible with PHP 7.4.
-- Use the actual selected source and Composer version as authority. The proposed major has different container, middleware, rendering and exit contracts; do not present that proposal or a pending Changeset as a published release.
+- Use the actual selected source and Composer version as authority. The proposed major has different container, middleware, rendering and exit contracts; do not present that proposal or a pending release note as a published release.
 - Applications own reporters, PSR-14 dispatchers, PSR-17 factories, HTTP emission and when native PHP callbacks are installed. Resolving a service must not install callbacks.
 - Preserve the existing container integration. FastForward adoption, removal of legacy classes and API changes require their own explicitly reviewed scope.
 - Callbacks are process-wide. Use distinct handlers for nested scopes and restore in reverse order. Direct reporting, registered uncaught exceptions and fatal shutdown reporting are different paths; do not promise recovery or an automatic nonzero exit.
@@ -18,7 +18,7 @@ Inspect branch/HEAD, tracked/untracked/ignored state, applicable contracts and r
 
 Use Composer 2 dependency installs with `--no-plugins --no-scripts`, then run `composer --no-plugins check`. Development integrations may need a newer PHP than the library minimum: verify minimum runtime separately through a clean no-dev consumer. Report actual PHP/Composer/dependency versions, the tested SHA and existing failures honestly.
 
-Keep source, meaningful regression coverage, affected examples/guides, the source-linked `coisa-error-handler` consumer skill and a pending Changeset aligned. Never install the skill globally as part of maintenance.
+Keep source, meaningful regression coverage, affected examples/guides, the source-linked `coisa-error-handler` consumer skill and an independent `.changelog/*.md` fragment aligned. Never install the skill globally as part of maintenance. The Fast Forward Changelog workflow prepares the reviewed version PR; do not consolidate history or consume pending notes in ordinary contributions.
 
 Run `php examples/verify.php` with the documented application dependencies after example or documented-contract changes. The verifier owns bounded child processes, including fatal experiments. Do not run fatal fixtures in an agent, application, real server or parent test process. Use synthetic records and disposable consumer dependencies; never application credentials or production logs.
 
@@ -49,8 +49,9 @@ and verification continue to follow this AGENTS.md.
 - [examples/verify.md](examples/verify.md): bounded verifier inputs, outputs, child-process effects and recovery.
 - [docs/testing.md](docs/testing.md): direct PHPUnit contracts, isolated native process cases, installed-package checks and honest coverage limits; no custom test runner.
 - [CONTRIBUTING.md](CONTRIBUTING.md): library dependency resolution and clean production-container checks.
-- [.changeset/README.md](.changeset/README.md): pending notes, reviewed version PRs and separate publication authority.
+- [docs/releases.md](docs/releases.md): independent fragments, reviewed version PRs, Git-tag version authority and publication boundaries.
 - [docs/agent-skill.md](docs/agent-skill.md): optional project/global skill distribution, trust and lifecycle; copying does not establish host activation.
 - [resources/skills/coisa-error-handler/SKILL.md](resources/skills/coisa-error-handler/SKILL.md): portable consumer integration procedure, bundled examples and supported API contract; keeps its own package entrypoint and source identity.
+- [.agents/skills/fast-forward-changelog/SKILL.md](.agents/skills/fast-forward-changelog/SKILL.md): project-installed upstream release-tooling procedure, managed through its native installation receipt; PHP requirements belong to the tool, not this library.
 
 No subtree needs an additional AGENTS.md. Guides and the skill retain their own procedures without duplicating repository authority.

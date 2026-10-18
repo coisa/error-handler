@@ -19,8 +19,7 @@ Requires PHP `^7.4 || ^8.0` and Composer 2. Applications supply their logger,
 event dispatcher, HTTP factories and response emitter as needed.
 
 This README describes the 2.x API. Check `composer show coisa/error-handler`
-and the [release history](CHANGELOG.md) for your installed version; a pending
-Changeset is not a published Composer release.
+and the [release history](CHANGELOG.md) for your installed version.
 
 ## 🛠️ Quick start
 
@@ -124,8 +123,9 @@ the private reporting channel. Ordinary bugs and feature requests belong in issu
 
 Follow the [contributor guide](CONTRIBUTING.md) for dependency setup and
 `composer --no-plugins check`. See [testing](docs/testing.md) for process fixtures
-and platform evidence, and [Changesets](.changeset/README.md) for release notes.
-Node.js is used only by development release tooling.
+and platform evidence, and the [release process](docs/releases.md) for independent
+release notes and reviewed version PRs. Release automation uses the Fast Forward
+Changelog reusable workflow without adding a runtime or Node dependency.
 
 ## License
 
