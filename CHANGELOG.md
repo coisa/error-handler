@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 
+## [2.5.3] - 2026-10-18
+
+### Changed
+
+- Replace Changesets with the Fast Forward Changelog lifecycle for independent
+  release notes, PR validation and comments, Dependabot notes and reviewed version
+  PRs, preserving Git-tag-based Composer releases without Node release tooling.
+  Normalize the complete changelog to Keep a Changelog categories, verified release
+  publication dates and version comparisons; retain historical descriptions,
+  correct the original delivery references for stacked contributions and record
+  the existing policy that omits automatic author acknowledgements.
+  Include the upstream release-tooling skill in the project with its native
+  installation receipt.
+
+  ([#115](https://github.com/coisa/error-handler/pull/115))
+
 ## [2.5.2] - 2026-10-17
 
 ### Added
@@ -255,6 +271,7 @@ This version is marked as a prerelease on GitHub.
 
 - A Composer library requiring PHP `^7.1`, with Apache 2.0 licensing.
 
+[2.5.3]: https://github.com/coisa/error-handler/compare/v2.5.2...v2.5.3
 [2.5.2]: https://github.com/coisa/error-handler/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/coisa/error-handler/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/coisa/error-handler/compare/v2.4.4...v2.5.0
