@@ -54,7 +54,7 @@ final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryIn
         callable $pageHandlerFactory
     ) {
         if (!class_exists(Run::class) || !class_exists(PrettyPageHandler::class)) {
-            throw new \LogicException('Install filp/whoops:^2.18.4 to use WhoopsThrowableResponseFactory.');
+            throw new \LogicException('Install filp/whoops:^2.18.7 to use WhoopsThrowableResponseFactory.');
         }
 
         $this->responseFactory = $responseFactory;

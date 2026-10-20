@@ -209,4 +209,91 @@ final class ProcessBehaviorTest extends TestCase
             'capture closed at native depth zero' => ['closed-capture-without-caller', 0, 0],
         ];
     }
+
+    /**
+     * Preserves native source frames and real warnings through the released Whoops integration.
+     *
+     * @param string $mode the actual PHP input route, without fabricated throwable paths
+     *
+     * @dataProvider provideWhoopsNativeSourceFramesCases
+     */
+    public function testWhoopsNativeSourceFrames(string $mode): void
+    {
+        $fixture = \dirname(__DIR__) . '/Fixtures/whoops-source.php';
+        $autoload = \dirname(__DIR__, 2) . '/vendor/autoload.php';
+        $source = file_get_contents($fixture);
+        self::assertIsString($source);
+        $command = [
+            PHP_BINARY, '-d', 'memory_limit=64M', '-d', 'display_errors=stderr',
+            '-d', 'log_errors=0', '-d', 'error_reporting=-1',
+        ];
+        if ('file' === $mode) {
+            $command[] = $fixture;
+        } elseif ('command' === $mode) {
+            $command[] = '-r';
+            $command[] = substr($source, \strlen("<?php\n"));
+        }
+        $command[] = $autoload;
+        if ('stdin' === $mode) {
+            array_splice($command, \count($command) - 1, 0, ['--']);
+        }
+        $inherited = getenv();
+        self::assertIsArray($inherited);
+        $environment = array_fill_keys(array_keys($inherited), false);
+        $process = new Process($command, null, $environment, 'stdin' === $mode ? $source : null, 2.0);
+        $bytes = 0;
+        $limited = false;
+
+        try {
+            $process->run(
+                /**
+                 * Caps both fixture pipes using the existing native-process limit.
+                 *
+                 * @param string $type  the standard pipe identifier
+                 * @param string $chunk the newly observed fixture bytes
+                 *
+                 * @throws \LengthException when fixture output exceeds 64 KiB
+                 */
+                static function (string $type, string $chunk) use (&$bytes, &$limited): void {
+                    $bytes += \strlen($chunk);
+                    if ($bytes > 65536 && !$limited) {
+                        $limited = true;
+
+                        throw new \LengthException('Whoops source fixture exceeded 64 KiB.');
+                    }
+                },
+            );
+        } finally {
+            $process->stop(0);
+        }
+
+        self::assertFalse($process->isRunning());
+        self::assertSame(0, $process->getExitCode(), $process->getErrorOutput());
+        self::assertSame('', $process->getErrorOutput());
+        $expectedSource = 'file' === $mode ? $fixture
+            : ('stdin' === $mode ? 'Standard input code' : 'Command line code');
+        self::assertSame([
+            'source' => $expectedSource,
+            'frameSource' => $expectedSource,
+            'traceSame' => true,
+            'inspectedFrameSame' => true,
+            'originalSame' => true,
+            'reports' => [
+                ['Legitimate application warning', E_USER_WARNING],
+                ['Synthetic source diagnostic', null],
+            ],
+            'status' => 503,
+            'contentType' => 'text/html; charset=UTF-8',
+            'cacheControl' => 'no-store',
+            'htmlContainsOriginal' => true,
+            'bufferSame' => true,
+            'callbacksSame' => true,
+        ], json_decode(trim($process->getOutput()), true, 512, JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array<string, array{string}> real files and PHP's two native virtual sources */
+    public static function provideWhoopsNativeSourceFramesCases(): iterable
+    {
+        return ['physical source' => ['file'], 'native STDIN' => ['stdin'], 'native php-r' => ['command']];
+    }
 }

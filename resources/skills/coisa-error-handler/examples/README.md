@@ -146,7 +146,7 @@ optional Whoops and a PSR-17 implementation for the selected environment:
 
 ```sh
 composer require 'coisa/error-handler:^2.5' --no-plugins --no-scripts
-composer require --dev 'filp/whoops:^2.18.4' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require --dev 'filp/whoops:^2.18.7' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/whoops.php ./vendor/autoload.php
 ```
 
@@ -167,7 +167,7 @@ selected application runtime uses this profile with `--no-dev`, it must keep
 Whoops, FastForward and its PSR-17 implementation in its own runtime requirements:
 
 ```sh
-composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'filp/whoops:^2.18.4' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'filp/whoops:^2.18.7' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php default
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php configured
 ```
@@ -186,7 +186,7 @@ before changing the composition. An aggregate selects bindings but does not
 disable autowire fallback after a concrete page factory fails. Separate providers
 can lose the missing-package hint and report the original twice through capture.
 The [diagnostic limits](../references/whoops.md#verify-diagnostic-and-delivery-limits)
-also explain the independently reproduced native STDIN source-reading warning.
+also explain native source-frame preservation and legitimate warning delivery.
 
 ## Failure and verification boundaries
 

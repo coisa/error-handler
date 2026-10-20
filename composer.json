@@ -29,7 +29,7 @@
     "suggest": {
         "ext-json": "Required only for debug JSON responses on PHP 7.4; included in PHP 8.",
         "fast-forward/container": "^1.9",
-        "filp/whoops": "Install ^2.18.4 for optional development HTML responses.",
+        "filp/whoops": "Install ^2.18.7 for optional development HTML responses.",
         "llm/skills": "Optionally synchronize the bundled agent skill in consumer projects."
     },
     "require": {
@@ -40,6 +40,9 @@
         "psr/http-factory": "^1.1",
         "psr/event-dispatcher": "^1.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
+    },
+    "conflict": {
+        "filp/whoops": "<2.18.7"
     },
     "autoload": {
         "psr-4": {
@@ -58,7 +61,7 @@
     "require-dev": {
         "coisa/php-cs-fixer": "^3.0",
         "fast-forward/container": "^1.9",
-        "filp/whoops": "^2.18.4",
+        "filp/whoops": "^2.18.7",
         "jangregor/phpstan-prophecy": "^1.0",
         "laminas/laminas-servicemanager": "^4.3",
         "llm/skills": "^1.15",

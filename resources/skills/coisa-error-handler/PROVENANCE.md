@@ -15,5 +15,5 @@ Advanced JSON/Whoops/provider routes were published in 2.5.0 and require
 `coisa/error-handler ^2.5`, plus their named symbols in the selected installation.
 The common baseline remains `^2.4`; optional FastForward integration also requires
 `fast-forward/container ^1.9` and application PHP 8.3 or newer.
-Whoops is an optional consumer dependency, with a minimum of `^2.18.4` for the
+Whoops is an optional consumer dependency, with a minimum of `^2.18.7` for the
 development HTML route. No Whoops source is copied into this skill.
