@@ -28,7 +28,7 @@ provider, explicit application overrides, cached services and fresh factories.
 Only tests that mutate global callbacks request PHPUnit process isolation.
 
 The Process suite uses the public Symfony Process API for actual termination.
-Children run `php -n` with 16 MiB, a two-second timeout and an abort after more
+Core lifecycle and output children run `php -n` with 16 MiB, a two-second timeout and an abort after more
 than 64 KiB of observed output. A one-shot limit prevents the output callback
 from throwing again during cleanup; `finally` stops/reaps the child. A final
 pipe chunk can arrive during stop, so the observed limit is not an exact retained
@@ -48,6 +48,24 @@ application logs. They do not merge child coverage into PHPUnit's parent report.
 | Capture closed at native depth zero | Generic fallback with no missing-buffer warning, through the existing bounded child rather than closing PHPUnit-owned buffers |
 | Protected/terminating output handlers | Externally bounded Process cases preserve caller ownership and show native termination limits |
 | Fatal in an earlier shutdown callback | Fresh and reused handlers both receive no event; PHP aborts the remaining queue |
+
+`ProcessBehaviorTest::testWhoopsNativeSourceFrames` executes the same owned
+fixture as a physical file, native STDIN and `php -r`. These children use the
+normal PHP configuration with a two-second timeout, 64 MiB memory limit and
+64 KiB observed-output limit. They clear inherited environment values and replace
+Whoops tables with synthetic data, emitting only a JSON invariant summary rather
+than diagnostic HTML. The actual major middleware reports once before invoking
+the pure renderer; no reporting decorator is added. Assertions retain the
+original throwable, trace and native source names, ordered delivery of a real
+application warning and the original failure, status 503, HTML headers, caller
+buffers and restored callbacks. Whoops 2.18.7 fixes virtual-source reads upstream;
+no suppression, native-function double or fabricated path establishes this result.
+Child execution remains separate from parent unit coverage. Existing renderer
+unit tests exercise real-file rendering and collaborator failures directly.
+
+Whoops remains optional. Composer consumer resolution must reject 2.18.6, accept
+2.18.7 and still install without Whoops. A declared development dependency alone
+does not enforce or prove that optional consumer floor.
 
 The PHPUnit suites and bounded example verifier cover the meaningful behavior of
 the retired standalone Fire/HTTP parents and Python verification scripts.

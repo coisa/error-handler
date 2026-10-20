@@ -70,8 +70,10 @@ twice. The base provider and both response profiles never select it automaticall
 ## Opt-in development HTML with Whoops
 
 Install `filp/whoops:^2.18.7` in the application wherever diagnostic HTML is
-selected. This minimum includes upstream PHP 8.5 deprecation and native STDIN
-source-inspection fixes. `WhoopsThrowableResponseFactory($responses, $streams, $pageFactory)`
+selected. This minimum includes upstream PHP 8.5 deprecation and native STDIN /
+`php -r` source-inspection fixes. Composer rejects older Whoops versions when
+selected without making that optional package mandatory.
+`WhoopsThrowableResponseFactory($responses, $streams, $pageFactory)`
 takes a callable returning `Whoops\Handler\PrettyPageHandler`, invoked lazily for
 each render. The manual signature is unchanged from 2.5.0. Pass this pure renderer
 directly to middleware; see [manual selection](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php).

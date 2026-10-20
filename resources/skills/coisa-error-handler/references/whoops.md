@@ -15,8 +15,9 @@ php -r 'require "vendor/autoload.php"; if (!class_exists("CoiSA\\ErrorHandler\\H
 
 The application supplies PSR-17 response/stream factories and
 `filp/whoops:^2.18.7`. The patch minimum includes Whoops's PHP 8.5 deprecation
-and native STDIN source-inspection fixes. A library development dependency is not installed transitively in a
-consumer. Core and unrelated integration remain usable without Whoops.
+and native STDIN/`php -r` source-inspection fixes. A library development dependency
+is not installed transitively in a consumer. Composer rejects Whoops versions
+below 2.18.7 when selected; core and unrelated integration remain usable without Whoops.
 Renderer classes also exist in published 2.5.0, but the middleware described here
 reports before rendering. Class discovery alone does not establish that contract.
 Use matching source and skill; do not upgrade or substitute an API automatically.
