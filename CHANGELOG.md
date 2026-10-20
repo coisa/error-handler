@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 
+## [2.5.4] - 2026-10-20
+
+### Changed
+
+- Install the Changelog agent skill through the development-only `llm/skills`
+  Composer plugin and the committed skill-source configuration. Keep generated
+  agent instructions out of Git and Composer distributions instead of maintaining
+  a versioned copy of the upstream skill.
+  Also synchronize the Container and Config skills from their installed Composer
+  packages.
+
+  ([#119](https://github.com/coisa/error-handler/pull/119))
+
 ## [2.5.3] - 2026-10-18
 
 ### Changed
@@ -271,6 +284,7 @@ This version is marked as a prerelease on GitHub.
 
 - A Composer library requiring PHP `^7.1`, with Apache 2.0 licensing.
 
+[2.5.4]: https://github.com/coisa/error-handler/compare/v2.5.3...v2.5.4
 [2.5.3]: https://github.com/coisa/error-handler/compare/v2.5.2...v2.5.3
 [2.5.2]: https://github.com/coisa/error-handler/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/coisa/error-handler/compare/v2.5.0...v2.5.1
