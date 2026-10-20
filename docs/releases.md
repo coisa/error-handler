@@ -74,9 +74,12 @@ composer skills:update
 The source is registered through `composer skills:add php-fast-forward/changelog`.
 Review `skills.json` when changing its repository or version constraint. The
 plugin is explicitly allowed in Composer configuration. `--no-plugins` disables
-the plugin, and `--no-scripts` skips automatic synchronization; after an isolated
-dependency installation using those flags, run `composer skills:update` when
-you want the local instructions. Do not commit or edit the generated copy.
+all Composer plugins, including skill synchronization. To keep other plugins
+active while disabling this tool's automatic synchronization, set
+`auto-sync: false` in `skills.json`. `--no-scripts` skips scripts defined in
+`composer.json`; plugin listeners can still synchronize skills. After an isolated
+installation with plugins disabled, run `composer skills:update` when you want
+the local instructions. Do not commit or edit the generated copy.
 
 The plugin is a development tool requiring PHP 8.2+. It does not install the
 Changelog CLI or change this library's PHP 7.4+ runtime support. The workflow
