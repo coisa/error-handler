@@ -52,33 +52,41 @@ With no pending fragments, the version command succeeds without changing files.
 
 ## Project tooling skill
 
-The repository includes the upstream `fast-forward-changelog` skill under
-`.agents/skills`, installed with the CLI's native project-scoped installer. Its
-receipt records the source release and payload hashes. It is separate from the
-library's bundled `coisa-error-handler` consumer skill and is excluded from the
-Composer distribution.
+The development dependency [`llm/skills`](https://github.com/roxblnfk/skills)
+installs the upstream `fast-forward-changelog` skill from the source registered
+in `skills.json`. A normal development `composer install` synchronizes it into
+`.agents/skills`. This generated directory is ignored by Git; only the plugin
+dependency and source configuration are versioned.
 
-For the reviewed release, use [CPX](https://github.com/laravel/cpx) with the exact
-numeric Composer version, without a `v` prefix:
+The manifest also explicitly trusts `fast-forward/container` and
+`fast-forward/config` as skill donors. Their skills come from the installed
+Composer packages, so the instructions match the resolved dependency versions,
+including Config as a transitive dependency. No separate GitHub source or
+wildcard trust is needed for either package.
+
+Run these commands from the repository root to inspect or refresh the skill:
 
 ```sh
-CHANGELOG_VERSION=0.2.0
-
-cpx --skip-local "fast-forward/changelog:$CHANGELOG_VERSION" help skill:install
-cpx --skip-local "fast-forward/changelog:$CHANGELOG_VERSION" skill:install --check
+composer skills:show
+composer skills:update
 ```
 
-Run these commands from the repository root. Inspect the selected release's help
-before installing or updating; preserve local changes and let its installer
-manage the payload and receipt together. A fresh project installation uses
-`skill:install` without `--check`. Do not modify the upstream copy directly or
-install it globally as part of repository maintenance. Installation and a clean
-receipt check do not establish activation in a particular agent session.
+The source is registered through `composer skills:add php-fast-forward/changelog`.
+Review `skills.json` when changing its repository or version constraint. The
+plugin is explicitly allowed in Composer configuration. `--no-plugins` disables
+all Composer plugins, including skill synchronization. To keep other plugins
+active while disabling this tool's automatic synchronization, set
+`auto-sync: false` in `skills.json`. `--no-scripts` skips scripts defined in
+`composer.json`; plugin listeners can still synchronize skills. After an isolated
+installation with plugins disabled, run `composer skills:update` when you want
+the local instructions. Do not commit or edit the generated copy.
 
-This release tool requires PHP 8.5. CPX isolates its Composer dependencies but
-does not supply a PHP runtime. The workflow uses upstream's Docker runtime;
-library users retain the declared PHP 7.4+ support. PHP CI checks library-owned
-files on each supported runtime and the upstream skill's PHP example on 8.5.
+The plugin is a development tool requiring PHP 8.2+. It does not install the
+Changelog CLI or change this library's PHP 7.4+ runtime support. The workflow
+supplies its own Changelog runtime. The library's bundled `coisa-error-handler`
+consumer skill remains under `resources/skills`; this project setup does not
+replace it. Neither `skills.json` nor `.agents/` is included in Composer archives.
+Installation does not establish activation in a particular agent session.
 
 ## Central history format
 

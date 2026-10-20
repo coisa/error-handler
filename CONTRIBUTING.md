@@ -22,6 +22,12 @@ when deliberately testing a fresh dependency resolution. Record `php --version`,
 `composer --version` and `composer show --locked` with validation evidence.
 Do not force-add the local lockfile to a PR.
 
+A normal development `composer install` also synchronizes the Changelog agent
+skill configured in `skills.json` through the `llm/skills` plugin. The isolated
+commands above deliberately skip this step; run `composer skills:update` if you
+want the local instructions afterward. Generated `.agents/` files stay ignored.
+See the [project tooling skill](docs/releases.md#project-tooling-skill) for details.
+
 Development integrations can have narrower PHP requirements than the library's
 runtime `^7.4 || ^8.0`. Resolve them on a compatible runner and verify the supported
 minimum runtime through a separate consumer without development dependencies.

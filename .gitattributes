@@ -1,6 +1,7 @@
 *                           text=auto
 AGENTS.md                   export-ignore
 .agents/                    export-ignore
+skills.json                 export-ignore
 /examples/                  export-ignore
 docs/index.html             export-ignore
 docs/.nojekyll              export-ignore

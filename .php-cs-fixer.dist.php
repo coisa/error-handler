@@ -20,7 +20,6 @@ use CoiSA\PhpCsFixer\PhpCsFixer;
 $paths = [
     __FILE__,
     __DIR__,
-    '!.agents/skills/fast-forward-changelog',
 ];
 
 $header = HeaderExtractor::extractFromFile(__FILE__);

@@ -1,4 +1,5 @@
 .composer/
+.agents/
 /composer.lock
 .idea/
 vendor/
