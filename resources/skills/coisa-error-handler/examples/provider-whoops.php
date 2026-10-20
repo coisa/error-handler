@@ -51,7 +51,7 @@ foreach ([ErrorHandlerServiceProvider::class, WhoopsErrorHandlerServiceProvider:
 }
 
 if (!class_exists(PrettyPageHandler::class)) {
-    throw new RuntimeException('This optional application route needs filp/whoops:^2.18.4.');
+    throw new RuntimeException('This optional application route needs filp/whoops:^2.18.7.');
 }
 
 $mode = $argv[2] ?? 'default';

@@ -125,8 +125,9 @@ the private reporting channel. Ordinary bugs and feature requests belong in issu
 
 Follow the [contributor guide](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md) for dependency setup and
 `composer --no-plugins check`. See [testing](docs/testing.md) for process fixtures
-and platform evidence, and [Changesets](https://github.com/coisa/error-handler/blob/master/.changeset/README.md) for release notes.
-Node.js is used only by development release tooling.
+and platform evidence, and the [release process](docs/releases.md) for independent
+release notes and reviewed version PRs. Release automation uses the Fast Forward
+Changelog reusable workflow without adding a runtime or Node dependency.
 
 ## License
 

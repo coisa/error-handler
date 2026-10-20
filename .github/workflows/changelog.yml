@@ -1,0 +1,32 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled, closed]
+
+  push:
+
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  changelog:
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+      statuses: write
+
+    # Official v0 compatibility branch; reviewed against v0.3.0.
+    uses: php-fast-forward/changelog/.github/workflows/changelog.yml@v0
+
+    with:
+      source: tags
+      comment-mode: always
+      version-pr-title: 'chore(release): prepare {next_version} for publication'
+      prepare-release: true
+      publish: true

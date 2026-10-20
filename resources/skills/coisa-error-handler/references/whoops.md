@@ -14,8 +14,8 @@ php -r 'require "vendor/autoload.php"; if (!class_exists("CoiSA\\ErrorHandler\\H
 ```
 
 The application supplies PSR-17 response/stream factories and
-`filp/whoops:^2.18.4`. The patch minimum includes Whoops's PHP 8.5 deprecation
-repair. A library development dependency is not installed transitively in a
+`filp/whoops:^2.18.7`. The patch minimum includes Whoops's PHP 8.5 deprecation
+and native STDIN source-inspection fixes. A library development dependency is not installed transitively in a
 consumer. Core and unrelated integration remain usable without Whoops.
 Renderer classes also exist in published 2.5.0, but the middleware described here
 reports before rendering. Class discovery alone does not establish that contract.
@@ -126,10 +126,4 @@ source, causes and other globals may expose secrets. Never select this renderer
 for public users merely because they accept HTML. A deployment using it must
 retain Whoops in its actual runtime graph even with `--no-dev`.
 
-A separately reproduced limit on PHP 8.5.11 with Whoops 2.18.6 affects throwables
-created via native STDIN: Whoops can warn while reading `Standard input code`.
-The reporter may receive that distinct PHP warning in addition to the original;
-a reporter that throws can interrupt rendering. Do not claim this for all eval
-or missing-file traces, suppress the warning or rewrite traces to hide it.
-[Issue 99](https://github.com/coisa/error-handler/issues/99) tracks this limit.
 Request negotiation remains separate from this renderer.

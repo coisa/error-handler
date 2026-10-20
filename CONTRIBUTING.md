@@ -12,6 +12,13 @@ composer show --locked
 composer --no-plugins check
 ```
 
+A normal development `composer install` synchronizes the Changelog and trusted
+FastForward skills configured in `skills.json` through the `llm/skills` plugin.
+The isolated commands above disable plugins and deliberately skip synchronization.
+Run `composer skills:update` when you want those local instructions afterward;
+generated `.agents/` files remain ignored. See the
+[project tooling skill](docs/releases.md#project-tooling-skill) for details.
+
 The CoiSA 3.x formatter preset remains the base. A documented local
 `single_line_empty_body: false` exception and conservative anonymous-class brace
 option keep empty bodies multiline so the complete PSR12 sniff still checks
@@ -38,8 +45,9 @@ Execution, invalid-report and artifact failures remain independent failures.
 See [coverage and current evidence](docs/testing.md#coverage-and-current-evidence).
 
 Source changes need complete English PHPDoc, meaningful regression tests, affected
-examples/guides/consumer skill and a pending Changeset. Runtime code stays separate
-from Node release tooling. Preserve the application-owned reporter, callback
+examples/guides/consumer skill and an independent `.changelog/*.md` fragment.
+The [release process](docs/releases.md) covers the note format and reviewed version
+PRs; its reusable workflow supplies its own runtime. Preserve the application-owned reporter, callback
 registration and HTTP emission boundaries. Do not restore removed Container or
 ConfigProvider APIs; use the Interop provider.
 

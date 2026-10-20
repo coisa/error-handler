@@ -69,8 +69,9 @@ twice. The base provider and both response profiles never select it automaticall
 
 ## Opt-in development HTML with Whoops
 
-Install `filp/whoops:^2.18.4` in the application wherever diagnostic HTML is
-selected. `WhoopsThrowableResponseFactory($responses, $streams, $pageFactory)`
+Install `filp/whoops:^2.18.7` in the application wherever diagnostic HTML is
+selected. This minimum includes upstream PHP 8.5 deprecation and native STDIN
+source-inspection fixes. `WhoopsThrowableResponseFactory($responses, $streams, $pageFactory)`
 takes a callable returning `Whoops\Handler\PrettyPageHandler`, invoked lazily for
 each render. The manual signature is unchanged from 2.5.0. Pass this pure renderer
 directly to middleware; see [manual selection](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php).
@@ -92,13 +93,6 @@ The page is lazy and cached; middleware scopes and runs are fresh. See
 Choose diagnostic HTML only through trusted development configuration. Default
 Whoops pages expose globals, source and traces; selected key hiding is not complete
 redaction. No Accept negotiation or automatic debug activation is supplied.
-
-The known [STDIN trace limit](https://github.com/coisa/error-handler/issues/99)
-was reproduced on PHP 8.5.11 with Whoops 2.18.6: reading `Standard input code`
-produces a distinct PHP warning in Whoops `Frame.php`. An active PHP reporter may
-receive that additional event; a failing reporter can interrupt rendering. This
-is not another delivery of the original. No global suppression or workaround is
-installed. The ordinary combined recipes run from real files.
 
 ## Failure and lifetime boundaries
 

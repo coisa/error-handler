@@ -140,7 +140,7 @@ route is authorized and Whoops is not already a runtime dependency, add it to th
 application rather than relying on this library's development dependencies:
 
 ```sh
-composer require 'filp/whoops:^2.18.4' --no-plugins --no-scripts
+composer require 'filp/whoops:^2.18.7' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/whoops.php ./vendor/autoload.php
 ```
 
@@ -175,7 +175,7 @@ page configuration and replacement of sequential diagnostic data.
 The page can be cached and reused sequentially, retaining the latest diagnostic;
 the Run, response and body are fresh. Map precedence does not disable concrete
 autowiring fallback. See [Whoops composition and limits](../references/whoops.md),
-including the native STDIN source-read warning and diagnostic exposure.
+including trusted development activation and diagnostic exposure.
 
 ## Failure and verification boundaries
 

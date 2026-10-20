@@ -1,8 +1,8 @@
 .composer/
+.agents/
 /composer.lock
 .idea/
 vendor/
-node_modules/
 /tmp/
 tests/html/
 tests/clover.xml

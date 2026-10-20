@@ -2,7 +2,7 @@
 name: coisa-error-handler
 description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop providers and pure generic, JSON or Whoops PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
 license: MIT; see LICENSE
-compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.4 at runtime. No agent SDK or global installation is required.
+compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.7 at runtime. No agent SDK or global installation is required.
 metadata:
   author: Felipe Sayão Lobato Abreu
   api-baseline: "3.x"

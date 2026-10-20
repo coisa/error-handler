@@ -1,5 +1,6 @@
 ---
-"@coisa/error-handler": major
+category: changed
+type: major
 ---
 
 Modernize the library for PHP 8.3+ while retaining the package
@@ -19,7 +20,7 @@ Modernize the library for PHP 8.3+ while retaining the package
   reports once and then invokes a pure response factory. Use a generic stream by
   default, standard reason phrases and integer HTTP error statuses through 599.
 - Keep explicit public output capture as an opt-in renderer adapter. Preserve `0`,
-  use a generic empty body, clean reachable buffers after success and failure,
+  use a generic fallback for empty output, clean reachable buffers after success and failure,
   and retain renderer-failure precedence over cleanup failures. If no capture
   remains above the caller's entry depth, use the generic fallback without reading caller output.
 - Retain delivered 2.x handlers and native release tooling. Add distribution checks
@@ -46,7 +47,7 @@ Modernize the library for PHP 8.3+ while retaining the package
 - Refresh Composer development-tool ranges to the current stable lines, retaining
   PHP 8.3 support through PHPUnit 12.5 and Symfony Process 7.4 alternatives.
   Require Nyholm 1.8.2 in development for its PHP 8.5 fixes; retain the compatible
-  PSR ranges and optional Whoops 2.18.4 minimum.
+  PSR ranges and optional Whoops 2.18.7 minimum with its upstream native STDIN source-read fix.
 - Describe the accompanying API without temporary PR or publication status,
   and clarify that diagnostic reporter output remains outside the PSR-7 body.
 - Correct callable-filtering guidance, clarify generic stream and fatal-reporting

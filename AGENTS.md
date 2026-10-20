@@ -55,10 +55,14 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
 ## Work Guidance
 
 Inspect the current branch and relevant interfaces before changes. Update
-source, meaningful regression tests, examples, affected guides and a pending
-Changeset together. Keep runtime code independent of Node release tooling. Keep
+source, meaningful regression tests, examples, affected guides and an independent
+`.changelog/*.md` fragment together. Keep runtime code independent of release tooling. Keep
 the skill aligned with tested public APIs, without copying the full manual or
-adding host-specific dependencies.
+adding host-specific dependencies. The Fast Forward Changelog workflow prepares
+reviewed version PRs; do not consolidate history or consume pending fragments in
+ordinary contributions. Composer manages development skill copies through
+`skills.json`; keep generated `.agents/` instructions ignored and never install
+skills globally as part of repository maintenance.
 
 Run fatal-error and process-termination experiments only through bounded child
 fixtures. Use the PHPUnit Process suite with the existing bounded fixtures and Symfony Process. Never
@@ -98,7 +102,7 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [docs/examples.md](docs/examples.md): all seventeen complete recipes, checked
   byte-for-byte against executable source with only the leading license header omitted;
   preserve setup boundaries and matching website excerpts.
-- [docs/releases.md](docs/releases.md): pending Changesets, reviewed version PRs,
+- [docs/releases.md](docs/releases.md): independent fragments, reviewed version PRs,
   immutable release tags and Composer delivery boundaries.
 - [docs/testing.md](docs/testing.md): PHPUnit/process tests, commands and evidence limits.
 - [CONTRIBUTING.md](CONTRIBUTING.md): dependency resolution and quality entrypoints.
@@ -111,6 +115,9 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [resources/skills/coisa-error-handler/SKILL.md](resources/skills/coisa-error-handler/SKILL.md):
   portable consumer integration procedure, bundled examples and source-version
   contract; its package procedure stays in its own entrypoint.
+
+- [skills.json](skills.json): Composer-managed Changelog, Container and Config skill
+  sources; generated local instructions are ignored and do not replace the bundled consumer skill.
 
 No subtree needs a separate maintenance contract; the skill's procedure stays
 in its SKILL.md entrypoint.

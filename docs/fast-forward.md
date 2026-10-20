@@ -338,7 +338,7 @@ expecting repeated `get(ErrorHandlerMiddleware::class)` calls to be fresh.
 
 ## Development HTML profile
 
-Install optional `filp/whoops:^2.18.4` in the application selecting this profile.
+Install optional `filp/whoops:^2.18.7` in the application selecting this profile.
 `WhoopsErrorHandlerServiceProvider` has no constructor and declares only three
 bindings: `PrettyPageHandler` through `InvokableFactory`, the pure
 `WhoopsThrowableResponseFactory` through FastForward's `CallableFactory`, and its
@@ -370,7 +370,7 @@ state before lookup when those configuration errors must be observed immediately
 The manual renderer's callable parameter remains available for explicit application
 composition. Both profiles select pure renderers, never
 `ReportingThrowableResponseFactory`: middleware has already reported.
-See [HTTP boundaries](http.md) for trusted debug policy and the tracked STDIN limit.
+See [HTTP boundaries](http.md) for trusted debug policy and diagnostic exposure.
 
 ## Troubleshooting composition
 
@@ -379,8 +379,8 @@ See [HTTP boundaries](http.md) for trusted debug policy and the tracked STDIN li
 | A required reporter is silent | Bind `ThrowableHandlerInterface` and merge base, profile if selected, then application maps in one aggregate. A separate application provider can be shadowed or skipped after a construction failure. |
 | A request deactivates the process handler | Give middleware a distinct handler. Resolve and invoke its factory for each independent scope; do not pre-register that handler. |
 | A page override appears to be ignored | Configure the page before lookup and bind the instance with `ServiceFactory`. A failed concrete factory can fall back to an autowired default page. |
-| Whoops classes are unavailable | Install optional `filp/whoops:^2.18.4` in the consuming application and confirm that the selected autoloader includes it. |
+| Whoops classes are unavailable | Install optional `filp/whoops:^2.18.7` in the consuming application and confirm that the selected autoloader includes it. |
 
-For reporter echo, duplicate reports, diagnostic exposure and the known STDIN
-warning, follow [HTTP boundaries](http.md). Container failure normalization does
+For reporter echo, duplicate reports and diagnostic exposure, follow
+[HTTP boundaries](http.md). Container failure normalization does
 not make an invalid required binding optional.

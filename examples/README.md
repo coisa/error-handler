@@ -38,7 +38,7 @@ and run commands from that checkout root.
 The source checkout supplies application implementations through development
 dependencies. In a disposable application, add
 `nyholm/psr7:^1.8.2` and `phly/phly-event-dispatcher:^1.6` for HTTP/event recipes.
-Add optional `filp/whoops:^2.18.4` wherever the development HTML recipes are used.
+Add optional `filp/whoops:^2.18.7` wherever the development HTML recipes are used.
 FastForward Container and PSR interfaces resolve from the library's runtime graph.
 No framework-specific container is required. Keep application locks/caches outside
 the library and do not bypass actual runtime constraints.

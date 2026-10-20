@@ -130,4 +130,4 @@ bytes, and never creates a stream. The test explicitly removes its replacement
 scopes and restores the fixture in finally; the factory does not promise to
 remove every scope after native callbacks or destructors change the stack.
 
-Release maintenance uses the existing [Changesets procedure](releases.md).
+Release maintenance uses the existing [Fast Forward Changelog procedure](releases.md).
