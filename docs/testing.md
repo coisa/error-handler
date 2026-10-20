@@ -69,8 +69,9 @@ rendering policy.
 
 ## Process bounds and known limits
 
-Each native fixture runs with `PHP_BINARY -n`, a 16 MiB memory limit, a two-second
-Symfony Process timeout and an interruption threshold of 64 KiB combined output.
+The core lifecycle and output fixtures run with `PHP_BINARY -n`, a 16 MiB memory
+limit, a two-second Symfony Process timeout and an interruption threshold of
+64 KiB combined output.
 `finally` calls `stop(0)` on the owned child. Output can arrive in a final chunk
 during cleanup; this threshold is not a promise of exact byte-level buffer
 retention. The output callback raises once so cleanup cannot replace that
