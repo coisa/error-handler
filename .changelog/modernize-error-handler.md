@@ -48,6 +48,8 @@ Modernize the library for PHP 8.3+ while retaining the package
   PHP 8.3 support through PHPUnit 12.5 and Symfony Process 7.4 alternatives.
   Require Nyholm 1.8.2 in development for its PHP 8.5 fixes; retain the compatible
   PSR ranges and optional Whoops 2.18.7 minimum with its upstream native STDIN source-read fix.
+  The Whoops compatibility fix preserves its renderer contract; the lifecycle and
+  HTTP-default changes above apply to this major.
 - Describe the accompanying API without temporary PR or publication status,
   and clarify that diagnostic reporter output remains outside the PSR-7 body.
 - Correct callable-filtering guidance, clarify generic stream and fatal-reporting
