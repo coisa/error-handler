@@ -58,6 +58,12 @@ in `skills.json`. A normal development `composer install` synchronizes it into
 `.agents/skills`. This generated directory is ignored by Git; only the plugin
 dependency and source configuration are versioned.
 
+The manifest also explicitly trusts `fast-forward/container` and
+`fast-forward/config` as skill donors. Their skills come from the installed
+Composer packages, so the instructions match the resolved dependency versions,
+including Config as a transitive dependency. No separate GitHub source or
+wildcard trust is needed for either package.
+
 Run these commands from the repository root to inspect or refresh the skill:
 
 ```sh

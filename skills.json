@@ -1,5 +1,13 @@
 {
     "$schema": "https://raw.githubusercontent.com/roxblnfk/skills/master/resources/skills.schema.json",
+    "dependencies": {
+        "composer": {
+            "trusted": [
+                "fast-forward/config",
+                "fast-forward/container"
+            ]
+        }
+    },
     "sources": [
         {
             "from": "github",
