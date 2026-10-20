@@ -16,9 +16,10 @@ php -r 'require "vendor/autoload.php"; foreach (["CoiSA\\ErrorHandler\\Http\\Mes
 ```
 
 The application supplies PSR-17 response/stream factories and
-`filp/whoops:^2.18.4`. The patch minimum includes Whoops's PHP 8.5 deprecation
-repair. A library development dependency is not installed transitively in a
-consumer. Core and unrelated integration remain usable without Whoops.
+`filp/whoops:^2.18.7`. The patch minimum includes Whoops's PHP 8.5 deprecation
+and native STDIN/`php -r` source-inspection repairs. A library development dependency is not installed transitively in a
+consumer. Composer rejects Whoops versions below 2.18.7 when that package is
+selected; it does not require Whoops for core or unrelated integration.
 Use the installation's own supported route when these APIs are absent; do not
 upgrade or substitute another API automatically.
 
@@ -123,10 +124,8 @@ source, causes and other globals may expose secrets. Never select this renderer
 for public users merely because they accept HTML. A deployment using it must
 retain Whoops in its actual runtime graph even with `--no-dev`.
 
-A separately reproduced limit on PHP 8.5.11 with Whoops 2.18.6 affects throwables
-created via native STDIN: Whoops can warn while reading `Standard input code`.
-The reporter may receive that distinct PHP warning in addition to the original;
-a reporter that throws can interrupt rendering. Do not claim this for all eval
-or missing-file traces, suppress the warning or rewrite traces to hide it.
-[Issue 99](https://github.com/coisa/error-handler/issues/99) tracks this limit.
+Native STDIN and `php -r` frames keep their original virtual source names with
+the supported Whoops version. Rendering does not add source-read warnings for
+those names or alter the original trace. Legitimate application warnings retain
+their configured PHP-error reporting policy; no warning suppression is installed.
 Request negotiation remains separate from this renderer.

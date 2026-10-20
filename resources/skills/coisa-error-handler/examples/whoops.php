@@ -36,7 +36,7 @@ foreach ([WhoopsThrowableResponseFactory::class, ReportingThrowableResponseFacto
 }
 
 if (!class_exists(PrettyPageHandler::class)) {
-    throw new RuntimeException('This optional application route needs filp/whoops:^2.18.4.');
+    throw new RuntimeException('This optional application route needs filp/whoops:^2.18.7.');
 }
 
 // Running this program is an explicit development/HTML choice, never a request flag.

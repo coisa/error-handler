@@ -146,7 +146,7 @@ Use `declare(strict_types=1)` in the application entrypoint, as the complete rec
 
 ### Development HTML profile
 
-Select `WhoopsErrorHandlerServiceProvider` only after the application's trusted development and HTML-format decision. Install optional `filp/whoops:^2.18.4` where that renderer is used. With the same application PSR-17 and private reporter definitions, the default form is:
+Select `WhoopsErrorHandlerServiceProvider` only after the application's trusted development and HTML-format decision. Install optional `filp/whoops:^2.18.7` where that renderer is used. With the same application PSR-17 and private reporter definitions, the default form is:
 
 ```php
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
@@ -234,7 +234,7 @@ Applications decide when a resolved process handler calls `register()`. For HTTP
 
 ## Optional development HTML composition
 
-For manual or legacy-container composition, supply application PSR-17 factories and a callable supplying `Whoops\Handler\PrettyPageHandler`, then compose private reporting with `ReportingThrowableResponseFactory` in 2.x. The renderer adds no legacy aliases or ConfigProvider bindings; the separate opt-in [Whoops Interop profile](#development-html-profile) supplies its own map. The renderer can be cached with configuration; do not capture a current request. A manual callback may create a fresh page or reuse one for sequential rendering under the state limits above. Construct it only after the application's trusted development/format decision. Core/container installation does not require Whoops; choosing the adapter without installing `filp/whoops:^2.18.4` raises `LogicException`. See [the HTML guide](http.md#opt-in-development-html-with-whoops) and [manual recipe](../examples/http-whoops.php). Existing container/discovery/middleware defaults remain unchanged.
+For manual or legacy-container composition, supply application PSR-17 factories and a callable supplying `Whoops\Handler\PrettyPageHandler`, then compose private reporting with `ReportingThrowableResponseFactory` in 2.x. The renderer adds no legacy aliases or ConfigProvider bindings; the separate opt-in [Whoops Interop profile](#development-html-profile) supplies its own map. The renderer can be cached with configuration; do not capture a current request. A manual callback may create a fresh page or reuse one for sequential rendering under the state limits above. Construct it only after the application's trusted development/format decision. Core/container installation does not require Whoops; choosing the adapter without installing `filp/whoops:^2.18.7` raises `LogicException`. See [the HTML guide](http.md#opt-in-development-html-with-whoops) and [manual recipe](../examples/http-whoops.php). Existing container/discovery/middleware defaults remain unchanged.
 
 ## Troubleshoot service resolution
 
