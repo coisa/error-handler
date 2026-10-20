@@ -52,6 +52,6 @@ and verification continue to follow this AGENTS.md.
 - [docs/releases.md](docs/releases.md): independent fragments, reviewed version PRs, Git-tag version authority and publication boundaries.
 - [docs/agent-skill.md](docs/agent-skill.md): optional project/global skill distribution, trust and lifecycle; copying does not establish host activation.
 - [resources/skills/coisa-error-handler/SKILL.md](resources/skills/coisa-error-handler/SKILL.md): portable consumer integration procedure, bundled examples and supported API contract; keeps its own package entrypoint and source identity.
-- [.agents/skills/fast-forward-changelog/SKILL.md](.agents/skills/fast-forward-changelog/SKILL.md): project-installed upstream release-tooling procedure, managed through its native installation receipt; PHP requirements belong to the tool, not this library.
+- [skills.json](skills.json): Composer-managed development skill sources; installation creates ignored local agent instructions without changing the library's bundled consumer skill.
 
 No subtree needs an additional AGENTS.md. Guides and the skill retain their own procedures without duplicating repository authority.
