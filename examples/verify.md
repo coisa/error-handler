@@ -1,8 +1,12 @@
 # Bounded example verification
 
 Run `php examples/verify.php` after installing the documented development graph.
-The verifier uses Symfony Process with literal argv, `php -n`, 64 MiB per child,
+The verifier uses Symfony Process with literal argv, the selected PHP binary's
+normal extension configuration, 64 MiB per child,
 a five-second timeout and an abort above 16 KiB of observed combined output.
+E_ALL diagnostics go to stderr with native logging disabled. Keeping the normal
+configuration preserves Composer's actual extension platform for Symfony/Whoops
+rendering; minimal core termination fixtures separately use `php -n`.
 A one-shot callback prevents a second exception during `finally` cleanup; the
 final pipe chunk can exceed the threshold, so it is not an exact memory ceiling.
 

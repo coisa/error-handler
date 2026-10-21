@@ -45,6 +45,12 @@ The Unit suite exercises handlers, listeners, providers, HTTP adapters and nativ
 callback ownership directly. Functional tests compose the real FastForward
 provider, explicit application overrides, cached services and fresh factories.
 Only tests that mutate global callbacks request PHPUnit process isolation.
+The functional bundled-program children use the selected PHP binary's normal
+configuration so Composer's actual extension platform remains available, including
+shared mbstring/iconv needed by diagnostic rendering. They retain a five-second
+timeout, 64 MiB memory limit, E_ALL and exact exit/stdout/stderr assertions;
+diagnostics are routed to stderr with native error logging disabled. The minimal
+core lifecycle children below deliberately retain `php -n`.
 
 The Process suite uses the public Symfony Process API for actual termination.
 Core lifecycle and output children run `php -n` with 16 MiB, a two-second timeout and an abort after more
@@ -122,7 +128,10 @@ required construction is asserted without promising one attempt or original caus
 `php examples/verify.php` checks every complete recipe and documented mode,
 including retained 2.x adapters and the single provider's request negotiation,
 Symfony HTML, JSON and explicit optional Whoops composition. The existing Symfony Process verifier uses
-five-second/64 MiB children and aborts above 16 KiB of observed output. It clears
+five-second/64 MiB children with the normal PHP extension configuration and aborts
+above 16 KiB of observed output. It keeps E_ALL visible on stderr without native
+error logging; disabling all INI files would discard shared extensions from the
+actual Composer platform. It clears
 inherited environment variables except the selected autoloader/fixture marker.
 `php tests/Documentation/site.php` checks local source links, anchors and all
 nineteen complete cookbook recipes against executable source, omitting only the

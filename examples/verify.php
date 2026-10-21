@@ -101,10 +101,10 @@ if (false !== $autoload) {
 foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput, $expectedErrors]) {
     $command = array_merge([
         PHP_BINARY,
-        '-n',
         '-d', 'memory_limit=64M',
         '-d', 'display_errors=stderr',
         '-d', 'log_errors=0',
+        '-d', 'error_reporting=-1',
         __DIR__ . '/' . $file,
     ], $arguments);
     $process = new Process($command, null, $environment, null, 5.0);

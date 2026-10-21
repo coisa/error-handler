@@ -220,8 +220,10 @@ final class ConsumerSkillExamplesTest extends TestCase
         $root = \dirname(__DIR__, 2);
         $process = new Process(array_merge([
             PHP_BINARY,
-            '-n',
             '-d', 'memory_limit=64M',
+            '-d', 'display_errors=stderr',
+            '-d', 'log_errors=0',
+            '-d', 'error_reporting=-1',
             $root . '/resources/skills/coisa-error-handler/examples/' . $file,
             $root . '/vendor/autoload.php',
         ], $arguments), $root, null, null, 5.0);
