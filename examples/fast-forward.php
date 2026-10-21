@@ -56,7 +56,7 @@ $application = new class implements ServiceProviderInterface {
     }
 };
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 /**
  * @var ErrorHandlerInterface $errors

@@ -23,15 +23,14 @@ use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
-use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -177,8 +176,8 @@ try {
         JsonThrowableResponseFactory::class,
         ReportingThrowableResponseFactory::class,
         WhoopsThrowableResponseFactory::class,
-        JsonErrorHandlerServiceProvider::class,
-        WhoopsErrorHandlerServiceProvider::class,
+        HtmlThrowableResponseFactory::class,
+        NegotiatingThrowableResponseFactory::class,
     ];
 
     foreach ($publicClasses as $class) {
@@ -187,9 +186,8 @@ try {
         }
     }
 
-    // Declaring optional profile maps must not construct a Whoops page or register callbacks.
-    (new JsonErrorHandlerServiceProvider())->getFactories();
-    (new WhoopsErrorHandlerServiceProvider())->getFactories();
+    // Discovering representations must not construct a diagnostic page or register callbacks.
+    (new ErrorHandlerServiceProvider())->getFactories();
 
     $services = container(ErrorHandlerServiceProvider::class, $application);
     $handler = $services->get(ErrorHandlerInterface::class);
@@ -199,7 +197,8 @@ try {
 
     if (
         !$handler instanceof ErrorHandler || !$aggregate instanceof ThrowableHandlerAggregate
-        || !$streams instanceof GenericThrowableStreamFactory || !$responses instanceof ThrowableResponseFactory
+        || !$streams instanceof GenericThrowableStreamFactory
+        || !$responses instanceof NegotiatingThrowableResponseFactory
     ) {
         throw new RuntimeException('The Interop provider must resolve its actual default classes.');
     }
@@ -208,7 +207,7 @@ try {
         $services->get(ErrorHandler::class) !== $handler
         || $services->get(ThrowableHandlerAggregate::class) !== $aggregate
         || $services->get(GenericThrowableStreamFactory::class) !== $streams
-        || $services->get(ThrowableResponseFactory::class) !== $responses
+        || $services->get(NegotiatingThrowableResponseFactory::class) !== $responses
     ) {
         throw new RuntimeException('Provider aliases must preserve the cached concrete service identities.');
     }

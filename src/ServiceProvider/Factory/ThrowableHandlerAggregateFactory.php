@@ -20,6 +20,7 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
 use FastForward\Container\Exception\AutowiringException;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -35,6 +36,15 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  */
 final class ThrowableHandlerAggregateFactory
 {
+    /**
+     * Enables an explicit terminal reporter without changing ordinary HTTP discovery.
+     *
+     * @param bool $cli whether the application selected CLI diagnostics
+     */
+    public function __construct(private readonly bool $cli = false)
+    {
+    }
+
     /**
      * Creates an instance of ThrowableHandlerAggregate.
      *
@@ -84,6 +94,12 @@ final class ThrowableHandlerAggregateFactory
                 $dispatchErrorHandler = $container->get(DispatchErrorEventThrowableHandler::class);
                 $handler->attach($dispatchErrorHandler);
             }
+        }
+
+        if ($this->cli) {
+            /** @var SymfonyCliThrowableHandler $cliHandler the explicitly enabled terminal reporter */
+            $cliHandler = $container->get(SymfonyCliThrowableHandler::class);
+            $handler->attach($cliHandler);
         }
 
         return $handler;

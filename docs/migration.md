@@ -4,11 +4,10 @@ This guide describes the API and behavior changes when upgrading from 2.x to 3.x
 
 Use the [Interop service provider](fast-forward.md) for container integration
 without changing the existing package or namespace. The short bootstrap is
-`container(ErrorHandlerServiceProvider::class, $application)` for external
-dependencies and optional reporters. To override existing library service IDs,
-merge definitions with `AggregateServiceProvider`, library first and application
-last, so a required reporter is not shadowed or replaced after construction
-fails. Registration remains explicit;
+`container($application, ErrorHandlerServiceProvider::class)` for external
+dependencies and normal application overrides. When a required interface's
+construction failure must prevent fallback to the library default, merge
+definitions with `AggregateServiceProvider`, library first and application last. Registration remains explicit;
 use factory services for fresh/nested scopes because container lookups are cached.
 The Interop provider is the single container integration entrypoint.
 The Laminas `ConfigProvider` adapter and standalone `ErrorHandlerContainer`
@@ -18,11 +17,12 @@ have been removed in favor of FastForward Container with this provider.
 2. Expect exit status **1** after a globally uncaught `Throwable` is reported successfully. Version 2 could exit with status 0. A reporter that explicitly terminates the process still controls its own exit code. Direct `handleThrowable()` calls do not exit.
 3. Pair `register()` and `unregister()` in reverse order. A repeated `register()` on the same instance is idempotent, not reference counted. Out-of-order unregistration now throws `LogicException` instead of silently removing someone else's callback. Use separate instances for nested middleware and do not pre-register the middleware's own instance.
 4. A reporter must not call its own `ErrorHandler` recursively. After a reporter throws, that instance stops retrying it until it is unregistered and registered again. The failure propagates to the caller or PHP; it is not silently swallowed. Only the active registration receives shutdown notifications, preventing duplicates across nested handlers.
-5. Review custom HTTP rendering. The provider defaults to a pure generic renderer, independent of reporter output. In the explicit output-capture adapter, empty output now produces `Internal Server Error` instead of a stringified exception and stack trace; the string `0` is preserved. Exception messages no longer become HTTP reason phrases. Codes 400–599 map to their matching status; other integer codes and string SQLSTATE codes map to 500.
+5. Review custom HTTP rendering. The provider defaults to request-aware pure rendering: JSON or Symfony HTML
+   when accepted, and a generic fallback otherwise, independent of reporter output. In the explicit output-capture adapter, empty output now produces `Internal Server Error` instead of a stringified exception and stack trace; the string `0` is preserved. Exception messages no longer become HTTP reason phrases. Codes 400–599 map to their matching status; other integer codes and string SQLSTATE codes map to 500.
 6. Compatible 2.x maintenance already removed Docker/Compose and consolidated bounded process fixtures under PHPUnit. Keep those Composer/PHPUnit checks; CI supplies the PHP 8.3–8.5 development matrix. No application runtime image is supplied.
 
 7. Replace `new Container\ErrorHandlerContainer($parent)` with
-   `FastForward\Container\container(ErrorHandlerServiceProvider::class, $parent)`
+   `FastForward\Container\container($parent, ErrorHandlerServiceProvider::class)`
    when the parent only supplies external PSR dependencies. For application
    overrides, use the merged provider composition above. FastForward is now a
    runtime dependency, including its transitive packages; consumers resolve them
@@ -45,9 +45,9 @@ have been removed in favor of FastForward Container with this provider.
 | `Container\Factory\ThrowableHandlerAggregateFactory` | `ServiceProvider\Factory\ThrowableHandlerAggregateFactory` |
 
 Update factory imports and service identifiers to the new namespaces; no aliases
-for the old names are provided. All three remaining factories live under
-`ServiceProvider\Factory` because they encode lifecycle and reporter-composition
-behavior. Use the Interop provider with constructor autowiring; a framework-native
+for the old names are provided. The explicit library factories live under
+`ServiceProvider\Factory` because they encode lifecycle, reporter composition and lazy
+response selection. Use the Interop provider with constructor autowiring; a framework-native
 configuration adapter is no longer shipped. `laminas/laminas-servicemanager` is
 no longer a development dependency; unrelated transitive Laminas packages may
 still be required by FastForward.
@@ -87,8 +87,9 @@ The built-in ErrorHandler already satisfies this. Custom lifecycle-only implemen
 must also implement diagnostic delivery. Middleware reports a downstream Throwable
 once, then invokes the response factory; reporter failures propagate without rendering.
 
-The provider's stream alias now selects GenericThrowableStreamFactory. Reporter
-output is not implicitly captured as the response body. HTTP reporters must use
+The provider's response alias selects NegotiatingThrowableResponseFactory and
+its generic fallback uses GenericThrowableStreamFactory. Reporter output is not
+implicitly captured as the response body. HTTP reporters must use
 private sinks. Implement ThrowableStreamFactoryInterface to return JSON or another
 public stream directly; the cookbook includes a complete JSON example without echo.
 ThrowableHandlerInterface remains void, preserving CLI, event and aggregate roles.
@@ -102,10 +103,39 @@ The JSON and optional Whoops response adapters published in 2.5.0 remain availab
 Pass their pure renderers directly to middleware. Remove the explicit
 `ReportingThrowableResponseFactory` wrapper used by 2.x middleware, which did not
 report independently. The wrapper remains available for other explicit pipelines.
-`JsonErrorHandlerServiceProvider` and `WhoopsErrorHandlerServiceProvider` now alias
-`ThrowableResponseFactoryInterface` to their pure concrete renderers. Each profile
-returns only its own map; compose base, selected profile and application in one
-`AggregateServiceProvider` for required reporters/overrides. JSON retains explicit
-`bool $debug = false`; the Whoops provider has no constructor and uses the
-application-overridable `PrettyPageHandler` service. A configured page is reused
-sequentially; middleware scopes, Whoops runs and response bodies remain distinct.
+The separate `JsonErrorHandlerServiceProvider` and `WhoopsErrorHandlerServiceProvider`
+are removed. Use the single `ErrorHandlerServiceProvider(bool $debug = false)`
+with application-first composition:
+`container($application, ErrorHandlerServiceProvider::class)`. To enable trusted
+development diagnostics, pass `new ErrorHandlerServiceProvider(debug: true)`.
+The provider negotiates Accept for every current request; debug never forces HTML.
+Symfony renders public/debug HTML by default. Optional Whoops needs an explicit
+application override, and JSON-only requests never construct it. Missing/unsupported Accept uses the
+generic fallback. JSON and Whoops concrete renderers remain public. Configure
+Whoops through the application-overridable `PrettyPageHandler` service.
+
+Every `ThrowableResponseFactoryInterface` implementation now requires
+`createResponseFromThrowable(Throwable $throwable, ServerRequestInterface $request)`.
+Update custom renderers and every direct call to pass the current request.
+Middleware forwards it automatically. Stream-factory signatures are unchanged.
+A configured page is reused sequentially; middleware scopes, Whoops runs and
+response bodies remain distinct. Required overrides may still use one merged
+`AggregateServiceProvider` to prevent fallback to a library interface binding.
+
+## JSON Problem Details and explicit terminal formatting
+
+Construct direct JSON renderers with the required third `SerializerInterface`
+argument and the debug bool fourth. The provider supplies a Symfony Serializer
+with ProblemNormalizer and JsonEncoder. JSON bodies use Problem Details with
+`type`, `title`, `status` and generic public `detail`, replacing the 2.x `error`
+field and nested debug `exception` object. Debug places the original message in
+`detail` and adds top-level class/trace metadata without argument values or objects.
+Update clients and assertions accordingly. Direct JSON returns
+`application/problem+json`; request negotiation also supports `application/json`
+with the same payload. See [HTTP details](http.md#opt-in-json-responses-and-explicit-reporting).
+
+The optional Symfony terminal adapter is explicitly selected; normal providers
+do not enable it by SAPI detection. With `cli: true`, the default aggregate adds
+it after optional reporters. Keep one exception-rendering owner for Console
+applications and choose the exit status in the application bootstrap. See
+[terminal diagnostics](cli.md).

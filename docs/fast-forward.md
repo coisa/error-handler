@@ -81,7 +81,7 @@ $application = new class implements ServiceProviderInterface {
     }
 };
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 /**
  * @var ErrorHandlerInterface $errors
@@ -112,18 +112,20 @@ There is no provider boot hook. The application decides when to register.
 | `ErrorHandlerInterface` / `ErrorHandler` | The same cached process handler; initially unregistered |
 | `ThrowableHandlerInterface` | Default aggregate of available callable and PSR-14 reporters |
 | `DispatchThrowableHandler` / `DispatchErrorEventThrowableHandler` | Existing PSR-14 adapters; require an application dispatcher |
-| `ThrowableStreamFactoryInterface` / `ThrowableResponseFactoryInterface` | Pure generic stream and response adapters; require PSR-17 factories |
+| `ThrowableStreamFactoryInterface` | Pure generic fallback stream; requires a PSR-17 stream factory |
+| `ThrowableResponseFactoryInterface` | Request-aware negotiation among generic, JSON and Symfony HTML responses |
+| `HtmlThrowableResponseFactory` / `JsonThrowableResponseFactory` / `WhoopsThrowableResponseFactory` | Pure concrete renderers; only Whoops requires its optional package |
+| `PrettyPageHandler` | Lazy cached page, customizable through an application service |
 | `ErrorHandlerMiddleware` | Cached middleware with a handler separate from the process handler |
 | `ServiceProvider\Factory\ErrorHandlerFactory` | Reusable callable that creates a fresh handler on each invocation |
 | `ServiceProvider\Factory\ErrorHandlerMiddlewareFactory` | Reusable callable that creates fresh middleware and a fresh handler |
 
-The provider has nine explicit definitions. Dispatch handlers and concrete
-generic stream/response adapters are resolved through FastForward's constructor
-autowiring. Their interface aliases remain explicit, and application definitions
+The single provider declares lifecycle, response negotiation and renderer services.
+Dispatch handlers and simple generic stream/response adapters use FastForward
+constructor autowiring. Interface aliases remain explicit, and application definitions
 can override either an interface or its concrete implementation when their
-maps are merged as shown under [required overrides](#required-overrides). The three
-library factories that remain encode optional-handler defaults, reporter
-composition and fresh middleware scopes; autowiring alone does not replace those
+maps are merged as shown under [required overrides](#required-overrides). Explicit library factories encode optional-handler defaults, reporter composition,
+fresh scopes and lazy renderer selection; autowiring alone does not replace those
 contracts. The factory-object services use FastForward's `InvokableFactory`.
 
 Bind a required custom renderer through `ThrowableStreamFactoryInterface` or
@@ -185,11 +187,11 @@ composition below; verify delivery and failures in the actual application graph.
 
 The short bootstrap above adds optional reporters and external dependencies.
 FastForward 1.10 searches separate providers in the supplied order;
-they do not merge their factory maps. In
-`container(ErrorHandlerServiceProvider::class, $application)`, a duplicate
-`ThrowableHandlerInterface` definition in the application is shadowed by the
-library's default. Moving the application first gives it priority, but its PSR-11
-construction failure can still fall through to the silent library aggregate.
+they do not merge their factory maps. The normal
+`container($application, ErrorHandlerServiceProvider::class)` bootstrap gives
+application definitions priority. If an application factory throws a PSR-11
+construction failure, resolution can still fall through to the silent library
+aggregate. This distinction matters only when failure must prevent construction.
 
 When replacing an existing service ID, merge the definitions explicitly, with
 the application last:
@@ -293,13 +295,14 @@ factory. See [failure boundaries](examples.md#failure-and-lifetime-boundaries).
 
 Middleware requires one scoped instance implementing both `ErrorHandlerInterface`
 and `ThrowableHandlerInterface`. It reports downstream failures before invoking
-the response factory. The default `ThrowableStreamFactoryInterface` alias now
+the response factory with the original Throwable and current request. The fallback
+`ThrowableStreamFactoryInterface` alias
 selects `Http\Message\GenericThrowableStreamFactory`, which uses PSR-17 directly
 and produces a controlled body without invoking reporters or output buffering.
 A lifecycle-only custom implementation must add reporting to use the middleware.
 
 Reporters keep their void contract and must write HTTP diagnostics privately.
-Select the built-in pure JSON/Whoops profile below or implement a custom
+Use the request-aware responses below or implement a custom
 stream/response factory; see the complete
 [renderer example](examples.md#explicit-json-streams). The retained `ThrowableStreamFactory`
 captures a separate public renderer only when explicitly selected. Binding the
@@ -307,76 +310,98 @@ old concrete capture class no longer changes the default alias. Bind the
 interface for required custom rendering, and do not inject the diagnostic reporter
 into a capture adapter after middleware has already reported it.
 
-## JSON profile
+## Explicit terminal reporting
 
-`JsonErrorHandlerServiceProvider(bool $debug = false)` declares only two bindings:
-the JSON response factory through FastForward's `InvokableFactory`, and the
-response interface alias directly to that pure renderer. It does not include the
-base provider or reporter. For a required application reporter and PSR-17
-implementations, compose the maps explicitly:
+`new ErrorHandlerServiceProvider(cli: true)` appends `SymfonyCliThrowableHandler`
+to the default reporter aggregate after its optional reporters. With the flag false,
+terminal formatting is not selected automatically. A configured
+`ThrowableHandlerInterface` override replaces the aggregate as usual.
+The optional `OutputInterface` application service selects a Console destination;
+without one the handler writes to stderr. The CLI flag does not enable HTTP debug
+or install callbacks. See [terminal integration and Console ownership](cli.md).
+
+## Request-aware responses
+
+`ErrorHandlerServiceProvider(bool $debug = false, bool $cli = false)` is the only library provider.
+Its response alias selects `NegotiatingThrowableResponseFactory`. The current
+request's Accept header chooses from generic `text/plain`, `application/json` or `application/problem+json`
+and Symfony `text/html`. Trusted debug enables diagnostics in the same Symfony
+renderer. Negotiated responses include Accept in Vary and preserve existing Vary fields. Installed Whoops never changes this default.
+Missing Accept or no supported positive match uses the generic fallback.
+Debug never forces HTML; JSON-only requests do not resolve Whoops.
+See [quality values and fallbacks](http.md#request-negotiation).
+
+The application supplies its own PSR-17 implementations and private reporter:
 
 ```php
-$services = container(new AggregateServiceProvider(
-    new ErrorHandlerServiceProvider(),
-    new JsonErrorHandlerServiceProvider(),
-    $application,
-));
+$services = container($application, ErrorHandlerServiceProvider::class);
 ```
 
-Later aggregate definitions win. A trusted debug choice can be read from
-FastForward Config before constructing `new JsonErrorHandlerServiceProvider($debug)`.
-Pass a real boolean from a strict caller; the provider does not detect environment
-or request state. The [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php) shows public
-and debug modes, the application map and a fresh middleware scope. JSON is pure;
-the scoped middleware handler supplies the one private report.
+For trusted development configuration, read a real boolean before bootstrap:
 
-Separate providers search first-success sources. JSON before base selects JSON;
-base before JSON retains the generic renderer. This is not sufficient to replace
-the base's reporter interface: use the aggregate above for required reporting.
-Resolve the reusable middleware factory for each independent scope, rather than
-expecting repeated `get(ErrorHandlerMiddleware::class)` calls to be fresh.
+```php
+$settings = config(['error_handler' => ['debug' => true]]);
 
-## Development HTML profile
+$services = container(
+    $application,
+    new ErrorHandlerServiceProvider(debug: $settings->get('error_handler.debug', false)),
+);
+```
 
-Install optional `filp/whoops:^2.18.7` in the application selecting this profile.
-`WhoopsErrorHandlerServiceProvider` has no constructor and declares only three
-bindings: `PrettyPageHandler` through `InvokableFactory`, the pure
-`WhoopsThrowableResponseFactory` through FastForward's `CallableFactory`, and its
-response interface alias. Its lazy page callback resolves the application's
-`PrettyPageHandler` service at render time. Discovery and middleware construction
-do not create a page or register native callbacks.
+The Config key belongs to this application example; the library reads no
+environment variable or configuration key automatically. Avoid casting the
+string `"false"` to bool, which enables PHP truthiness. The
+[JSON provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php)
+shows public/debug modes and `Accept: application/json` with one private report.
+The provider also exposes the concrete JSON renderer for explicit application
+composition; selecting a concrete renderer directly bypasses negotiation. JSON uses
+`SerializerInterface`, supplied by the provider as a Symfony Serializer with
+ProblemNormalizer and JsonEncoder. Both accepted JSON media types use Problem
+Details; direct JSON rendering returns `application/problem+json`. Override the
+serializer service explicitly only with a collaborator supporting that same contract.
 
-Use one `AggregateServiceProvider` in base, Whoops, application order, as in the
-[complete default/configured recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php). An optional
-package's absence can otherwise fall through between separate providers after a
-PSR-11 error. The aggregate selects the intended binding and retains an install
-hint through the container's failure chain; it is not a general guarantee that
-all concrete factory failures propagate unchanged.
+The negotiator is cached, while the request is supplied for each rendering call.
+Its lazy renderer map resolves only the selected response service. Use the
+middleware factory for fresh scopes; repeated container lookups remain cached.
+Reporter and renderer failures retain the [HTTP boundaries](http.md).
 
-Customize the page by preparing a `PrettyPageHandler` outside container lookup,
-applying trusted Config values and binding it with FastForward's `ServiceFactory`.
-The container caches that service; sequential renders reuse its configuration and
-replace diagnostic data. Every render creates a fresh, unregistered Whoops run,
-response and stream. Distinct middleware scopes still use distinct core handlers.
-There is no concurrent rendering isolation or comprehensive redaction promise.
+## Development HTML configuration
 
-FastForward may recover a failing concrete page factory by autowiring a default
-page even inside an aggregate. A binding returning the wrong page type and a page
-whose `handle()` throws are different runtime failures, not successful fallbacks.
-The provider follows the container's resolution contract; it does not install a
-second resolver, clone pages or suppress PHP warnings. Configure required page
-state before lookup when those configuration errors must be observed immediately.
+Symfony HTML is the default in public and debug modes. To select Whoops instead,
+install optional `filp/whoops:^2.18.7` in the application. The [public/default/configured recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php)
+uses the same provider with `Accept: text/html` and an explicit application
+override of the negotiating HTML candidate in its development modes. Public mode retains Symfony HTML. The default provider never
+auto-selects Whoops based on package availability.
 
-The manual renderer's callable parameter remains available for explicit application
-composition. Both profiles select pure renderers, never
-`ReportingThrowableResponseFactory`: middleware has already reported.
-See [HTTP boundaries](http.md) for trusted debug policy and diagnostic exposure.
+The provider binds `PrettyPageHandler` through FastForward's `InvokableFactory`.
+The HTML renderer's lazy callback resolves that service only during selected HTML
+rendering. Discovery, JSON-only requests and middleware construction do not create
+a page or register native callbacks. The concrete Whoops renderer remains usable
+directly, where the application owns development authorization.
+
+Customize a page before container lookup, apply trusted Config values and bind it
+with `ServiceFactory` in the application map. Application-first composition gives
+that page priority. The container caches it; sequential renders replace diagnostic
+data while retaining configuration. Every render owns a fresh unregistered Whoops
+run, response and stream. This is not concurrent-request isolation.
+
+FastForward can recover a failing concrete page factory by autowiring a default
+page. A merged provider fixes map precedence but does not disable that concrete
+fallback. Prepare required page configuration before lookup when configuration
+failures must be observed immediately. Wrong-type pages and rendering failures
+propagate through their actual runtime boundaries; there is no second resolver,
+page cloning or warning suppression.
+
+The manual renderer's callable remains available for explicit composition.
+The provider never selects `ReportingThrowableResponseFactory`: middleware already
+reported the original. Debug output can expose source, globals and traces; selected
+key hiding is not complete redaction. See [diagnostic HTML](http.md#opt-in-development-html-with-whoops).
 
 ## Troubleshooting composition
 
 | Symptom | Check |
 | --- | --- |
-| A required reporter is silent | Bind `ThrowableHandlerInterface` and merge base, profile if selected, then application maps in one aggregate. A separate application provider can be shadowed or skipped after a construction failure. |
+| A required reporter is silent | Bind `ThrowableHandlerInterface` and merge library then application maps in one aggregate. A separate application provider can be shadowed or skipped after a construction failure. |
 | A request deactivates the process handler | Give middleware a distinct handler. Resolve and invoke its factory for each independent scope; do not pre-register that handler. |
 | A page override appears to be ignored | Configure the page before lookup and bind the instance with `ServiceFactory`. A failed concrete factory can fall back to an autowired default page. |
 | Whoops classes are unavailable | Install optional `filp/whoops:^2.18.7` in the consuming application and confirm that the selected autoloader includes it. |

@@ -163,7 +163,8 @@ and line 0; the factory does not invent a source location or previous cause.
 both contracts. A custom lifecycle implementation must support reporting too.
 
 On a downstream Throwable, middleware first calls the scoped handler, then asks
-the response factory for a public representation. A reporter failure propagates
+the response factory for a public representation, passing the original Throwable
+and current ServerRequestInterface. A reporter failure propagates
 after cleanup; its failed-registration guard prevents a second reporter attempt
 when a PHP warning caused that failure. Rendering failure also propagates after
 cleanup. Successful downstream responses pass through unchanged.
@@ -188,13 +189,30 @@ lets PSR-17 supply the standard reason phrase.
 
 Implement `ThrowableStreamFactoryInterface` for a pure custom body, such as JSON,
 or `ThrowableResponseFactoryInterface` when also choosing Content-Type/headers.
-See [JSON without echo](examples.md#http-rendering). The application owns emission,
+See [JSON without echo](examples.md#explicit-json-streams). The application owns emission,
 headers, transport and public payload policy; diagnostic details are never a safe
 default. The pure `JsonThrowableResponseFactory` and optional
 `WhoopsThrowableResponseFactory` retained from 2.5.0 provide built-in alternatives;
 see [HTTP composition](http.md). `ReportingThrowableResponseFactory` remains an
 explicit utility for other pipelines, but must not wrap the renderer after this
 middleware has already reported.
+
+The response-factory signature is
+`createResponseFromThrowable(Throwable $throwable, ServerRequestInterface $request): ResponseInterface`.
+Custom factories and direct callers must accept/supply the request even when a
+fixed renderer ignores it. The middleware forwards the current object unchanged.
+See [negotiation policy](http.md#request-negotiation) and the
+[single provider](fast-forward.md#request-aware-responses).
+
+## Symfony terminal reporting
+
+`Handler\SymfonyCliThrowableHandler(?OutputInterface $output = null)` formats the
+original through Symfony CliErrorRenderer. It writes to stderr by default, or uses
+an application's Console output with raw writes and its error channel where available.
+Construction is inert; reporting does not choose SAPI or an exit status. Explicitly
+select it, or use provider `cli: true`; it is never an HTTP renderer.
+Keep one exception owner when integrating Symfony Console. See the
+[complete CLI guide](cli.md) and [recipe](examples.md#symfony-terminal-diagnostics).
 
 ## Optional output-capture adapter
 
@@ -219,13 +237,16 @@ registers PHP callbacks during discovery/construction. The explicit lifecycle
 factories live under `ServiceProvider\Factory`; no parallel standalone container
 or native Laminas ConfigProvider remains.
 
-Use `container(ErrorHandlerServiceProvider::class, $application)` to supply
+Use `container($application, ErrorHandlerServiceProvider::class)` to supply
 application dependencies and optional reporters. To override existing library
 service IDs, merge library definitions first and the application last in one
 AggregateServiceProvider. Bind required reporters/renderers explicitly through
 their interfaces. The default
 reporter aggregate discovers optional callable/PSR-14 reporters and is silent when
-none are configured. The default HTTP stream alias resolves GenericThrowableStreamFactory.
+none are configured. The default response alias resolves NegotiatingThrowableResponseFactory. It selects
+JSON or Symfony HTML from Accept, uses trusted debug for diagnostic details,
+and otherwise uses the generic stream. Optional Whoops requires an explicit override. The concrete response
+renderers remain public; all require a ServerRequestInterface argument.
 Applications supply PSR-14, PSR-17 and logger implementations. See [provider wiring](fast-forward.md)
 and [migration](migration.md).
 

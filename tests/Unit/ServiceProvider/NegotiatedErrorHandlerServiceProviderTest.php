@@ -16,15 +16,18 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Unit\ServiceProvider;
 
-use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\NegotiatingThrowableResponseFactoryFactory;
+use FastForward\Container\Factory\CallableFactory;
+use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Whoops\Handler\PrettyPageHandler;
 use FastForward\Container\Factory\ServiceFactory;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
@@ -34,7 +37,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\NotFoundExceptionInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -49,54 +51,74 @@ use function FastForward\Container\container;
  * @internal
  */
 #[CoversClass(ErrorHandlerMiddlewareFactory::class)]
-#[CoversClass(JsonErrorHandlerServiceProvider::class)]
-final class JsonErrorHandlerServiceProviderTest extends TestCase
+#[CoversClass(ErrorHandlerServiceProvider::class)]
+#[CoversClass(NegotiatingThrowableResponseFactoryFactory::class)]
+final class NegotiatedErrorHandlerServiceProviderTest extends TestCase
 {
-    /** The JSON provider does not implicitly register the separately selected lifecycle provider. */
-    public function testJsonProfileLeavesLifecycleCompositionToTheApplication(): void
+    /** One cached service selects representations from the current request without reporting. */
+    public function testOneProviderNegotiatesEachCurrentRequest(): void
     {
-        $reporter = self::createStub(ThrowableHandlerInterface::class);
-        $services = container(JsonErrorHandlerServiceProvider::class, $this->application($reporter));
-
-        self::assertFalse($services->has(ErrorHandlerInterface::class));
-        $this->expectException(NotFoundExceptionInterface::class);
-        $services->get(ErrorHandlerInterface::class);
+        $original = new \RuntimeException('Private fallback details', 503);
+        $reporter = $this->createMock(ThrowableHandlerInterface::class);
+        $reporter->expects(self::never())->method('handleThrowable');
+        $services = container($this->application($reporter), ErrorHandlerServiceProvider::class);
+        $renderer = $services->get(ThrowableResponseFactoryInterface::class);
+        self::assertInstanceOf(NegotiatingThrowableResponseFactory::class, $renderer);
+        self::assertSame($renderer, $services->get(ThrowableResponseFactoryInterface::class));
+        $json = $renderer->createResponseFromThrowable($original, self::jsonRequest());
+        $htmlRequest = self::jsonRequest()->withHeader('Accept', 'text/html');
+        $html = $renderer->createResponseFromThrowable($original, $htmlRequest);
+        $plain = $renderer->createResponseFromThrowable($original, self::jsonRequest()->withoutHeader('Accept'));
+        self::assertSame('application/json', $json->getHeaderLine('Content-Type'));
+        self::assertSame(
+            self::publicProblem(503, 'Service Unavailable'),
+            json_decode((string) $json->getBody(), true, 512, JSON_THROW_ON_ERROR),
+        );
+        self::assertSame('text/html; charset=UTF-8', $html->getHeaderLine('Content-Type'));
+        self::assertStringContainsString('<!DOCTYPE html>', (string) $html->getBody());
+        self::assertStringNotContainsString($original->getMessage(), (string) $html->getBody());
+        self::assertSame('text/plain', $plain->getHeaderLine('Content-Type'));
+        foreach ([$json, $html, $plain] as $response) {
+            self::assertSame(503, $response->getStatusCode());
+            self::assertSame('Accept', $response->getHeaderLine('Vary'));
+        }
     }
 
-    /** Separate providers select the first pure response alias without relying on a failed factory. */
-    public function testProviderOrderSelectsJsonOrTheGenericDefault(): void
+    /** Installed optional Whoops services cannot replace the configured Symfony HTML default. */
+    public function testDebugUsesSymfonyAndDoesNotResolveOptionalWhoops(): void
     {
-        $this->expectOutputString('');
-        $original = new \RuntimeException('Legacy fallback details', 503);
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
-        $reporter->expects(self::never())->method('handleThrowable')->with(self::identicalTo($original));
-        $application = $this->application($reporter);
-        $jsonServices = container(
-            JsonErrorHandlerServiceProvider::class,
-            ErrorHandlerServiceProvider::class,
-            $application,
+        $reporter->expects(self::never())->method('handleThrowable');
+        $definitions = $this->application($reporter)->getFactories();
+        $definitions[PrettyPageHandler::class] = new CallableFactory(
+            /**
+             * @param ContainerInterface $container the unused synthetic resolver
+             *
+             * @return PrettyPageHandler this optional page must never be requested
+             *
+             * @throws \LogicException if default negotiation unexpectedly selects Whoops
+             */
+            static function (ContainerInterface $container): PrettyPageHandler {
+                throw new \LogicException('Whoops must require explicit application selection.');
+            },
         );
-        $legacyServices = container(
-            ErrorHandlerServiceProvider::class,
-            JsonErrorHandlerServiceProvider::class,
-            $application,
+        $services = container(new ArrayServiceProvider($definitions), new ErrorHandlerServiceProvider(debug: true));
+        $renderer = $services->get(ThrowableResponseFactoryInterface::class);
+        self::assertInstanceOf(NegotiatingThrowableResponseFactory::class, $renderer);
+        $original = new \RuntimeException('Private Symfony development diagnostic', 503);
+        $json = $renderer->createResponseFromThrowable($original, self::jsonRequest());
+        $html = $renderer->createResponseFromThrowable(
+            $original,
+            self::jsonRequest()->withHeader('Accept', 'text/html'),
         );
 
-        /** @var JsonThrowableResponseFactory $json */
-        $json = $jsonServices->get(ThrowableResponseFactoryInterface::class);
-        self::assertInstanceOf(JsonThrowableResponseFactory::class, $json);
-        $jsonResponse = $json->createResponseFromThrowable($original);
-        self::assertSame(503, $jsonResponse->getStatusCode());
-        self::assertSame('application/json', $jsonResponse->getHeaderLine('Content-Type'));
-        self::assertSame('{"error":"Request failed"}', (string) $jsonResponse->getBody());
-
-        /** @var ThrowableResponseFactory $legacy */
-        $legacy = $legacyServices->get(ThrowableResponseFactoryInterface::class);
-        self::assertInstanceOf(ThrowableResponseFactory::class, $legacy);
-        $legacyResponse = $legacy->createResponseFromThrowable($original);
-        self::assertSame(503, $legacyResponse->getStatusCode());
-        self::assertSame('', $legacyResponse->getHeaderLine('Content-Type'));
-        self::assertSame('Internal Server Error', (string) $legacyResponse->getBody());
+        self::assertSame('application/json', $json->getHeaderLine('Content-Type'));
+        self::assertStringContainsString('"class":', (string) $json->getBody());
+        self::assertSame('text/html; charset=UTF-8', $html->getHeaderLine('Content-Type'));
+        self::assertStringContainsString($original->getMessage(), (string) $html->getBody());
+        self::assertStringContainsString('<!DOCTYPE html>', (string) $html->getBody());
+        self::assertSame('no-store', $json->getHeaderLine('Cache-Control'));
+        self::assertSame('no-store', $html->getHeaderLine('Cache-Control'));
     }
 
     /** The explicitly composed JSON-first providers select pure public JSON without reporting. */
@@ -107,26 +129,30 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::never())->method('handleThrowable')->with(self::identicalTo($original));
         $services = container(
-            JsonErrorHandlerServiceProvider::class,
-            ErrorHandlerServiceProvider::class,
             $this->application($reporter),
+            ErrorHandlerServiceProvider::class,
         );
 
         /** @var JsonThrowableResponseFactory $pure */
         $pure = $services->get(JsonThrowableResponseFactory::class);
+        $pureResponse = $pure->createResponseFromThrowable($original, self::jsonRequest());
+        self::assertSame('application/problem+json', $pureResponse->getHeaderLine('Content-Type'));
         self::assertSame(
-            '{"error":"Request failed"}',
-            (string) $pure->createResponseFromThrowable($original)->getBody(),
+            self::publicProblem(599, ''),
+            json_decode((string) $pureResponse->getBody(), true, 512, JSON_THROW_ON_ERROR),
         );
 
-        /** @var JsonThrowableResponseFactory $selected */
+        /** @var ThrowableResponseFactoryInterface $selected */
         $selected = $services->get(ThrowableResponseFactoryInterface::class);
-        self::assertSame($selected, $services->get(JsonThrowableResponseFactory::class));
-        $response = $selected->createResponseFromThrowable($original);
+        self::assertInstanceOf(NegotiatingThrowableResponseFactory::class, $selected);
+        $response = $selected->createResponseFromThrowable($original, self::jsonRequest());
         self::assertSame(599, $response->getStatusCode());
         self::assertSame('application/json', $response->getHeaderLine('Content-Type'));
         self::assertSame('', $response->getReasonPhrase());
-        self::assertSame('{"error":"Request failed"}', (string) $response->getBody());
+        self::assertSame(
+            self::publicProblem(599, ''),
+            json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR),
+        );
     }
 
     /**
@@ -143,24 +169,26 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::never())->method('handleThrowable');
         $services = container(
-            new JsonErrorHandlerServiceProvider($configured),
-            ErrorHandlerServiceProvider::class,
             $this->application($reporter),
+            new ErrorHandlerServiceProvider($configured),
         );
 
         /** @var ThrowableResponseFactoryInterface $renderer */
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
-        $response = $renderer->createResponseFromThrowable(new \RuntimeException('Configured private details'));
+        $response = $renderer->createResponseFromThrowable(
+            new \RuntimeException('Configured private details'),
+            self::jsonRequest(),
+        );
         $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         self::assertIsArray($payload);
-        self::assertSame($debug, isset($payload['exception']));
+        self::assertSame($debug, isset($payload['class']));
         self::assertSame($debug ? 'no-store' : '', $response->getHeaderLine('Cache-Control'));
 
         if ($debug) {
-            self::assertIsArray($payload['exception']);
-            self::assertSame('Configured private details', $payload['exception']['message']);
+            self::assertSame(\RuntimeException::class, $payload['class']);
+            self::assertSame('Configured private details', $payload['detail']);
         } else {
-            self::assertSame(['error' => 'Request failed'], $payload);
+            self::assertSame(self::publicProblem(500, 'Internal Server Error'), $payload);
         }
     }
 
@@ -180,7 +208,7 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
         $this->expectException(\TypeError::class);
 
         // @phpstan-ignore argument.type (Deliberately exercise PHP's strict constructor boundary.)
-        $provider = new JsonErrorHandlerServiceProvider('false');
+        $provider = new ErrorHandlerServiceProvider('false');
 
         self::fail('An invalid debug choice unexpectedly constructed ' . $provider::class);
     }
@@ -194,34 +222,34 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
         $response = (new Psr17Factory())->createResponse(418);
         $override = $this->createMock(ThrowableResponseFactoryInterface::class);
         $override->expects(self::once())->method('createResponseFromThrowable')
-            ->with(self::identicalTo($original))->willReturn($response)
+            ->with(self::identicalTo($original), self::isInstanceOf(ServerRequestInterface::class))
+            ->willReturn($response)
         ;
         $definitions = $this->application($reporter)->getFactories();
         $definitions[ThrowableResponseFactoryInterface::class] = new ServiceFactory($override);
         $application = new ArrayServiceProvider($definitions);
         $separate = container(
-            JsonErrorHandlerServiceProvider::class,
             ErrorHandlerServiceProvider::class,
             $application,
         );
 
         /** @var ThrowableResponseFactoryInterface $firstWins */
         $firstWins = $separate->get(ThrowableResponseFactoryInterface::class);
+        $firstResponse = $firstWins->createResponseFromThrowable($original, self::jsonRequest());
         self::assertSame(
-            '{"error":"Request failed"}',
-            (string) $firstWins->createResponseFromThrowable($original)->getBody(),
+            self::publicProblem(503, 'Service Unavailable'),
+            json_decode((string) $firstResponse->getBody(), true, 512, JSON_THROW_ON_ERROR),
         );
 
         $aggregated = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
-            new JsonErrorHandlerServiceProvider(),
             $application,
         ));
 
         /** @var ThrowableResponseFactoryInterface $lastWins */
         $lastWins = $aggregated->get(ThrowableResponseFactoryInterface::class);
         self::assertSame($override, $lastWins);
-        self::assertSame($response, $lastWins->createResponseFromThrowable($original));
+        self::assertSame($response, $lastWins->createResponseFromThrowable($original, self::jsonRequest()));
     }
 
     /**
@@ -266,7 +294,6 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
 
         $services = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
-            new JsonErrorHandlerServiceProvider(),
             $this->application($reporter, $responses),
         ));
 
@@ -299,7 +326,7 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
 
         try {
             try {
-                $response = $middleware->process($messages->createServerRequest('GET', '/provider'), $next);
+                $response = $middleware->process(self::jsonRequest(), $next);
             } catch (\Throwable $actual) {
                 $caught = $actual;
             }
@@ -321,7 +348,10 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
                     self::assertSame($expected, $response);
                 } else {
                     self::assertSame(503, $response->getStatusCode());
-                    self::assertSame('{"error":"Request failed"}', (string) $response->getBody());
+                    self::assertSame(
+                        self::publicProblem(503, 'Service Unavailable'),
+                        json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR),
+                    );
                 }
             }
         } finally {
@@ -343,6 +373,25 @@ final class JsonErrorHandlerServiceProviderTest extends TestCase
             'reporter failure' => ['reporter'],
             'renderer failure' => ['renderer'],
         ];
+    }
+
+    /**
+     * Supplies the approved public schema without reproducing the renderer's normalization algorithm.
+     *
+     * @param int    $status the expected HTTP status for this case
+     * @param string $title  the expected standard reason phrase
+     *
+     * @return array{type: string, title: string, status: int, detail: string} the public Problem Details document
+     */
+    private static function publicProblem(int $status, string $title): array
+    {
+        return ['type' => 'about:blank', 'title' => $title, 'status' => $status, 'detail' => 'Request failed'];
+    }
+
+    /** @return ServerRequestInterface the current synthetic JSON-only request */
+    private static function jsonRequest(): ServerRequestInterface
+    {
+        return (new Psr17Factory())->createServerRequest('GET', '/provider')->withHeader('Accept', 'application/json');
     }
 
     /**

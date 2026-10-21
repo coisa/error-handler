@@ -37,9 +37,10 @@ Modernize the library for PHP 8.3+ while retaining the package
 - Add a direct native regression for output-handler destruction that replaces its
   removed buffer, proving bounded cleanup, primary-failure and caller ownership.
 - Preserve the JSON, optional Whoops and explicit reporting adapters published in
-  2.5.0. Compose independent response providers with pure renderer aliases after
-  the middleware report; retain trusted debug configuration, lazy page
-  overrides and fresh middleware scopes without a second diagnostic delivery.
+  2.5.0. Compose pure renderers after the middleware report; retain trusted debug
+  configuration, lazy page overrides and fresh middleware scopes without a second
+  diagnostic delivery. Consolidate response profiles into the request-aware
+  provider described in the companion negotiation entry.
 - Accept matching callables in all three ErrorHandler constructor inputs using
   existing adapters. Preserve interface identity and precedence, required reporter,
   optional null defaults, inert construction and the existing reporting policies.
@@ -55,4 +56,4 @@ Modernize the library for PHP 8.3+ while retaining the package
 - Correct callable-filtering guidance, clarify generic stream and fatal-reporting
   contracts, and distinguish checkout recipes from bundled application examples.
   Keep installed documentation links usable and release instructions current.
-- Keep content negotiation under application control.
+- Keep available representations and diagnostic authorization under application control.

@@ -25,7 +25,10 @@
         "psr/http-server-middleware": "^1.0",
         "psr/http-factory": "^1.1",
         "psr/event-dispatcher": "^1.0",
-        "psr/log": "^1.1 || ^2.0 || ^3.0"
+        "psr/log": "^1.1 || ^2.0 || ^3.0",
+        "symfony/error-handler": "^5.4 || ^6.4 || ^7.0 || ^8.0",
+        "symfony/http-foundation": "^6.4.46 || ^7.4.19 || ^8.1.7",
+        "symfony/serializer": "^5.4 || ^6.4 || ^7.0 || ^8.0"
     },
     "conflict": {
         "filp/whoops": "<2.18.7"
@@ -46,12 +49,12 @@
     },
     "require-dev": {
         "coisa/php-cs-fixer": "^3.0",
+        "fast-forward/event-dispatcher": "^1.0",
         "filp/whoops": "^2.18.7",
         "jangregor/phpstan-prophecy": "^2.3",
         "llm/skills": "^1.15",
         "nyholm/psr7": "^1.8.2",
         "nyholm/psr7-server": "^1.1",
-        "phly/phly-event-dispatcher": "^1.6",
         "phpspec/prophecy": "^1.26",
         "phpspec/prophecy-phpunit": "^2.5",
         "phpstan/phpstan": "^2.3",
@@ -84,6 +87,7 @@
     },
     "suggest": {
         "llm/skills": "Optionally synchronize the bundled agent skill in consumer projects.",
-        "filp/whoops": "Install ^2.18.7 for optional development HTML responses."
+        "filp/whoops": "Install ^2.18.7 for optional development HTML responses.",
+        "symfony/console": "Optionally route the explicit CLI reporter through the application's Console output."
     }
 }

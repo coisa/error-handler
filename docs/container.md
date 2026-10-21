@@ -19,7 +19,12 @@ and bind the required reporting interface in the merged map. No factory, alias o
 automatic membership selects it. The default aggregate remains fail-fast; see
 [best-effort reporting](api.md#best-effort-reporting).
 
-The independent [JSON profile](fast-forward.md#json-profile) and
-[Whoops profile](fast-forward.md#development-html-profile) select pure renderers.
-Compose base, selected profile and application maps explicitly; middleware owns
-the single private report. No legacy capture/reporting wrapper is restored.
+The single [request-aware provider](fast-forward.md#request-aware-responses)
+selects a pure renderer from the current request's Accept header. Supply the
+application first: `container($application, ErrorHandlerServiceProvider::class)`.
+The default HTML implementation is Symfony in both public and debug modes.
+Trusted debug enables details but never forces HTML. Optional Whoops requires
+an explicit application override. JSON-only
+requests do not construct Whoops. Middleware owns the single private report.
+Use a merged map only when a required override must not fall through after a
+container construction failure.

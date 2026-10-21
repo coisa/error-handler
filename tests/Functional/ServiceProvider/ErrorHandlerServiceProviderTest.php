@@ -28,8 +28,12 @@ use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\OutputInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
@@ -75,6 +79,79 @@ use function FastForward\Config\config;
 #[CoversNothing]
 final class ErrorHandlerServiceProviderTest extends TestCase
 {
+    /** A supplied Console destination cannot activate diagnostics without the explicit CLI option. */
+    public function testCliFalseDoesNotPrintEvenWithConfiguredConsoleOutput(): void
+    {
+        $output = new BufferedOutput();
+        $before = self::callbacks();
+        $services = container(new ArrayServiceProvider([
+            OutputInterface::class => new ServiceFactory($output),
+        ]), new ErrorHandlerServiceProvider(cli: false));
+        $handler = $services->get(ErrorHandlerInterface::class);
+        self::assertInstanceOf(ErrorHandler::class, $handler);
+        self::assertSame($before, self::callbacks());
+
+        $handler->handleThrowable(new \RuntimeException('CLI must remain explicitly selected'));
+
+        self::assertSame('', $output->fetch());
+        self::assertSame($before, self::callbacks());
+    }
+
+    /** A selected CLI profile composes the real adapter without registering process-wide callbacks. */
+    public function testCliTrueWritesToApplicationOutputWithoutInstallingCallbacks(): void
+    {
+        $output = new BufferedOutput();
+        $before = self::callbacks();
+        $services = container(new ArrayServiceProvider([
+            OutputInterface::class => new ServiceFactory($output),
+        ]), new ErrorHandlerServiceProvider(cli: true));
+        $handler = $services->get(ErrorHandlerInterface::class);
+        self::assertInstanceOf(ErrorHandler::class, $handler);
+        self::assertSame('', $output->fetch());
+        self::assertSame($before, self::callbacks());
+        $original = new \RuntimeException('CLI provider diagnostic', 503);
+        $trace = $original->getTrace();
+
+        $handler->handleThrowable($original);
+        $text = $output->fetch();
+
+        self::assertStringContainsString('CLI provider diagnostic', $text);
+        self::assertStringContainsString('RuntimeException', $text);
+        self::assertSame($trace, $original->getTrace());
+        self::assertSame($before, self::callbacks());
+    }
+
+    /** An application reporter override wins and does not resolve or print through the CLI adapter. */
+    public function testApplicationReporterOverridePreventsCliResolutionAndOutput(): void
+    {
+        $received = [];
+        $reporter = new CallableThrowableHandler(
+            /** @param \Throwable $event the unchanged original failure received privately */
+            static function (\Throwable $event) use (&$received): void {
+                $received[] = $event;
+            },
+        );
+        $output = new BufferedOutput();
+        $before = self::callbacks();
+        $services = container(new ArrayServiceProvider([
+            OutputInterface::class => new ServiceFactory($output),
+            ThrowableHandlerInterface::class => new ServiceFactory($reporter),
+            SymfonyCliThrowableHandler::class => static function (): never {
+                throw new \LogicException('An application reporter override must not resolve the CLI adapter.');
+            },
+        ]), new ErrorHandlerServiceProvider(cli: true));
+        self::assertSame($reporter, $services->get(ThrowableHandlerInterface::class));
+        $handler = $services->get(ErrorHandlerInterface::class);
+        self::assertInstanceOf(ErrorHandler::class, $handler);
+        $original = new \RuntimeException('Private application override');
+
+        $handler->handleThrowable($original);
+
+        self::assertSame([$original], $received);
+        self::assertSame('', $output->fetch());
+        self::assertSame($before, self::callbacks());
+    }
+
     /**
      * Verifies constructor autowiring preserves the provider's public interface aliases.
      */
@@ -92,7 +169,7 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         );
         self::assertInstanceOf(ThrowableResponseFactory::class, $container->get(ThrowableResponseFactory::class));
         self::assertSame(
-            $container->get(ThrowableResponseFactory::class),
+            $container->get(NegotiatingThrowableResponseFactory::class),
             $container->get(ThrowableResponseFactoryInterface::class),
         );
     }
@@ -130,11 +207,14 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         ), $psr17);
         $container = self::services([ThrowableResponseFactory::class => $renderer]);
 
-        self::assertSame($renderer, $container->get(ThrowableResponseFactoryInterface::class));
-        self::assertSame(
-            'Application response',
-            (string) $renderer->createResponseFromThrowable(new \RuntimeException())->getBody(),
-        );
+        $negotiator = $container->get(ThrowableResponseFactoryInterface::class);
+        self::assertInstanceOf(NegotiatingThrowableResponseFactory::class, $negotiator);
+        self::assertSame($renderer, $container->get(ThrowableResponseFactory::class));
+        self::assertNotSame($renderer, $negotiator);
+        $response = $negotiator->createResponseFromThrowable(new \RuntimeException(), self::request());
+        self::assertSame('Application response', (string) $response->getBody());
+        self::assertSame('text/plain', $response->getHeaderLine('Content-Type'));
+        self::assertSame('Accept', $response->getHeaderLine('Vary'));
     }
 
     /**
@@ -730,12 +810,15 @@ final class ErrorHandlerServiceProviderTest extends TestCase
             /**
              * Throws the configured rendering failure to exercise callback restoration.
              *
-             * @param \Throwable $throwable the throwable being rendered
+             * @param \Throwable             $throwable the throwable being rendered
+             * @param ServerRequestInterface $request   the current request being rendered
              *
              * @return ResponseInterface the fixture result
              */
-            public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
-            {
+            public function createResponseFromThrowable(
+                \Throwable $throwable,
+                ServerRequestInterface $request,
+            ): ResponseInterface {
                 throw $this->failure;
             }
         };

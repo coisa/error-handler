@@ -88,11 +88,12 @@ FastForward may normalize construction failures and retry autowiring: failed
 required construction is asserted without promising one attempt or original cause.
 
 `php examples/verify.php` checks every complete recipe and documented mode,
-including the adapters and JSON/Whoops profiles delivered in 2.x. The existing Symfony Process verifier uses
+including retained 2.x adapters and the single provider's request negotiation,
+Symfony HTML, JSON and explicit optional Whoops composition. The existing Symfony Process verifier uses
 five-second/64 MiB children and aborts above 16 KiB of observed output. It clears
 inherited environment variables except the selected autoloader/fixture marker.
 `php tests/Documentation/site.php` checks local source links, anchors and all
-seventeen complete cookbook recipes against executable source, omitting only the
+nineteen complete cookbook recipes against executable source, omitting only the
 leading license header. Duplicate, changed or missing recipes fail; a new
 executable recipe needs its own complete entry. Bootstrap, assertion helper and
 verifier are setup tools, not recipes. The site retains its source-parity checks.

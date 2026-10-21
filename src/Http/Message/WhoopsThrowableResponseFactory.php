@@ -18,6 +18,7 @@ namespace CoiSA\ErrorHandler\Http\Message;
 
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Whoops\Handler\PrettyPageHandler;
 use Whoops\Run;
@@ -68,15 +69,18 @@ final class WhoopsThrowableResponseFactory implements ThrowableResponseFactoryIn
      * Integer codes from 400 through 599 are preserved; other codes use 500.
      * This renderer does not report, emit, register callbacks or negotiate Accept.
      *
-     * @param \Throwable $throwable the unchanged original failure to render
+     * @param \Throwable             $throwable the unchanged original failure to render
+     * @param ServerRequestInterface $request   the request; direct selection chooses development HTML
      *
      * @return ResponseInterface the development response with a fresh HTML body and no-store policy
      *
      * @throws \Throwable the unchanged response, stream, page-factory or rendering failure
      * @throws \TypeError when the page factory returns an incompatible value
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
-    {
+    public function createResponseFromThrowable(
+        \Throwable $throwable,
+        ServerRequestInterface $request,
+    ): ResponseInterface {
         $code = $throwable->getCode();
         $status = (\is_int($code) && $code >= 400 && $code <= 599) ? $code : 500;
         $response = $this->responseFactory->createResponse($status)

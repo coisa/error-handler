@@ -17,16 +17,19 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
+use FastForward\Container\Factory\CallableFactory;
 use FastForward\Container\Factory\ServiceFactory;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Whoops\Handler\PrettyPageHandler;
@@ -44,23 +47,19 @@ if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container'
     throw new RuntimeException('This source requires PHP 8.3+ and its FastForward runtime dependency.');
 }
 
-foreach ([ErrorHandlerServiceProvider::class, WhoopsErrorHandlerServiceProvider::class] as $class) {
+foreach ([ErrorHandlerServiceProvider::class] as $class) {
     if (!class_exists($class)) {
         throw new RuntimeException('The selected library installation lacks ' . $class);
     }
 }
 
-if (!class_exists(PrettyPageHandler::class)) {
-    throw new RuntimeException('This optional application route needs filp/whoops:^2.18.7.');
-}
-
 $mode = $argv[2] ?? 'default';
 
-if (!in_array($mode, ['default', 'configured'], true)) {
-    throw new InvalidArgumentException('Choose default or configured after the consumer autoloader.');
+if (!in_array($mode, ['public', 'default', 'configured'], true)) {
+    throw new InvalidArgumentException('Choose public, default or configured after the consumer autoloader.');
 }
 
-// The application has already selected development HTML; no request enables it.
+// Trusted debug permits HTML; the current request must still accept it.
 $reporter = new RecordingThrowableHandler();
 $http = new Psr17Factory();
 $page = null;
@@ -71,6 +70,10 @@ $factories = [
 ];
 
 if ('configured' === $mode) {
+    if (!class_exists(PrettyPageHandler::class)) {
+        throw new RuntimeException('The configured development page needs filp/whoops:^2.18.7.');
+    }
+
     $settings = config(['development' => ['page_title' => 'Synthetic configured diagnostics']]);
 
     // Prepare configuration before get(): an aggregate does not disable autowire fallback.
@@ -83,16 +86,36 @@ if ('configured' === $mode) {
     $factories[PrettyPageHandler::class] = new ServiceFactory($page);
 }
 
+if ('public' !== $mode) {
+    // Whoops is an explicit application choice; package presence never selects it.
+    $factories[ThrowableResponseFactoryInterface::class] = new CallableFactory(
+        /**
+         * Retain request negotiation while selecting a diagnostic HTML integration.
+         *
+         * @param ContainerInterface $services the composed application services
+         *
+         * @return NegotiatingThrowableResponseFactory the explicit application response policy
+         */
+        static function (ContainerInterface $services): NegotiatingThrowableResponseFactory {
+            /** @var ThrowableResponseFactoryInterface $fallback the generic error response */
+            $fallback = $services->get(ThrowableResponseFactory::class);
+
+            return new NegotiatingThrowableResponseFactory($fallback, [
+                'text/plain' => static fn() => $fallback,
+                'application/json' => static fn() => $services->get(JsonThrowableResponseFactory::class),
+                'application/problem+json' => static fn() => $services->get(JsonThrowableResponseFactory::class),
+                'text/html' => static fn() => $services->get(WhoopsThrowableResponseFactory::class),
+            ]);
+        },
+    );
+}
+
 $application = new ArrayServiceProvider($factories);
 
-$services = container(new AggregateServiceProvider(
-    new ErrorHandlerServiceProvider(),
-    new WhoopsErrorHandlerServiceProvider(),
-    $application,
-));
+$services = container($application, new ErrorHandlerServiceProvider(debug: 'public' !== $mode));
 
-if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof WhoopsThrowableResponseFactory) {
-    throw new RuntimeException('Expected the explicitly selected pure HTML profile.');
+if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof NegotiatingThrowableResponseFactory) {
+    throw new RuntimeException('Expected the request-aware response factory.');
 }
 
 /** @var ErrorHandlerMiddlewareFactory $middlewareFactory the reusable fresh-scope service */
@@ -111,12 +134,12 @@ $failures = [
 ];
 
 $first = $firstScope->process(
-    $http->createServerRequest('GET', 'http://example.test/first'),
+    $http->createServerRequest('GET', 'http://example.test/first')->withHeader('Accept', 'text/html'),
     new ThrowingRequestHandler($failures[0]),
 );
 
 $second = $secondScope->process(
-    $http->createServerRequest('GET', 'http://example.test/second'),
+    $http->createServerRequest('GET', 'http://example.test/second')->withHeader('Accept', 'text/html'),
     new ThrowingRequestHandler($failures[1]),
 );
 
@@ -124,19 +147,28 @@ if ($failures !== $reporter->getThrowables() || 503 !== $first->getStatusCode() 
     throw new RuntimeException('Expected each original once with its HTTP status.');
 }
 
-if ('text/html; charset=UTF-8' !== $second->getHeaderLine('Content-Type')
-    || 'no-store' !== $second->getHeaderLine('Cache-Control')) {
-    throw new RuntimeException('Expected non-cacheable development HTML.');
+if (
+    'text/html; charset=UTF-8' !== $second->getHeaderLine('Content-Type')
+    || ('public' !== $mode && 'no-store' !== $second->getHeaderLine('Cache-Control'))
+) {
+    throw new RuntimeException('Expected HTML and a no-store policy for diagnostics.');
 }
 
-if (str_contains((string) $second->getBody(), $failures[0]->getMessage())
-    ||   !str_contains((string) $second->getBody(), $failures[1]->getMessage())) {
+if (
+    str_contains((string) $second->getBody(), $failures[0]->getMessage())
+    || ('public' !== $mode && !str_contains((string) $second->getBody(), $failures[1]->getMessage()))
+    || ('public' === $mode && str_contains((string) $second->getBody(), $failures[1]->getMessage()))
+) {
     throw new RuntimeException('Sequential rendering must replace the previous diagnostic.');
 }
 
-if (null !== $page && ($page !== $services->get(PrettyPageHandler::class)
-    ||   !str_contains((string) $second->getBody(), '<title>Synthetic configured diagnostics</title>'))) {
+if (
+    null !== $page && ($page !== $services->get(PrettyPageHandler::class)
+    || !str_contains((string) $second->getBody(), '<title>Synthetic configured diagnostics</title>'))
+) {
     throw new RuntimeException('Expected the shared application page and its retained configuration.');
 }
 
-echo 'Interop Whoops ' . $mode . ': explicit aggregate, shared page and original reports passed' . PHP_EOL;
+echo 'public' === $mode
+    ? 'Interop HTML public: Symfony renderer and original reports passed' . PHP_EOL
+    : 'Interop Whoops ' . $mode . ': single provider, shared page and original reports passed' . PHP_EOL;

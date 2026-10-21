@@ -16,7 +16,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -45,7 +45,7 @@ $reporter = new CallableThrowableHandler(
     },
 );
 
-$renderer = new JsonThrowableResponseFactory($messages, $messages);
+$renderer = new HtmlThrowableResponseFactory($messages, $messages);
 
 if ($debug) {
     $renderer = new WhoopsThrowableResponseFactory(
@@ -112,8 +112,11 @@ if ($debug) {
     );
 } else {
     exampleCheck(0 === $pageCalls, 'Public mode must not construct a Whoops page.');
-    exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected public JSON.');
-    exampleCheck('{"error":"Request failed"}' === (string) $response->getBody(), 'Expected the generic public body.');
+    exampleCheck('text/html; charset=UTF-8' === $response->getHeaderLine('Content-Type'), 'Expected public HTML.');
+    exampleCheck(
+        !str_contains((string) $response->getBody(), 'synthetic-development-detail'),
+        'Public HTML must not disclose the diagnostic.',
+    );
 }
 
 // No response is emitted. Hiding selected keys is not complete redaction or production authorization.

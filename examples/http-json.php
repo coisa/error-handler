@@ -19,6 +19,9 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ProblemNormalizer;
+use Symfony\Component\Serializer\Serializer;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -51,7 +54,9 @@ $reporter = new CallableThrowableHandler(
 
 $errors = new ErrorHandler($reporter);
 
-$json = new JsonThrowableResponseFactory($messages, $messages, $debug);
+$serializer = new Serializer([new ProblemNormalizer(true)], [new JsonEncoder()]);
+
+$json = new JsonThrowableResponseFactory($messages, $messages, $serializer, $debug);
 
 $middleware = new ErrorHandlerMiddleware($errors, $json);
 
@@ -89,24 +94,28 @@ $response = $middleware->process($messages->createServerRequest('GET', '/example
 
 exampleCheck([$original] === $reports, 'Expected exactly one private report of the original event.');
 exampleCheck(503 === $response->getStatusCode(), 'The integer HTTP error code was not preserved.');
-exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected a JSON representation.');
+exampleCheck(
+    'application/problem+json' === $response->getHeaderLine('Content-Type'),
+    'Expected a JSON Problem Details representation.',
+);
+$publicBody = '{"type":"about:blank","title":"Service Unavailable","status":503,"detail":"Request failed"}';
+
 if ($debug) {
     $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-    exampleCheck('Request failed' === $payload['error'], 'The public error label changed.');
     exampleCheck(
-        $original->getMessage() === $payload['exception']['message'] && [] !== $payload['exception']['trace'],
+        $original->getMessage() === $payload['detail'] && [] !== $payload['trace'],
         'Explicit development metadata is missing.',
     );
-    foreach ($payload['exception']['trace'] as $frame) {
+    foreach ($payload['trace'] as $frame) {
         exampleCheck(
-            !array_key_exists('args', $frame) && !array_key_exists('object', $frame),
+            [] === ($frame['args'] ?? []) && !array_key_exists('object', $frame),
             'Private trace arguments or objects must not be serialized.',
         );
     }
     exampleCheck('no-store' === $response->getHeaderLine('Cache-Control'), 'Debug details must not be cached.');
 } else {
     exampleCheck(
-        '{"error":"Request failed"}' === (string) $response->getBody(),
+        $publicBody === (string) $response->getBody(),
         'The generic JSON body must not contain the private diagnostic.',
     );
 }

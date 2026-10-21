@@ -18,6 +18,7 @@ namespace CoiSA\ErrorHandler\Http\Message;
 
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Class ThrowableResponseFactory.
@@ -60,12 +61,15 @@ final class ThrowableResponseFactory implements ThrowableResponseFactoryInterfac
      * This method SHALL map the throwable's code to an HTTP status, use the factory's
      * standard reason phrase, and include the stream factory's public response body.
      *
-     * @param \Throwable $throwable the throwable to convert into an HTTP response
+     * @param \Throwable             $throwable the throwable to convert into an HTTP response
+     * @param ServerRequestInterface $request   the incoming request; generic rendering is request-independent
      *
      * @return ResponseInterface the generated PSR-7 response
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
-    {
+    public function createResponseFromThrowable(
+        \Throwable $throwable,
+        ServerRequestInterface $request,
+    ): ResponseInterface {
         $code = $throwable->getCode();
         $statusCode = $this->getStatusCode($code);
 

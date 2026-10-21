@@ -88,7 +88,7 @@ final class ErrorHandlerMiddleware implements MiddlewareInterface
             $response = $handler->handle($request);
         } catch (\Throwable $throwable) {
             $this->errorHandler->handleThrowable($throwable);
-            $response = $this->throwableResponseFactory->createResponseFromThrowable($throwable);
+            $response = $this->throwableResponseFactory->createResponseFromThrowable($throwable, $request);
         } finally {
             $this->errorHandler->unregister();
         }

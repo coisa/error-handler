@@ -21,6 +21,8 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchThrowableHandler;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
+use Symfony\Component\Console\Output\OutputInterface;
 use FastForward\Container\Exception\AutowiringException;
 use FastForward\Container\Exception\ContainerException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -46,6 +48,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 #[UsesClass(DispatchThrowableHandler::class)]
 #[UsesClass(DispatchErrorEventThrowableHandler::class)]
 #[UsesClass(ErrorEvent::class)]
+#[UsesClass(SymfonyCliThrowableHandler::class)]
 final class ThrowableHandlerAggregateFactoryTest extends TestCase
 {
     /** Verifies configured reporters remain inert until delivery and run once in public order. */
@@ -103,6 +106,98 @@ final class ThrowableHandlerAggregateFactoryTest extends TestCase
         $aggregate->handleThrowable($original);
 
         self::assertSame(['callable', 'raw', 'wrapped'], $order);
+    }
+
+    /** A default aggregate never probes or resolves a terminal reporter, even under CLI PHP. */
+    public function testCliReporterIsDisabledByDefault(): void
+    {
+        $this->expectOutputString('');
+        $container = $this->createMock(ContainerInterface::class);
+        $container->expects(self::exactly(2))->method('has')->willReturnMap([
+            [CallableThrowableHandler::class, false],
+            [EventDispatcherInterface::class, false],
+        ]);
+        $container->expects(self::never())->method('get');
+
+        (new ThrowableHandlerAggregateFactory())($container)->handleThrowable(new \RuntimeException('Silent default'));
+    }
+
+    /** Explicit CLI reporting runs after callable, raw-event and wrapped-event defaults. */
+    public function testCliReporterIsAppendedAfterAllDefaultReporters(): void
+    {
+        $original = new \RuntimeException('Ordered terminal diagnostic');
+        $order = [];
+        $callable = new CallableThrowableHandler(
+            /** @param \Throwable $event the identical original diagnostic */
+            static function (\Throwable $event) use (&$order, $original): void {
+                self::assertSame($original, $event);
+                $order[] = 'callable';
+            },
+        );
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::exactly(2))->method('dispatch')->willReturnCallback(
+            /**
+             * Retains the ordinary reporter order before terminal presentation.
+             *
+             * @param object $event the raw or wrapped diagnostic
+             *
+             * @return object the unchanged event
+             */
+            static function (object $event) use (&$order, $original): object {
+                self::assertSame($original, $event instanceof ErrorEvent ? $event->getThrowable() : $event);
+                $order[] = $event instanceof ErrorEvent ? 'wrapped' : 'raw';
+
+                return $event;
+            },
+        );
+        $output = $this->createMock(OutputInterface::class);
+        $output->expects(self::once())->method('write')->with(
+            self::stringContains($original->getMessage()),
+            false,
+            OutputInterface::OUTPUT_RAW,
+        )->willReturnCallback(
+            /**
+             * Records presentation only when the CLI reporter is invoked.
+             *
+             * @param iterable<string>|string $text    the already formatted diagnostic
+             * @param bool                    $newline whether the adapter requested another newline
+             * @param int                     $options Console formatting flags
+             */
+            static function (iterable|string $text, bool $newline, int $options) use (&$order): void {
+                $order[] = 'cli';
+            },
+        );
+        $container = $this->createMock(ContainerInterface::class);
+        $container->expects(self::exactly(4))->method('has')->willReturn(true);
+        $container->expects(self::exactly(4))->method('get')->willReturnMap([
+            [CallableThrowableHandler::class, $callable],
+            [DispatchThrowableHandler::class, new DispatchThrowableHandler($dispatcher)],
+            [DispatchErrorEventThrowableHandler::class, new DispatchErrorEventThrowableHandler($dispatcher)],
+            [SymfonyCliThrowableHandler::class, new SymfonyCliThrowableHandler($output)],
+        ]);
+        $aggregate = (new ThrowableHandlerAggregateFactory(cli: true))($container);
+        self::assertSame([], $order);
+
+        $aggregate->handleThrowable($original);
+
+        self::assertSame(['callable', 'raw', 'wrapped', 'cli'], $order);
+    }
+
+    /** Explicit CLI construction failures propagate rather than producing a silent aggregate. */
+    public function testRequiredCliConstructionFailureIsNotHidden(): void
+    {
+        $failure = new \LogicException('CLI reporter construction failed');
+        $container = $this->createMock(ContainerInterface::class);
+        $container->expects(self::exactly(2))->method('has')->willReturnMap([
+            [CallableThrowableHandler::class, false],
+            [EventDispatcherInterface::class, false],
+        ]);
+        $container->expects(self::once())->method('get')->with(SymfonyCliThrowableHandler::class)
+            ->willThrowException($failure)
+        ;
+        $this->expectExceptionObject($failure);
+
+        (new ThrowableHandlerAggregateFactory(cli: true))($container);
     }
 
     /** Verifies callable reporting works without resolving or probing unavailable dispatch adapters. */

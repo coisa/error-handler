@@ -33,8 +33,9 @@ use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
-use Phly\EventDispatcher\EventDispatcher;
-use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
+use FastForward\Config\ArrayConfig;
+use FastForward\EventDispatcher\ServiceProvider\EventDispatcherServiceProvider;
+use Psr\EventDispatcher\ListenerProviderInterface;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -72,22 +73,21 @@ final class ErrorHandlerCompositionTest extends TestCase
     private ?ContainerInterface $container = null;
 
     /**
-     * @var EventDispatcher
+     * @var EventDispatcherInterface the application dispatcher composed through FastForward
      */
     private $eventDispatcher;
-
-    /**
-     * @var ListenerProviderAggregate
-     */
-    private $listenerProvider;
 
     /**
      * Creates isolated container and reporting collaborators for each test.
      */
     protected function setUp(): void
     {
-        $this->listenerProvider = new ListenerProviderAggregate();
-        $this->eventDispatcher  = new EventDispatcher($this->listenerProvider);
+        $dispatcher = container(
+            new ArrayConfig([ListenerProviderInterface::class => []]),
+            EventDispatcherServiceProvider::class,
+        )->get(EventDispatcherInterface::class);
+        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
+        $this->eventDispatcher = $dispatcher;
 
         $factory = new Psr17Factory();
 
@@ -266,8 +266,14 @@ final class ErrorHandlerCompositionTest extends TestCase
 
         $throwableListenerProvider = new ThrowableListenerProvider($throwableListener);
 
-        $this->listenerProvider->attach($errorEventListenerProvider);
-        $this->listenerProvider->attach($throwableListenerProvider);
+        $dispatcher = container(
+            new ArrayConfig([
+                ListenerProviderInterface::class => [$errorEventListenerProvider, $throwableListenerProvider],
+            ]),
+            EventDispatcherServiceProvider::class,
+        )->get(EventDispatcherInterface::class);
+        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
+        $this->eventDispatcher = $dispatcher;
 
         $this->services[EventDispatcherInterface::class] = $this->eventDispatcher;
 

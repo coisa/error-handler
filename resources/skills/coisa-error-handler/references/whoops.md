@@ -1,8 +1,10 @@
 # Explicit development HTML with Whoops
 
 Read when an application deliberately selects diagnostic HTML in an existing
-HTML pipeline. Keep a generic response policy for public requests. This route
-does not negotiate `Accept`, infer an environment or enable debug from a header.
+HTML pipeline. The concrete renderer does not negotiate Accept. The default
+provider uses Symfony HTML; Whoops requires an explicit application override.
+That application map may retain Accept negotiation, as shown below. No header
+or environment name activates debug or selects an unconfigured renderer.
 
 ## Inspect the selected installation
 
@@ -68,55 +70,57 @@ retry. Supply this pure renderer directly. The retained
 `ReportingThrowableResponseFactory` is an explicit utility for other pipelines;
 adding it here would report the original twice.
 
-## Compose the independent Whoops profile
+## Public HTML
 
-First verify that the selected installation contains
-`ServiceProvider\WhoopsErrorHandlerServiceProvider`, the base
-`ServiceProvider\ErrorHandlerServiceProvider` and
-`ServiceProvider\Factory\ErrorHandlerMiddlewareFactory`. The application must
-run PHP 8.3+; FastForward `^1.10` is required by this source at runtime.
+`HtmlThrowableResponseFactory($responses, $streams, bool $debug = false)` renders a
+production error page with Symfony HtmlErrorRenderer by default. Trusted debug
+selects Symfony diagnostics; installing Whoops never changes this default. Public
+mode exposes no original exception message, source or trace. The single provider always offers this HTML
+route, including without optional Whoops. Its request argument is required;
+middleware supplies the current request. See the
+[provider public mode](../examples/README.md#interop-html-negotiation).
 
-The [complete provider program](../examples/provider-whoops.php) supplies the
-PSR-17 interfaces and private reporter through its application provider. Compose
-one aggregate in base, Whoops, application order, including for default pages:
+## Configure the single provider
+
+The [complete provider program](../examples/provider-whoops.php) supplies PSR-17
+interfaces and a private reporter through the application provider. Development
+modes also explicitly replace the negotiating factory's HTML candidate with
+Whoops while retaining JSON and generic candidates:
 
 ```php
-$services = container(new AggregateServiceProvider(
-    new ErrorHandlerServiceProvider(),
-    new WhoopsErrorHandlerServiceProvider(),
-    $application,
-));
+$services = container($application, new ErrorHandlerServiceProvider(debug: true));
 ```
 
-Import these names and FastForward's `container` helper as the program does.
-Each library provider declares only its own services. The Whoops provider has no
-constructor arguments and binds `PrettyPageHandler::class` with `InvokableFactory`.
-The renderer's callback resolves that service only during rendering. Resolve and
-invoke `ErrorHandlerMiddlewareFactory` for a distinct core/middleware per scope;
-direct services remain cached and lookup installs no native callbacks.
+This is the same `ServiceProvider\ErrorHandlerServiceProvider` used for ordinary
+reporting and JSON. No separate HTML provider is required. Send
+`Accept: text/html` on the current request. Debug alone never forces HTML.
+The default negotiator always uses Symfony HTML. These development modes override
+only the HTML candidate with Whoops and never resolve it for a JSON-only request. Direct selection of the concrete renderer still
+requires the optional package at construction.
 
-To customize the page, configure a `PrettyPageHandler` through its public API
-before composing the container and expose it with `ServiceFactory` in the
-application map. The configured program uses FastForward Config for a trusted
-page title. Application definitions win last inside the aggregate. Sequential
-renders reuse the cached configured page: Whoops replaces the exception,
-inspector and template data while retaining configuration. The page keeps the
-latest diagnostic until its next render; fresh Run/response/body do not imply
-that the shared page releases all diagnostic state. A manual callback may instead
-create pages. Concurrency and arbitrary subclasses need application tests.
+The provider binds `PrettyPageHandler::class` with InvokableFactory. The optional Whoops renderer's lazy
+callback resolves that service only during selected HTML rendering.
+Resolve and invoke ErrorHandlerMiddlewareFactory for fresh scopes; direct
+lookups remain cached and construction installs no callbacks.
 
-An aggregate fixes binding precedence, not fail-closed construction: FastForward
-may autowire a default page after a concrete page factory throws. Preparing a
-page before composition does not change that fallback policy. An incompatible
-returned page raises `TypeError`; an actual `handle()` failure propagates.
-Separate providers can also continue after PSR-11 resolution errors and select
-another response definition. Use one aggregate to select the intended profile
-and application bindings, then test the actual missing-package and failed-factory
-behavior. Do not infer a particular renderer or exception chain from map order.
+Customize the page through its public API before composition and expose it with
+ServiceFactory in the application map. Application-first composition selects
+that configured service. The program uses trusted Config values for the page
+title. Sequential renders retain configuration while replacing current exception,
+inspector and template data; the page keeps its latest diagnostic until the next
+render. Fresh Whoops Run/response/body do not provide concurrent page isolation.
+A manual callback may instead create a page per render.
+
+FastForward may autowire a default page after a failing concrete page factory.
+Preparing a page before lookup exposes configuration errors immediately. A merged
+provider fixes binding precedence but does not disable concrete fallback.
+Wrong-type pages and actual rendering failures retain their runtime failure
+contracts. Test application selection and failure behavior rather than infer it
+from service discovery.
 
 ## Verify diagnostic and delivery limits
 
-Run the direct program and both provider modes against the consumer autoloader.
+Run the direct program and all provider modes against the consumer autoloader.
 Check original-object identity and one private report, status and content type,
 unchanged caller buffers, fresh response bodies and replacement of sequential
 diagnostic data. Check missing dependencies and actual container fallback too.
@@ -127,4 +131,6 @@ source, causes and other globals may expose secrets. Never select this renderer
 for public users merely because they accept HTML. A deployment using it must
 retain Whoops in its actual runtime graph even with `--no-dev`.
 
-Request negotiation remains separate from this renderer.
+Every response factory requires the current ServerRequestInterface as its second
+method argument. Middleware forwards it automatically; a direct call must supply
+it. Negotiation is a separate pure renderer selected by the single provider.

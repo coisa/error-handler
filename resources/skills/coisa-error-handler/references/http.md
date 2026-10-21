@@ -7,7 +7,7 @@ request handler. Follow its [setup and result](../examples/README.md#explicit-ht
 
 Middleware requires one scoped object implementing both
 `ErrorHandlerInterface` and `ThrowableHandlerInterface`. It registers that scope,
-executes downstream, reports a caught throwable once, invokes the pure
+executes downstream, reports a caught throwable once, passes the same Throwable and current ServerRequestInterface to the pure
 `ThrowableResponseFactoryInterface` and restores callbacks in `finally`.
 A reporter failure propagates before rendering. A renderer/PSR-17 failure also
 propagates without retrying the original report. The application supplies the
@@ -20,14 +20,25 @@ library API. Keep distinct handlers for nested process/request scopes. Invoke
 the provider's middleware factory service for each fresh scope; repeated `get()`
 calls return the cached middleware.
 
+Every response factory implements
+`createResponseFromThrowable(Throwable $throwable, ServerRequestInterface $request): ResponseInterface`.
+The second argument is required even for a fixed renderer. Middleware supplies
+it automatically; direct application calls must pass their current request.
+
 ## Select a built-in renderer
 
+Use `HtmlThrowableResponseFactory($responses, $streams, $debug)` for Symfony
+public/debug HTML; its default false debug omits the diagnostic. The complete
+[HTML program](../examples/html.php) and
+[setup](../examples/README.md#library-html-responses) show both modes.
 Use [JSON](json.md) for a generic JSON body or explicitly configured diagnostic
 JSON. Use [Whoops](whoops.md) only after trusted application configuration selects
 development HTML and provides its optional runtime dependency. Both factories
 preserve integer throwable codes 400–599, otherwise use 500, and leave the reason
-to the application's PSR-17 implementation. Their independent profiles select
-the pure renderer; they do not import lifecycle or reporter maps.
+to the application's PSR-17 implementation. The single provider negotiates JSON
+or Symfony HTML from Accept and keeps the generic response as fallback. Debug
+enables diagnostic JSON and Symfony HTML, but never forces HTML. Optional Whoops
+is an explicit application override, independent of whether it is installed.
 
 `ReportingThrowableResponseFactory($reporter, $renderer)` remains available for
 an application pipeline that has not already reported. It calls the reporter,
@@ -38,7 +49,8 @@ owns reporting before combining these components.
 
 ## Generic default and explicit output capture
 
-The provider's `GenericThrowableStreamFactory` returns `Internal Server Error`
+The provider negotiates from the current request; its fallback uses
+`GenericThrowableStreamFactory`, which returns `Internal Server Error`
 without invoking a reporter. `ThrowableResponseFactory` preserves integer codes
 400–599 and uses 500 otherwise, including string codes. It leaves the reason
 phrase to the application's PSR-17 implementation; exception messages are never

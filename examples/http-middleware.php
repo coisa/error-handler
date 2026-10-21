@@ -44,7 +44,7 @@ $application = new ArrayServiceProvider([
     StreamFactoryInterface::class => static fn(): StreamFactoryInterface => $psr17,
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 $process = $services->get(ErrorHandlerInterface::class);
 $middleware = $services->get(ErrorHandlerMiddleware::class);

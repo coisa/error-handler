@@ -25,6 +25,7 @@ use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -130,7 +131,7 @@ final class ConsumerSkillExamplesTest extends TestCase
         $renderer = new PublicThrowableResponseFactory($http, $http);
         $failure = new \RuntimeException('Private secret detail', 404);
 
-        $response = $renderer->createResponseFromThrowable($failure);
+        $response = $renderer->createResponseFromThrowable($failure, new ServerRequest('GET', 'https://example.test/'));
 
         self::assertSame(500, $response->getStatusCode());
         self::assertSame('Internal Server Error', $response->getReasonPhrase());
@@ -258,25 +259,49 @@ final class ConsumerSkillExamplesTest extends TestCase
                 'json.php', ['debug'],
                 'JSON debug: original reported once and explicit response passed',
             ],
+            'HTML public' => [
+                'html.php', ['public'],
+                'HTTP HTML public: Symfony rendering and one original report passed',
+            ],
+            'HTML debug' => [
+                'html.php', ['debug'],
+                'HTTP HTML debug: Symfony rendering and one original report passed',
+            ],
             'Whoops manual' => [
                 'whoops.php', [],
                 'Whoops HTML: explicit development page and one original report passed',
             ],
             'JSON provider public' => [
                 'provider-json.php', ['public'],
-                'Interop JSON public: independent providers and fresh scope passed',
+                'Interop JSON public: single provider and fresh scope passed',
             ],
             'JSON provider debug' => [
                 'provider-json.php', ['debug'],
-                'Interop JSON debug: independent providers and fresh scope passed',
+                'Interop JSON debug: single provider and fresh scope passed',
+            ],
+            'Whoops provider public' => [
+                'provider-whoops.php', ['public'],
+                'Interop HTML public: Symfony renderer and original reports passed',
             ],
             'Whoops provider default' => [
                 'provider-whoops.php', ['default'],
-                'Interop Whoops default: explicit aggregate, shared page and original reports passed',
+                'Interop Whoops default: single provider, shared page and original reports passed',
             ],
             'Whoops provider configured' => [
                 'provider-whoops.php', ['configured'],
-                'Interop Whoops configured: explicit aggregate, shared page and original reports passed',
+                'Interop Whoops configured: single provider, shared page and original reports passed',
+            ],
+            'Symfony CLI direct' => [
+                'symfony-cli.php', ['direct'],
+                'Symfony CLI direct: one terminal diagnostic and explicit capture ownership passed',
+            ],
+            'Symfony CLI provider' => [
+                'symfony-cli.php', ['provider'],
+                'Symfony CLI provider: one terminal diagnostic and explicit capture ownership passed',
+            ],
+            'Symfony CLI console output' => [
+                'symfony-cli.php', ['console'],
+                'Symfony CLI console: one terminal diagnostic and explicit capture ownership passed',
             ],
         ];
     }

@@ -20,8 +20,12 @@ use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
@@ -29,6 +33,12 @@ use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ThrowableHandlerAggregateFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\NegotiatingThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\WhoopsThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\SymfonyCliThrowableHandlerFactory;
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\SerializerInterface;
+use Whoops\Handler\PrettyPageHandler;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\InvokableFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -61,7 +71,15 @@ final class ErrorHandlerServiceProviderTest extends TestCase
             ErrorHandlerFactory::class,
             ThrowableHandlerInterface::class,
             ThrowableHandlerAggregate::class,
+            SymfonyCliThrowableHandler::class,
+            Serializer::class,
+            SerializerInterface::class,
             ThrowableResponseFactoryInterface::class,
+            NegotiatingThrowableResponseFactory::class,
+            JsonThrowableResponseFactory::class,
+            HtmlThrowableResponseFactory::class,
+            WhoopsThrowableResponseFactory::class,
+            PrettyPageHandler::class,
             ThrowableStreamFactoryInterface::class,
             ErrorHandlerMiddleware::class,
             ErrorHandlerMiddlewareFactory::class,
@@ -69,6 +87,18 @@ final class ErrorHandlerServiceProviderTest extends TestCase
         self::assertInstanceOf(ErrorHandlerFactory::class, $definitions[ErrorHandler::class]);
         self::assertInstanceOf(ThrowableHandlerAggregateFactory::class, $definitions[ThrowableHandlerAggregate::class]);
         self::assertInstanceOf(ErrorHandlerMiddlewareFactory::class, $definitions[ErrorHandlerMiddleware::class]);
+        self::assertInstanceOf(
+            NegotiatingThrowableResponseFactoryFactory::class,
+            $definitions[NegotiatingThrowableResponseFactory::class],
+        );
+        self::assertInstanceOf(
+            WhoopsThrowableResponseFactoryFactory::class,
+            $definitions[WhoopsThrowableResponseFactory::class],
+        );
+        self::assertInstanceOf(
+            SymfonyCliThrowableHandlerFactory::class,
+            $definitions[SymfonyCliThrowableHandler::class],
+        );
         self::assertSame([], $provider->getExtensions());
         self::assertSame($before, self::callbacks());
     }
@@ -99,7 +129,9 @@ final class ErrorHandlerServiceProviderTest extends TestCase
 
         yield 'reporter' => [ThrowableHandlerInterface::class, ThrowableHandlerAggregate::class];
 
-        yield 'response' => [ThrowableResponseFactoryInterface::class, ThrowableResponseFactory::class];
+        yield 'response' => [ThrowableResponseFactoryInterface::class, NegotiatingThrowableResponseFactory::class];
+
+        yield 'serializer' => [SerializerInterface::class, Serializer::class];
 
         yield 'generic stream' => [ThrowableStreamFactoryInterface::class, GenericThrowableStreamFactory::class];
     }

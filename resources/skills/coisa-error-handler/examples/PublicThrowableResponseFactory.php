@@ -19,6 +19,7 @@ namespace CoiSA\ErrorHandler\Example;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
@@ -49,13 +50,14 @@ final class PublicThrowableResponseFactory implements ThrowableResponseFactoryIn
     /**
      * Return a generic body without copying exception details or reporting again.
      *
-     * @param \Throwable $throwable the original failure, already reported by middleware
+     * @param \Throwable             $throwable the original failure, already reported by middleware
+     * @param ServerRequestInterface $request   the current request supplied by middleware
      *
      * @return ResponseInterface a status-500 response with an application-owned body
      *
      * @throws \Throwable when a supplied PSR-17 factory fails
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
+    public function createResponseFromThrowable(\Throwable $throwable, ServerRequestInterface $request): ResponseInterface
     {
         return $this->responses->createResponse(500)
             ->withHeader('Content-Type', 'application/json')

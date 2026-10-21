@@ -37,7 +37,7 @@ and run commands from that checkout root.
 
 The source checkout supplies application implementations through development
 dependencies. In a disposable application, add
-`nyholm/psr7:^1.8.2` and `phly/phly-event-dispatcher:^1.6` for HTTP/event recipes.
+`nyholm/psr7:^1.8.2` and `fast-forward/event-dispatcher:^1.0` for HTTP/event recipes.
 Add optional `filp/whoops:^2.18.7` wherever the development HTML recipes are used.
 FastForward Container and PSR interfaces resolve from the library's runtime graph.
 No framework-specific container is required. Keep application locks/caches outside
@@ -55,7 +55,7 @@ ERROR_HANDLER_AUTOLOAD=/absolute/application/vendor/autoload.php php examples/ve
 Without that variable, run `php examples/verify.php` from the configured checkout.
 It executes every recipe and documented mode with exact stdout/stderr and exit
 expectations, including the deliberate CLI exit 1. See [verifier operation](verify.md).
-The [cookbook](../docs/examples.md) contains all seventeen complete sources, including
+The [cookbook](../docs/examples.md) contains all nineteen complete sources, including
 imports and every executable branch, with only the leading license header omitted.
 Its exact source parity and recipe inventory are checked alongside the
 [site](../docs/index.html#examples). The four explicit logging/filtering/PHP-error/
@@ -65,26 +65,48 @@ policy and active-scope shutdown ownership.
 
 The recipes do not start a server, emit HTTP to clients or deliver real logs.
 Applications own transports, private diagnostics and emission.
+## Symfony terminal diagnostics
+
+With optional `symfony/console` in the application graph:
+
+```sh
+php examples/symfony-cli.php direct
+php examples/symfony-cli.php provider
+php examples/symfony-cli.php console
+```
+
+Each mode prints `Symfony CLI <mode>: one terminal diagnostic and explicit capture ownership passed`.
+The recipe observes a BufferedOutput; ordinary no-argument construction writes to
+stderr without Console. Console mode disables Console's catch and reports in one
+bootstrap catch. Provider mode explicitly uses `cli: true`; HTTP debug is independent.
+See [terminal reporting](../docs/cli.md) for private-data and exit-status boundaries.
+
 ## JSON and development HTML
 
 ```sh
 php examples/http-json.php public
 php examples/http-json.php debug
+php examples/http-html.php public
+php examples/http-html.php debug
 php examples/http-whoops.php public
 php examples/http-whoops.php development
 php examples/provider-json.php public
 php examples/provider-json.php debug
+php examples/provider-whoops.php public
 php examples/provider-whoops.php default
 php examples/provider-whoops.php configured
 ```
 
-The two manual recipes pass a pure renderer directly to middleware. The provider
-recipes compose independent base, selected profile and application maps in one
-aggregate for a required private reporter. No renderer reports the original again.
-JSON accepts an explicit debug bool; Whoops page customization is an application
-service override. A cached configured page is reused sequentially, with fresh
-Whoops runs, HTTP bodies and middleware scopes. No recipe emits a response or
-enables diagnostics from client input. See [HTTP boundaries](../docs/http.md).
+Manual recipes use pure renderers after one private report. The HTML recipe
+shows the required request argument in a direct rendering call; middleware
+forwards it automatically in the other recipes. Symfony renders public/debug
+HTML by default. The provider recipes use one ErrorHandlerServiceProvider with
+the application first and an explicit Accept header. JSON accepts a trusted debug
+bool. The Whoops recipe's development modes explicitly override only the
+negotiating HTML candidate; public mode retains Symfony. Installation alone never
+selects Whoops. Its configured page is cached sequentially, while runs, bodies and
+middleware scopes remain fresh. No recipe emits a response or enables debug from
+client input. See [HTTP boundaries](../docs/http.md).
 
 Explicit public renderers must balance their own output buffers. If a renderer
 closes capture and returns, the stream factory uses the generic body while

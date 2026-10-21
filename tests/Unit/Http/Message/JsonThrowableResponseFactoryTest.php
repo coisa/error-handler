@@ -18,12 +18,19 @@ namespace CoiSA\ErrorHandler\Test\Unit\Http\Message;
 
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ProblemNormalizer;
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
  * Verifies explicit JSON status, representation and PSR factory failure boundaries.
@@ -66,28 +73,43 @@ final class JsonThrowableResponseFactoryTest extends TestCase
             }
         };
         $messages = new Psr17Factory();
+        $expected = [
+            'type' => 'about:blank',
+            'title' => $messages->createResponse($expectedStatus)->getReasonPhrase(),
+            'status' => $expectedStatus,
+            'detail' => 'Request failed',
+        ];
+        $body = json_encode($expected, JSON_THROW_ON_ERROR);
         $streams = $this->createMock(StreamFactoryInterface::class);
-        $stream = $messages->createStream('{"error":"Request failed"}');
+        $stream = $messages->createStream($body);
         $streams->expects(self::once())->method('createStream')
-            ->with('{"error":"Request failed"}')
+            ->with($body)
             ->willReturn($stream)
         ;
         $bufferLevel = ob_get_level();
 
-        $response = (new JsonThrowableResponseFactory($messages, $streams))->createResponseFromThrowable($throwable);
+        $request = (new ServerRequest('GET', 'https://example.test/'))
+            ->withAttribute('debug', true)->withHeader('X-Debug', 'true')
+        ;
+        $response = (new JsonThrowableResponseFactory($messages, $streams, $this->createSerializer()))
+            ->createResponseFromThrowable($throwable, $request)
+        ;
 
         self::assertSame($code, $throwable->getCode());
         self::assertSame($expectedStatus, $response->getStatusCode());
-        self::assertSame('application/json', $response->getHeaderLine('Content-Type'));
+        self::assertSame('application/problem+json', $response->getHeaderLine('Content-Type'));
         self::assertSame('', $response->getHeaderLine('Cache-Control'));
         self::assertSame($messages->createResponse($expectedStatus)->getReasonPhrase(), $response->getReasonPhrase());
         self::assertSame($stream, $response->getBody());
-        self::assertSame('{"error":"Request failed"}', (string) $response->getBody());
+        self::assertSame($body, (string) $response->getBody());
         self::assertSame(
-            ['error' => 'Request failed'],
+            $expected,
             json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR),
         );
         self::assertSame($bufferLevel, ob_get_level());
+        self::assertTrue($request->getAttribute('debug'));
+        self::assertFalse($response->hasHeader('X-Debug-Exception'));
+        self::assertFalse($response->hasHeader('X-Debug-Exception-File'));
     }
 
     /**
@@ -118,11 +140,11 @@ final class JsonThrowableResponseFactoryTest extends TestCase
     public function testCreatesFreshResponsesAndBodiesForRepeatedCalls(): void
     {
         $messages = new Psr17Factory();
-        $factory = new JsonThrowableResponseFactory($messages, $messages);
+        $factory = new JsonThrowableResponseFactory($messages, $messages, $this->createSerializer());
         $throwable = new \Error('Private engine details', 500);
 
-        $first = $factory->createResponseFromThrowable($throwable);
-        $second = $factory->createResponseFromThrowable($throwable);
+        $first = $factory->createResponseFromThrowable($throwable, new ServerRequest('GET', 'https://example.test/'));
+        $second = $factory->createResponseFromThrowable($throwable, new ServerRequest('GET', 'https://example.test/'));
 
         self::assertNotSame($first, $second);
         self::assertNotSame($first->getBody(), $second->getBody());
@@ -139,11 +161,17 @@ final class JsonThrowableResponseFactoryTest extends TestCase
             ->willReturn($messages->createResponse(404, 'Implementation default'))
         ;
 
-        $response = (new JsonThrowableResponseFactory($responses, $messages))
-            ->createResponseFromThrowable(new \RuntimeException('Private diagnostic reason', 404))
+        $response = (new JsonThrowableResponseFactory($responses, $messages, $this->createSerializer()))
+            ->createResponseFromThrowable(
+                new \RuntimeException('Private diagnostic reason', 404),
+                new ServerRequest('GET', 'https://example.test/'),
+            )
         ;
 
         self::assertSame('Implementation default', $response->getReasonPhrase());
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($payload);
+        self::assertSame('Implementation default', $payload['title']);
     }
 
     /** A failed response construction prevents body construction and retains identity. */
@@ -157,8 +185,11 @@ final class JsonThrowableResponseFactoryTest extends TestCase
         $caught = null;
 
         try {
-            (new JsonThrowableResponseFactory($responses, $streams))
-                ->createResponseFromThrowable(new \RuntimeException('Original failure'))
+            (new JsonThrowableResponseFactory($responses, $streams, $this->createSerializer()))
+                ->createResponseFromThrowable(
+                    new \RuntimeException('Original failure'),
+                    new ServerRequest('GET', 'https://example.test/'),
+                )
             ;
         } catch (\Throwable $actual) {
             $caught = $actual;
@@ -176,14 +207,116 @@ final class JsonThrowableResponseFactoryTest extends TestCase
         $caught = null;
 
         try {
-            (new JsonThrowableResponseFactory(new Psr17Factory(), $streams))
-                ->createResponseFromThrowable(new \RuntimeException('Original failure'))
+            (new JsonThrowableResponseFactory(new Psr17Factory(), $streams, $this->createSerializer()))
+                ->createResponseFromThrowable(
+                    new \RuntimeException('Original failure'),
+                    new ServerRequest('GET', 'https://example.test/'),
+                )
             ;
         } catch (\Throwable $actual) {
             $caught = $actual;
         }
 
         self::assertSame($failure, $caught);
+    }
+
+    /** The injected serializer receives a detached, generic problem and explicit rendering context. */
+    public function testSerializerReceivesOnlySelectedPublicMetadataAndExplicitContext(): void
+    {
+        $messages = new Psr17Factory();
+        $throwable = new \RuntimeException('Private application failure', 503, new \LogicException('Private previous'));
+        $serializer = $this->createMock(SerializerInterface::class);
+        $serializer->expects(self::once())->method('serialize')->with(
+            self::callback(
+                /** @return bool whether only detached public metadata reached the serializer */
+                static function (mixed $problem): bool {
+                    if (!$problem instanceof FlattenException) {
+                        return false;
+                    }
+                    $trace = $problem->getTrace();
+                    $frame = $trace[0] ?? null;
+
+                    return 503 === $problem->getStatusCode()
+                        && 'Request failed' === $problem->getStatusText()
+                        && 'Request failed' === $problem->getMessage()
+                        && '' === $problem->getClass()
+                        && null === $problem->getPrevious()
+                        && \is_array($frame)
+                        && [] === $frame['args'];
+                },
+            ),
+            'json',
+            [
+                'debug' => false,
+                'type' => 'about:blank',
+                'title' => 'Service Unavailable',
+                'status' => 503,
+                'json_encode_options' => JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR,
+            ],
+        )->willReturn('{"application":"serializer"}');
+
+        $response = (new JsonThrowableResponseFactory($messages, $messages, $serializer))
+            ->createResponseFromThrowable($throwable, new ServerRequest('GET', 'https://example.test/'))
+        ;
+
+        self::assertSame('{"application":"serializer"}', (string) $response->getBody());
+        self::assertSame('Private application failure', $throwable->getMessage());
+        self::assertSame('Private previous', $throwable->getPrevious()?->getMessage());
+    }
+
+    /** Serialization failures stop body construction and propagate without an HTML fallback or retry. */
+    public function testPropagatesTheIdenticalSerializerFailure(): void
+    {
+        $failure = new \LogicException('Synthetic serializer failure');
+        $serializer = $this->createMock(SerializerInterface::class);
+        $serializer->expects(self::once())->method('serialize')->willThrowException($failure);
+        $streams = $this->createMock(StreamFactoryInterface::class);
+        $streams->expects(self::never())->method('createStream');
+        $caught = null;
+
+        try {
+            (new JsonThrowableResponseFactory(new Psr17Factory(), $streams, $serializer))
+                ->createResponseFromThrowable(
+                    new \RuntimeException(),
+                    new ServerRequest('GET', 'https://example.test/'),
+                )
+            ;
+        } catch (\Throwable $actual) {
+            $caught = $actual;
+        }
+
+        self::assertSame($failure, $caught);
+    }
+
+    /**
+     * Symfony exception categories cannot replace the status selected from the original native code.
+     *
+     * @param bool $debug the trusted application diagnostic mode
+     */
+    #[DataProvider('provideSymfonyRequestExceptionKeepsTheLibraryStatusCases')]
+    public function testSymfonyRequestExceptionKeepsTheLibraryStatus(bool $debug): void
+    {
+        $messages = new Psr17Factory();
+        $throwable = new BadRequestException('Private request diagnostic', 503);
+        $response = (new JsonThrowableResponseFactory($messages, $messages, $this->createSerializer(), $debug))
+            ->createResponseFromThrowable($throwable, new ServerRequest('GET', 'https://example.test/'))
+        ;
+        $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        self::assertIsArray($payload);
+
+        self::assertSame(503, $response->getStatusCode());
+        self::assertSame(503, $payload['status']);
+        self::assertSame('Service Unavailable', $payload['title']);
+        self::assertSame($debug ? 'Private request diagnostic' : 'Request failed', $payload['detail']);
+        self::assertSame(503, $throwable->getCode());
+    }
+
+    /** @return iterable<string, array{bool}> explicit diagnostic modes */
+    public static function provideSymfonyRequestExceptionKeepsTheLibraryStatusCases(): iterable
+    {
+        yield 'public' => [false];
+
+        yield 'debug' => [true];
     }
 
     /** Debug is explicit, preserves native metadata and excludes private trace arguments. */
@@ -223,37 +356,40 @@ final class JsonThrowableResponseFactoryTest extends TestCase
                 static fn(string $body): StreamInterface => $messages->createStream($body),
             );
 
-            $response = (new JsonThrowableResponseFactory($messages, $bodyFactory, true))
-                ->createResponseFromThrowable($throwable)
+            $response = (new JsonThrowableResponseFactory($messages, $bodyFactory, $this->createSerializer(), true))
+                ->createResponseFromThrowable($throwable, new ServerRequest('GET', 'https://example.test/'))
             ;
             $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
             self::assertIsArray($payload);
-            $exception = $payload['exception'];
-            self::assertIsArray($exception);
-            $trace = $exception['trace'];
+            $trace = $payload['trace'];
             self::assertIsArray($trace);
-            self::assertArrayHasKey(0, $trace);
-            $firstFrame = $trace[0];
+            self::assertArrayHasKey(1, $trace);
+            $firstFrame = $trace[1];
             self::assertIsArray($firstFrame);
 
             self::assertSame(503, $response->getStatusCode());
-            self::assertSame('application/json', $response->getHeaderLine('Content-Type'));
+            self::assertSame('application/problem+json', $response->getHeaderLine('Content-Type'));
             self::assertSame('no-store', $response->getHeaderLine('Cache-Control'));
             self::assertSame('Service Unavailable', $response->getReasonPhrase());
-            self::assertSame('Request failed', $payload['error']);
-            self::assertSame(\RuntimeException::class, $exception['class']);
-            self::assertSame($throwable->getMessage(), $exception['message']);
-            self::assertSame($throwable->getFile(), $exception['file']);
-            self::assertSame($throwable->getLine(), $exception['line']);
+            self::assertSame('about:blank', $payload['type']);
+            self::assertSame('Service Unavailable', $payload['title']);
+            self::assertSame(503, $payload['status']);
+            self::assertSame(\RuntimeException::class, $payload['class']);
+            self::assertSame($throwable->getMessage(), $payload['detail']);
+            self::assertIsArray($trace[0]);
+            self::assertSame($throwable->getFile(), $trace[0]['file']);
+            self::assertSame($throwable->getLine(), $trace[0]['line']);
             self::assertSame('createDiagnosticThrowable', $firstFrame['function']);
             self::assertSame(self::class, $firstFrame['class']);
             self::assertSame('->', $firstFrame['type']);
-            self::assertCount(2, $payload);
-            self::assertCount(5, $exception);
-            self::assertCount(\count($throwable->getTrace()), $trace);
+            self::assertCount(6, $payload);
+            self::assertCount(\count($throwable->getTrace()) + 1, $trace);
             foreach ($trace as $frame) {
                 self::assertIsArray($frame);
-                self::assertSame([], array_diff(array_keys($frame), ['file', 'line', 'class', 'type', 'function']));
+                self::assertSame([], array_diff(array_keys($frame), [
+                    'namespace', 'short_class', 'file', 'line', 'class', 'type', 'function', 'args',
+                ]));
+                self::assertSame([], $frame['args']);
             }
             self::assertStringNotContainsString('Private previous cause', (string) $response->getBody());
             self::assertStringNotContainsString($marker, (string) $response->getBody());
@@ -290,20 +426,21 @@ final class JsonThrowableResponseFactoryTest extends TestCase
         };
         $messages = new Psr17Factory();
 
-        $response = (new JsonThrowableResponseFactory($messages, $messages, true))
-            ->createResponseFromThrowable($throwable)
+        $response = (new JsonThrowableResponseFactory($messages, $messages, $this->createSerializer(), true))
+            ->createResponseFromThrowable($throwable, new ServerRequest('GET', 'https://example.test/'))
         ;
         $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
         self::assertIsArray($payload);
-        $exception = $payload['exception'];
-        self::assertIsArray($exception);
+        $trace = $payload['trace'];
+        self::assertIsArray($trace);
+        self::assertIsArray($trace[0]);
 
         self::assertSame(404, $response->getStatusCode());
         self::assertSame('Not Found', $response->getReasonPhrase());
-        self::assertSame($throwable::class, $exception['class']);
-        self::assertSame("Private \u{FFFD} diagnostic", $exception['message']);
-        self::assertSame("source-\u{FFFD}.php", $exception['file']);
-        self::assertSame(42, $exception['line']);
+        self::assertSame(\RuntimeException::class . '@anonymous', $payload['class']);
+        self::assertSame("Private \u{FFFD} diagnostic", $payload['detail']);
+        self::assertSame("source-\u{FFFD}.php", $trace[0]['file']);
+        self::assertSame(42, $trace[0]['line']);
         self::assertSame("Private \xFF diagnostic", $throwable->getMessage());
         self::assertSame("source-\xFF.php", $throwable->getFile());
     }
@@ -323,5 +460,15 @@ final class JsonThrowableResponseFactoryTest extends TestCase
             503,
             new \RuntimeException('Private previous cause'),
         );
+    }
+
+    /**
+     * Supplies the application-owned serializer with only the explicit problem normalizer and JSON encoder.
+     *
+     * @return SerializerInterface the normalizer can expose diagnostics only when the renderer context allows them
+     */
+    private function createSerializer(): SerializerInterface
+    {
+        return new Serializer([new ProblemNormalizer(true)], [new JsonEncoder()]);
     }
 }

@@ -70,7 +70,7 @@ $application = new ArrayServiceProvider([
     ShutdownHandlerInterface::class => new ServiceFactory($shutdown),
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 $errors = $services->get(ErrorHandlerInterface::class);
 

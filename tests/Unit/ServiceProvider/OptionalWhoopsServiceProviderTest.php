@@ -22,12 +22,12 @@ use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\WhoopsThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\CallableFactory;
 use FastForward\Container\Factory\ServiceFactory;
@@ -56,11 +56,11 @@ use function FastForward\Container\container;
  *
  * @internal
  */
-#[CoversClass(WhoopsErrorHandlerServiceProvider::class)]
+#[CoversClass(WhoopsThrowableResponseFactoryFactory::class)]
 #[UsesClass(ErrorHandlerServiceProvider::class)]
 #[UsesClass(ErrorHandlerMiddlewareFactory::class)]
 #[UsesClass(WhoopsThrowableResponseFactory::class)]
-final class WhoopsErrorHandlerServiceProviderTest extends TestCase
+final class OptionalWhoopsServiceProviderTest extends TestCase
 {
     /** @var array<string, array{bool, mixed}> caller values restored without rendering them */
     private array $globals = [];
@@ -87,26 +87,22 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
     }
 
     /** Declares only the renderer profile, leaving lifecycle composition to the application. */
-    public function testProfileDeclaresOnlyItsRendererServices(): void
+    public function testBaseProviderDeclaresTheOptionalRendererWithoutSelectingIt(): void
     {
-        $provider = new WhoopsErrorHandlerServiceProvider();
+        $provider = new ErrorHandlerServiceProvider();
 
-        self::assertEqualsCanonicalizing([
-            PrettyPageHandler::class,
-            WhoopsThrowableResponseFactory::class,
-            ThrowableResponseFactoryInterface::class,
-        ], array_keys($provider->getFactories()));
+        self::assertArrayHasKey(PrettyPageHandler::class, $provider->getFactories());
+        self::assertArrayHasKey(WhoopsThrowableResponseFactory::class, $provider->getFactories());
         self::assertSame([], $provider->getExtensions());
     }
 
     /** Resolves the class-string profile and keeps sequential default pages independent. */
-    public function testDefaultProfileSelectsPureHtmlWithFreshBodies(): void
+    public function testExplicitWhoopsBindingSelectsPureHtmlWithFreshBodies(): void
     {
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
         $reporter->expects(self::never())->method('handleThrowable');
         $services = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
-            new WhoopsErrorHandlerServiceProvider(),
             $this->application($reporter),
         ));
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
@@ -118,8 +114,14 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
 
         $first = new \RuntimeException(base64_encode('first default provider diagnostic'));
         $second = new \RuntimeException(base64_encode('second default provider diagnostic'));
-        $one = $renderer->createResponseFromThrowable($first);
-        $two = $renderer->createResponseFromThrowable($second);
+        $one = $renderer->createResponseFromThrowable(
+            $first,
+            (new Psr17Factory())->createServerRequest('GET', '/synthetic'),
+        );
+        $two = $renderer->createResponseFromThrowable(
+            $second,
+            (new Psr17Factory())->createServerRequest('GET', '/synthetic'),
+        );
 
         self::assertNotSame($one->getBody(), $two->getBody());
         self::assertStringContainsString($first->getMessage(), (string) $one->getBody());
@@ -150,7 +152,6 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         ;
         $services = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
-            new WhoopsErrorHandlerServiceProvider(),
             $this->application($scope, [
                 PrettyPageHandler::class => new CallableFactory(
                     /**
@@ -185,7 +186,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         $pages = [];
         $inspected = [];
         $calls = 0;
-        $provider = new WhoopsErrorHandlerServiceProvider();
+        $provider = new ErrorHandlerServiceProvider();
         $provider->getFactories();
         self::assertSame([], $provider->getExtensions());
         self::assertSame(0, $calls);
@@ -232,7 +233,6 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
             ),
         ]);
         $services = container(new AggregateServiceProvider(
-            new ErrorHandlerServiceProvider(),
             $provider,
             $application,
         ));
@@ -247,9 +247,15 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         $authorization = base64_encode('hidden synthetic authorization');
         $_SERVER['HTTP_AUTHORIZATION'] = $authorization;
         $_GET['fixture'] = $oldValue;
-        $one = $renderer->createResponseFromThrowable($first);
+        $one = $renderer->createResponseFromThrowable(
+            $first,
+            (new Psr17Factory())->createServerRequest('GET', '/synthetic'),
+        );
         $_GET['fixture'] = $newValue;
-        $two = $renderer->createResponseFromThrowable($second);
+        $two = $renderer->createResponseFromThrowable(
+            $second,
+            (new Psr17Factory())->createServerRequest('GET', '/synthetic'),
+        );
 
         self::assertSame(1, $calls);
         self::assertCount(1, $pages);
@@ -268,7 +274,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
     }
 
     /** Demonstrates why the selected renderer must override the separate base default. */
-    public function testBaseFirstSelectsTheGenericDefault(): void
+    public function testDefaultNegotiationDoesNotSelectOptionalWhoops(): void
     {
         $reporter = new CallableThrowableHandler(
             /** @param \Throwable $event the synthetic private diagnostic */
@@ -278,12 +284,11 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         );
         $services = container(
             ErrorHandlerServiceProvider::class,
-            WhoopsErrorHandlerServiceProvider::class,
             $this->application($reporter),
         );
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
 
-        self::assertInstanceOf(ThrowableResponseFactory::class, $renderer);
+        self::assertInstanceOf(NegotiatingThrowableResponseFactory::class, $renderer);
     }
 
     /**
@@ -326,7 +331,6 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         ]);
         $services = container(new AggregateServiceProvider(
             new ErrorHandlerServiceProvider(),
-            new WhoopsErrorHandlerServiceProvider(),
             $application,
         ));
         $renderer = $services->get(ThrowableResponseFactoryInterface::class);
@@ -336,7 +340,10 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         $response = null;
 
         try {
-            $response = $renderer->createResponseFromThrowable($original);
+            $response = $renderer->createResponseFromThrowable(
+                $original,
+                (new Psr17Factory())->createServerRequest('GET', '/synthetic'),
+            );
         } catch (\Throwable $event) {
             $caught = $event;
         }
@@ -385,7 +392,6 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
             );
             $services = container(new AggregateServiceProvider(
                 new ErrorHandlerServiceProvider(),
-                new WhoopsErrorHandlerServiceProvider(),
                 $this->application($reporter),
             ));
             $process = $services->get(ErrorHandlerInterface::class);
@@ -498,7 +504,6 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
             ]);
             $services = container(new AggregateServiceProvider(
                 new ErrorHandlerServiceProvider(),
-                new WhoopsErrorHandlerServiceProvider(),
                 $application,
             ));
             $factory = $services->get(ErrorHandlerMiddlewareFactory::class);
@@ -544,6 +549,7 @@ final class WhoopsErrorHandlerServiceProviderTest extends TestCase
         $messages = new Psr17Factory();
 
         return new ArrayServiceProvider(array_merge([
+            ThrowableResponseFactoryInterface::class => AliasFactory::get(WhoopsThrowableResponseFactory::class),
             ResponseFactoryInterface::class => new ServiceFactory($messages),
             StreamFactoryInterface::class => AliasFactory::get(ResponseFactoryInterface::class),
             ThrowableHandlerInterface::class => new ServiceFactory($reporter),

@@ -22,9 +22,13 @@ use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ProblemNormalizer;
+use Symfony\Component\Serializer\Serializer;
 
 /**
  * Verifies one explicit diagnostic delivery before pure response rendering.
@@ -34,11 +38,12 @@ use Psr\Http\Message\ResponseInterface;
 #[CoversClass(ReportingThrowableResponseFactory::class)]
 final class ReportingThrowableResponseFactoryTest extends TestCase
 {
-    /** Reporting precedes rendering with exact throwable and response identities. */
-    public function testReportsOnceBeforeRenderingTheSameThrowable(): void
+    /** Reporting precedes rendering with exact throwable, request and response identities. */
+    public function testReportsOnceBeforeRenderingTheSameThrowableAndRequest(): void
     {
         $this->expectOutputString('');
         $throwable = new \Error('Original diagnostic');
+        $request = new ServerRequest('POST', 'https://example.test/reporting');
         $response = (new Psr17Factory())->createResponse(500);
         $calls = [];
         $reporter = $this->createMock(ThrowableHandlerInterface::class);
@@ -53,7 +58,7 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
         ;
         $renderer = $this->createMock(ThrowableResponseFactoryInterface::class);
         $renderer->expects(self::once())->method('createResponseFromThrowable')
-            ->with(self::identicalTo($throwable))
+            ->with(self::identicalTo($throwable), self::identicalTo($request))
             ->willReturnCallback(
                 /**
                  * Returns the application renderer's exact response after recording order.
@@ -70,7 +75,7 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
         $bufferLevel = ob_get_level();
 
         $actual = (new ReportingThrowableResponseFactory($reporter, $renderer))
-            ->createResponseFromThrowable($throwable)
+            ->createResponseFromThrowable($throwable, $request)
         ;
 
         self::assertSame($response, $actual);
@@ -94,7 +99,10 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
         $caught = null;
 
         try {
-            (new ReportingThrowableResponseFactory($reporter, $renderer))->createResponseFromThrowable($throwable);
+            (new ReportingThrowableResponseFactory($reporter, $renderer))->createResponseFromThrowable(
+                $throwable,
+                new ServerRequest('GET', 'https://example.test/'),
+            );
         } catch (\Throwable $actual) {
             $caught = $actual;
         }
@@ -118,7 +126,10 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
         $caught = null;
 
         try {
-            (new ReportingThrowableResponseFactory($reporter, $renderer))->createResponseFromThrowable($throwable);
+            (new ReportingThrowableResponseFactory($reporter, $renderer))->createResponseFromThrowable(
+                $throwable,
+                new ServerRequest('GET', 'https://example.test/'),
+            );
         } catch (\Throwable $actual) {
             $caught = $actual;
         }
@@ -140,9 +151,21 @@ final class ReportingThrowableResponseFactoryTest extends TestCase
 
         $response = (new ReportingThrowableResponseFactory(
             $reporter,
-            new JsonThrowableResponseFactory($messages, $messages),
-        ))->createResponseFromThrowable(new \RuntimeException('Original diagnostic'));
+            new JsonThrowableResponseFactory(
+                $messages,
+                $messages,
+                new Serializer([new ProblemNormalizer(true)], [new JsonEncoder()]),
+            ),
+        ))->createResponseFromThrowable(
+            new \RuntimeException('Original diagnostic'),
+            new ServerRequest('GET', 'https://example.test/'),
+        );
 
-        self::assertSame('{"error":"Request failed"}', (string) $response->getBody());
+        self::assertSame([
+            'type' => 'about:blank',
+            'title' => 'Internal Server Error',
+            'status' => 500,
+            'detail' => 'Request failed',
+        ], json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR));
     }
 }

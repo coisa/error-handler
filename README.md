@@ -69,22 +69,27 @@ objects keep their identity. See the [complete three-callback recipe](https://gi
 | Need | Entry point and guide |
 | --- | --- |
 | Report a throwable | `ErrorHandler::handleThrowable()` and [reporter composition][link-reporters]. |
+| Format terminal diagnostics | [Symfony CLI handler and Console ownership](docs/cli.md). |
 | Handle warnings or uncaught exceptions | `register()` / `unregister()` and [native callbacks][link-lifecycle]. |
 | Send diagnostics to a logger or dispatcher | [PSR-3 logging][link-logging] and [PSR-14 events][link-events]. |
 | Filter or fan out | [Filtering][link-filtering], [aggregates][link-aggregates] and [best effort][link-best-effort]. |
 | Use a container | [Interop/FastForward provider, overrides and fresh scopes](docs/fast-forward.md). |
 | Return an HTTP response | [PSR-15 middleware and PSR-17 composition](docs/http.md). |
 | Return JSON with one private report | [Opt-in JSON rendering](docs/http.md#opt-in-json-responses-and-explicit-reporting) and [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/http-json.php). |
-| Use Interop/FastForward providers | [JSON profile](docs/fast-forward.md#json-profile) and [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php). |
-| Render development HTML | [Optional Whoops renderer](docs/http.md#opt-in-development-html-with-whoops) and [manual recipe](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php). |
-| Configure Whoops services | [Whoops profile](docs/fast-forward.md#development-html-profile) and [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php). |
+| Use Interop/FastForward providers | [Request-aware provider](docs/fast-forward.md#request-aware-responses) and [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php). |
+| Return public or diagnostic HTML | [Symfony HTML](docs/http.md#public-html) and [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/http-html.php). |
+| Select optional Whoops diagnostics | [Development HTML configuration](docs/fast-forward.md#development-html-configuration) and [complete provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php). |
 
-JSON and Whoops adapters introduced in 2.5.0 use the same representation APIs.
-Middleware reports once before the pure renderer; do not add the 2.x reporting
-decorator. Each provider declares only its own map, composed by the application.
+One Interop provider supplies lifecycle services and request-aware responses.
+It selects JSON Problem Details or Symfony HTML when accepted and a generic fallback otherwise. Trusted
+debug enables diagnostic HTML/JSON; optional Whoops requires an explicit override. Debug never forces HTML.
+Applications supply PSR-17 implementations and a private reporter through
+`container($application, ErrorHandlerServiceProvider::class)`.
 
-Whoops is an explicit development choice. Applications own trusted debug
-activation and format selection.
+Every response factory receives the original Throwable and current
+ServerRequestInterface. Middleware reports once before rendering; do not add the
+2.x reporting decorator. Direct JSON rendering uses Symfony Serializer; JSON and Whoops renderers remain available for
+explicit application pipelines.
 
 ## Lifecycle and HTTP boundaries
 
@@ -95,11 +100,11 @@ activation and format selection.
   Direct `handleThrowable()` calls return normally. Fatal errors remain fatal.
 - FastForward caches services and discovery installs no callbacks. Middleware
   has a separate handler; invoke the reusable factory for each independent scope.
-- Middleware reports once, then renders. `GenericThrowableStreamFactory` always
-  supplies `Internal Server Error`, independently of reporter output; codes
-  400–599 are preserved and reason phrases come from PSR-17. The middleware does
-  not capture reporter output: echoed diagnostics can leak outside the PSR-7 body
-  and corrupt HTTP emission. JSON and development HTML are explicit renderer choices.
+- Middleware reports once, then passes the current request to its pure renderer.
+  The default provider negotiates its representation from `Accept`; missing or
+  unsupported preferences use the generic `Internal Server Error` body. Codes
+  400–599 are preserved and reason phrases come from PSR-17. Reporter echo can
+  still leak outside the response and corrupt emission; keep diagnostics private.
 - Output capture is an explicit public-renderer adapter: empty output uses the
   generic body and `"0"` remains valid. Reporters must keep diagnostics private.
 

@@ -61,12 +61,15 @@ final class ErrorHandlerCleanupTest extends TestCase
             /**
              * Throws the configured rendering failure to exercise callback restoration.
              *
-             * @param \Throwable $throwable the throwable being rendered
+             * @param \Throwable             $throwable the throwable being rendered
+             * @param ServerRequestInterface $request   the incoming request associated with the failure
              *
              * @return ResponseInterface the fixture result
              */
-            public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
-            {
+            public function createResponseFromThrowable(
+                \Throwable $throwable,
+                ServerRequestInterface $request,
+            ): ResponseInterface {
                 throw $this->failure;
             }
         };

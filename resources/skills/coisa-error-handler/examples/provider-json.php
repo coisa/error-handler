@@ -17,14 +17,12 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -43,7 +41,7 @@ if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container'
     throw new RuntimeException('This source requires PHP 8.3+ and its FastForward runtime dependency.');
 }
 
-foreach ([ErrorHandlerServiceProvider::class, JsonErrorHandlerServiceProvider::class] as $class) {
+foreach ([ErrorHandlerServiceProvider::class] as $class) {
     if (!class_exists($class)) {
         throw new RuntimeException('The selected library installation lacks ' . $class);
     }
@@ -56,7 +54,7 @@ if (!in_array($mode, ['public', 'debug'], true)) {
 }
 
 // Resolve a real boolean from trusted configuration before constructing the provider.
-$settings = config(['error_handler' => ['json' => ['debug' => 'debug' === $mode]]]);
+$settings = config(['error_handler' => ['debug' => 'debug' === $mode]]);
 $reporter = new RecordingThrowableHandler();
 $http = new Psr17Factory();
 $failure = new RuntimeException('Private provider diagnostic', 503);
@@ -67,22 +65,13 @@ $application = new ArrayServiceProvider([
     ThrowableHandlerInterface::class => new ServiceFactory($reporter),
 ]);
 
-if ('debug' === $mode) {
-    $services = container(new AggregateServiceProvider(
-        new ErrorHandlerServiceProvider(),
-        new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
-        $application,
-    ));
-} else {
-    $services = container(new AggregateServiceProvider(
-        new ErrorHandlerServiceProvider(),
-        new JsonErrorHandlerServiceProvider(),
-        $application,
-    ));
-}
+$services = container(
+    $application,
+    new ErrorHandlerServiceProvider(debug: $settings->get('error_handler.debug', false)),
+);
 
-if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof JsonThrowableResponseFactory) {
-    throw new RuntimeException('Expected the pure JSON profile instead of the generic default.');
+if (!$services->get(ThrowableResponseFactoryInterface::class) instanceof NegotiatingThrowableResponseFactory) {
+    throw new RuntimeException('Expected the request-aware default response factory.');
 }
 
 /** @var ErrorHandlerMiddlewareFactory $middlewareFactory the reusable fresh-scope service */
@@ -95,7 +84,7 @@ if ($middleware === $middlewareFactory($services)) {
 }
 
 $response = $middleware->process(
-    $http->createServerRequest('GET', 'http://example.test/provider-json'),
+    $http->createServerRequest('GET', 'http://example.test/provider-json')->withHeader('Accept', 'application/json'),
     new ThrowingRequestHandler($failure),
 );
 
@@ -104,21 +93,23 @@ if ([$failure] !== $reporter->getThrowables() || 503 !== $response->getStatusCod
 }
 
 if ('application/json' !== $response->getHeaderLine('Content-Type')) {
-    throw new RuntimeException('Expected a JSON response from the selected profile.');
+    throw new RuntimeException('Expected JSON selected by the current request.');
 }
+
+$publicBody = '{"type":"about:blank","title":"Service Unavailable","status":503,"detail":"Request failed"}';
 
 if ('debug' === $mode) {
     $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
-    if ($failure->getMessage() !== $payload['exception']['message']) {
+    if ($failure->getMessage() !== $payload['detail']) {
         throw new RuntimeException('Trusted debug configuration must reach the JSON renderer.');
     }
 
     if ('no-store' !== $response->getHeaderLine('Cache-Control')) {
         throw new RuntimeException('Development responses must disable caching.');
     }
-} elseif ('{"error":"Request failed"}' !== (string) $response->getBody()) {
+} elseif ($publicBody !== (string) $response->getBody()) {
     throw new RuntimeException('Expected generic JSON without the private diagnostic.');
 }
 
-echo 'Interop JSON ' . $mode . ': independent providers and fresh scope passed' . PHP_EOL;
+echo 'Interop JSON ' . $mode . ': single provider and fresh scope passed' . PHP_EOL;

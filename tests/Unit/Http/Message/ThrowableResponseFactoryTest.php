@@ -20,6 +20,7 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\UsesClass;
@@ -54,7 +55,7 @@ final class ThrowableResponseFactoryTest extends TestCase
         });
         $responses = new ThrowableResponseFactory(new ThrowableStreamFactory($factory, $reporter), $factory);
         $error = new \RuntimeException("private detail\r\nX-Injected: no", $code);
-        $response = $responses->createResponseFromThrowable($error);
+        $response = $responses->createResponseFromThrowable($error, new ServerRequest('GET', 'https://example.test/'));
 
         self::assertSame($expected, $response->getStatusCode());
         self::assertStringNotContainsString('private detail', $response->getReasonPhrase());
@@ -98,7 +99,10 @@ final class ThrowableResponseFactoryTest extends TestCase
         $streams->expects(self::once())->method('createStreamFromThrowable')
             ->with(self::identicalTo($error))->willReturn($body)
         ;
-        $response = (new ThrowableResponseFactory($streams, $factory))->createResponseFromThrowable($error);
+        $response = (new ThrowableResponseFactory($streams, $factory))->createResponseFromThrowable(
+            $error,
+            new ServerRequest('GET', 'https://example.test/'),
+        );
 
         self::assertSame(500, $response->getStatusCode());
         self::assertSame('Internal Server Error', $response->getReasonPhrase());

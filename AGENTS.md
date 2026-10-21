@@ -30,7 +30,7 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   handlers for nested scopes. Follow [the lifecycle contract](docs/api.md).
 - FastForward caches services. Keep the middleware handler separate from the
   process handler and use the provider's factory services for fresh scopes.
-  Prefer `container(ErrorHandlerServiceProvider::class, $application)` for normal
+  Prefer `container($application, ErrorHandlerServiceProvider::class)` for normal
   dependency and optional-reporter composition. For required overrides, merge
   application definitions after library definitions in one
   `AggregateServiceProvider`: separate providers prioritize the first and may
@@ -42,11 +42,15 @@ PSR-17 implementations, HTTP emission and the moment PHP callbacks are installed
   scopes; use autowiring for plain constructor injection. A possible
   move to php-fast-forward does not itself change package identity or namespace.
 - HTTP middleware requires lifecycle and throwable-reporting contracts on the same
-  scoped handler. Report once, then invoke a pure response renderer. Keep the generic
-  stream as the provider default and output capture as an explicit public-renderer
-  adapter. Keep the independent JSON and Whoops profile maps pure; applications
-  compose them with the base and their required reporter/PSR-17 bindings. Never
-  invoke the diagnostic reporter again during rendering.
+  scoped handler. Report once, then pass the original Throwable and current
+  ServerRequestInterface to a pure response renderer. The single provider selects
+  request-aware negotiation: JSON Problem Details or Symfony HTML when accepted, generic fallback
+  otherwise. Trusted debug enables details without forcing a representation.
+  Whoops is optional and only selected by an explicit application override;
+  its installation never changes defaults. Keep output capture
+  an explicit public-renderer adapter; never report diagnostics again during rendering.
+- CLI rendering is explicit through SymfonyCliThrowableHandler or the provider's cli flag;
+  do not infer it from SAPI or add a second Console exception renderer.
 - Explicit Log/Filtering/CallablePHP/BestEffort adapters remain opt-in; the default
   reporter aggregate stays fail-fast and adds no implicit discovery for them.
 - Reporters own diagnostic output; HTTP fallback bodies must not leak exception
@@ -99,7 +103,7 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [docs/api.md](docs/api.md): core lifecycle, reporters and PSR composition.
 - [docs/fast-forward.md](docs/fast-forward.md): provider definitions, overrides,
   cached services and fresh middleware scopes.
-- [docs/examples.md](docs/examples.md): all seventeen complete recipes, checked
+- [docs/examples.md](docs/examples.md): all nineteen complete recipes, checked
   byte-for-byte against executable source with only the leading license header omitted;
   preserve setup boundaries and matching website excerpts.
 - [docs/releases.md](docs/releases.md): independent fragments, reviewed version PRs,
@@ -107,6 +111,7 @@ Repository maintenance and verification continue to follow this AGENTS.md.
 - [docs/testing.md](docs/testing.md): PHPUnit/process tests, commands and evidence limits.
 - [CONTRIBUTING.md](CONTRIBUTING.md): dependency resolution and quality entrypoints.
 - [examples/README.md](examples/README.md): executable recipe dependencies and verifier.
+- [docs/cli.md](docs/cli.md): explicit Symfony terminal reporting and one Console exception owner.
 - [docs/http.md](docs/http.md): pure JSON/Whoops rendering, explicit capture,
   reporting and diagnostic-output limits.
 - [docs/migration.md](docs/migration.md): breaking changes from published 2.x.

@@ -26,6 +26,7 @@ use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -61,11 +62,60 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         self::assertSame($response, (new ErrorHandlerMiddleware($scope, $factory))->process($request, $next));
     }
 
-    /** Verifies rendering receives the original event and finally restores the scope on failure. */
+    /** Verifies request context reaches rendering after exactly one diagnostic report. */
+    public function testForwardsTheIdenticalRequestAndThrowableAfterReporting(): void
+    {
+        $messages = new Psr17Factory();
+        $request = $messages->createServerRequest('POST', 'https://example.test/failure')
+            ->withHeader('Accept', 'application/json')
+            ->withAttribute('request-marker', new \stdClass())
+        ;
+        $response = $messages->createResponse(503);
+        $original = new \RuntimeException('downstream failure', 503);
+        $calls = [];
+        $scope = $this->createMockForIntersectionOfInterfaces([
+            ErrorHandlerInterface::class, ThrowableHandlerInterface::class,
+        ]);
+        self::assertInstanceOf(ErrorHandlerInterface::class, $scope);
+        self::assertInstanceOf(ThrowableHandlerInterface::class, $scope);
+        $scope->expects(self::once())->method('register');
+        $scope->expects(self::once())->method('unregister');
+        $scope->expects(self::once())->method('handleThrowable')
+            ->with(self::identicalTo($original))
+            ->willReturnCallback(
+                /** Records the private diagnostic step without modifying the request. */
+                static function () use (&$calls): void {
+                    $calls[] = 'report';
+                },
+            )
+        ;
+        $factory = $this->createMock(ThrowableResponseFactoryInterface::class);
+        $factory->expects(self::once())->method('createResponseFromThrowable')
+            ->with(self::identicalTo($original), self::identicalTo($request))
+            ->willReturnCallback(
+                /** @return ResponseInterface the renderer's exact response after observing reporting order */
+                static function () use (&$calls, $response): ResponseInterface {
+                    $calls[] = 'render';
+
+                    return $response;
+                },
+            )
+        ;
+        $next = $this->createMock(RequestHandlerInterface::class);
+        $next->expects(self::once())->method('handle')
+            ->with(self::identicalTo($request))->willThrowException($original)
+        ;
+
+        self::assertSame($response, (new ErrorHandlerMiddleware($scope, $factory))->process($request, $next));
+        self::assertSame(['report', 'render'], $calls);
+    }
+
+    /** Verifies rendering receives the original request/event and finally restores the scope on failure. */
     public function testRenderingFailurePropagatesAfterUnregistering(): void
     {
         $original = new \Error('downstream');
         $primary = new \RuntimeException('response factory');
+        $request = (new Psr17Factory())->createServerRequest('GET', 'http://localhost');
         $scope = $this->createMockForIntersectionOfInterfaces([
             ErrorHandlerInterface::class, ThrowableHandlerInterface::class,
         ]);
@@ -75,12 +125,12 @@ final class ErrorHandlerMiddlewareTest extends TestCase
         $scope->expects(self::once())->method('register');
         $scope->expects(self::once())->method('unregister');
         $factory = $this->createMock(ThrowableResponseFactoryInterface::class);
-        $factory->expects(self::once())->method('createResponseFromThrowable')->with(self::identicalTo($original))
+        $factory->expects(self::once())->method('createResponseFromThrowable')
+            ->with(self::identicalTo($original), self::identicalTo($request))
             ->willThrowException($primary)
         ;
         $next = $this->createMock(RequestHandlerInterface::class);
         $next->expects(self::once())->method('handle')->willThrowException($original);
-        $request = (new Psr17Factory())->createServerRequest('GET', 'http://localhost');
 
         try {
             (new ErrorHandlerMiddleware($scope, $factory))->process($request, $next);

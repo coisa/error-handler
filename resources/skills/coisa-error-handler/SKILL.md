@@ -1,8 +1,8 @@
 ---
 name: coisa-error-handler
-description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop providers and pure generic, JSON or Whoops PSR-15 responses. Use when an application consumes this library; inspect its installed version before selecting an API.
+description: Integrate coisa/error-handler with configured private reporters, process callbacks, FastForward Interop providers and request-aware generic, JSON Problem Details or Symfony HTML PSR-15 responses and explicit Whoops integration. Use when an application consumes this library; inspect its installed version before selecting an API.
 license: MIT; see LICENSE
-compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. Applications supply PSR-14/17 implementations and HTTP emission; development HTML additionally requires optional filp/whoops ^2.18.7 at runtime. No agent SDK or global installation is required.
+compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fast-forward/container ^1.10. Applications supply PSR-14/17 implementations and HTTP emission; explicit Whoops HTML additionally requires optional filp/whoops ^2.18.7 at runtime. No agent SDK or global installation is required.
 metadata:
   author: Felipe Sayão Lobato Abreu
   api-baseline: "3.x"
@@ -105,11 +105,12 @@ and does not write logs or contact a service.
 | Application need | Supported route and observation |
 | --- | --- |
 | Explicit reporting | `ErrorHandler::handleThrowable()` as above; original delivered once, execution continues. |
+| Terminal diagnostics | Use explicit `SymfonyCliThrowableHandler` or provider `cli: true`; follow [terminal reporting](references/reporters.md#symfony-terminal-diagnostics) and keep one Console exception owner. |
 | PHP warnings or uncaught exceptions | Register at the application bootstrap; follow [process scopes](references/process.md) and verify restoration. |
 | FastForward integration | Supply reporters through the [Interop provider recipe](references/container.md); construction must install no callbacks. |
 | HTTP | Supply PSR-17 implementations and select the [explicit public response recipe](references/http.md); verify private delivery and fixed body separately. |
-| Built-in JSON | Use the [pure JSON renderer or independent JSON provider](references/json.md); enable diagnostic JSON only through trusted application configuration. |
-| Development HTML | Use the [Whoops renderer or independent Whoops provider](references/whoops.md) only in an explicitly selected development pipeline; the renderer does not negotiate requests. |
+| Built-in JSON | Use the [pure JSON renderer or request-aware provider](references/json.md); enable diagnostic JSON only through trusted application configuration. |
+| Public/development HTML | Use Symfony HTML through the default provider or [HTML application program](examples/html.php); trusted debug enables details. [Whoops](references/whoops.md) is an explicit optional override. |
 | Logging, events, filtering or best-effort reporting | Select [reporter composition](references/reporters.md) only for that integration; supply the actual collaborators. |
 
 FastForward caches services. The provider keeps process and middleware handlers
@@ -119,12 +120,16 @@ Applications own interfaces' implementations, private diagnostic transports,
 callback installation and HTTP emission. Registering a class does not imply
 aggregate membership.
 
-For a required reporter and a selected HTTP profile, compose one
-`AggregateServiceProvider` in base, JSON or Whoops, application order. Each
-library provider declares its own services; the application combines them.
-Application definitions win last inside that aggregate. See
-[provider precedence and fallback](references/container.md) before relying on an
-override: map precedence does not disable concrete autowiring fallback.
+Use `container($application, ErrorHandlerServiceProvider::class)` for ordinary
+composition. This single provider negotiates responses from each current request.
+`new ErrorHandlerServiceProvider(debug: true)` explicitly enables diagnostics;
+neither Accept nor environment names enable debug automatically. Applications may
+read a real boolean through FastForward Config before construction.
+
+Use one `AggregateServiceProvider`, library then application, only when a required
+interface override must not fall through to a library binding after construction
+fails. See [provider precedence and fallback](references/container.md); merged
+maps do not disable concrete autowiring fallback.
 
 ## Verify and report
 
@@ -136,7 +141,10 @@ run uncaught/fatal/termination experiments only in bounded child processes.
 
 For HTTP, assert status, exact public body and one original private report.
 Middleware reports before invoking a pure renderer. The provider defaults to a
-generic body; JSON and Whoops profiles select pure response factories. Keep
+request-aware factory: accepted JSON or Symfony HTML, otherwise generic fallback.
+Trusted debug enables details without changing the chosen representation. Debug does not force HTML; JSON-only
+requests never resolve Whoops. Every response factory takes the original Throwable
+and current ServerRequestInterface, including explicit renderers. Keep
 output capture explicit and never inject the private reporter into that renderer
 again. `ReportingThrowableResponseFactory` is an explicit utility for a pipeline
 that has not already reported; do not wrap this middleware's renderer with it.

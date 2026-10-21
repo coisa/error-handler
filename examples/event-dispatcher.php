@@ -22,10 +22,9 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\ArrayServiceProvider;
-use Phly\EventDispatcher\EventDispatcher;
-use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
-use Psr\EventDispatcher\EventDispatcherInterface;
+use FastForward\Config\ArrayConfig;
+use FastForward\EventDispatcher\ServiceProvider\EventDispatcherServiceProvider;
+use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
 
@@ -68,13 +67,11 @@ $events = new ErrorEventListenerProvider(
 );
 $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
 
-$dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
-
-$application = new ArrayServiceProvider([
-    EventDispatcherInterface::class => static fn(): EventDispatcherInterface => $dispatcher,
+$configuration = new ArrayConfig([
+    ListenerProviderInterface::class => [$throwables, $events],
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($configuration, EventDispatcherServiceProvider::class, ErrorHandlerServiceProvider::class);
 
 $errors = $services->get(ErrorHandlerInterface::class);
 

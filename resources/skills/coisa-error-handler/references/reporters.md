@@ -73,6 +73,26 @@ the previous cause is the original. An empty/all-success pass returns normally.
 Construct these explicitly; neither supplies retries, a recursion guard or
 durable delivery.
 
+## Symfony terminal diagnostics
+
+`SymfonyCliThrowableHandler()` formats through Symfony CliErrorRenderer and writes
+to stderr. It does not need Console, install callbacks or choose an exit status.
+An explicit `OutputInterface` receives raw text; ConsoleOutput uses its error
+channel. Install optional symfony/console only when the application uses that API.
+Renderer/output failures propagate; diagnostics can contain private data.
+
+The provider's `cli: true` appends terminal reporting to its default aggregate;
+`debug` independently controls HTTP details. An explicit ThrowableHandlerInterface
+override replaces that aggregate. Bind OutputInterface in the application for
+an existing destination. No SAPI detection or CLI response negotiation occurs.
+
+When using Symfony Console, choose one exception owner. An outer application catch
+uses `setCatchExceptions(false)` and `setAutoExit(false)`, reports once and decides
+its exit status. Do not also use Console's built-in exception rendering. Run the
+[complete terminal program](../examples/symfony-cli.php) in direct, provider or
+console mode after the explicit autoloader argument. It uses BufferedOutput and
+prints a verification summary instead of private diagnostics.
+
 ## PSR-3
 
 With the application's actual `Psr\Log\LoggerInterface $logger`:
@@ -111,6 +131,13 @@ callable listeners.
 `LogErrorEventListener` logs ErrorEvent data through the supplied PSR-3 logger.
 Configuring both raw and wrapped adapters causes separate deliveries; choose that
 deliberately. Dispatcher/listener failures propagate and are not retried.
+
+The [checkout event recipe](https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php)
+uses `fast-forward/event-dispatcher:^1.0`: configure its EventDispatcherServiceProvider
+with FastForward ArrayConfig under `ListenerProviderInterface::class`, listing the
+Error Handler listener-provider objects. Compose that configuration and provider
+before ErrorHandlerServiceProvider. The dispatcher remains an application choice;
+Error Handler only consumes the PSR-14 interface.
 
 Use the consumer's existing PHPUnit doubles or synthetic recording collaborators.
 Verify original-object identity, order/nonmatch behavior, empty aggregates,

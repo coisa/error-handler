@@ -13,7 +13,7 @@ resolution alone does not establish a warning-free application. Keep diagnostics
 under `E_ALL` visible and separate dependency evidence from the library's behavior.
 
 For optional reporter discovery and external PSR implementations, ordinary
-composition uses `container(ErrorHandlerServiceProvider::class, $application)`
+composition uses `container($application, ErrorHandlerServiceProvider::class)`
 from `FastForward\Container`. The application is an Interop provider. The library
 discovers an available `CallableThrowableHandler` and PSR-14 adapters when their
 dispatcher is available. An empty default aggregate is silent. A logger,
@@ -37,26 +37,33 @@ back after a PSR container error; they do not establish a required override.
 An aggregate fixes binding precedence but does not make concrete service
 construction fail closed against FastForward's autowiring fallback.
 
-## Select a response profile
+## Request-aware responses
 
-The base provider selects `ThrowableResponseFactory` with the pure
-`GenericThrowableStreamFactory`. Its optional reporter aggregate can be empty
-and silent. A configured private reporter remains an application responsibility.
-The independent profiles replace only the selected response services:
+The single `ErrorHandlerServiceProvider(bool $debug = false, bool $cli = false)` selects
+`NegotiatingThrowableResponseFactory` by default. It uses the current request's
+Accept header, with generic, JSON and Symfony HTML candidates. Trusted debug enables diagnostics
+in JSON and Symfony HTML. Optional Whoops requires an explicit application override.
+JSON-only requests never resolve Whoops. Debug permits diagnostic HTML, but does not force it;
+without Accept or a supported positive match, the generic response is used.
+A configured private reporter remains the application's responsibility.
 
-- `JsonErrorHandlerServiceProvider` declares its pure JSON renderer and response
-  alias. Its optional boolean constructor input enables diagnostic JSON.
-- `WhoopsErrorHandlerServiceProvider` declares `PrettyPageHandler`, its pure
-  Whoops renderer and response alias. It has no constructor; customize the page
-  through the `PrettyPageHandler::class` application service.
+Use the complete [JSON](json.md#compose-the-single-provider) or
+[Whoops](whoops.md#configure-the-single-provider) program. The ordinary bootstrap
+is `container($application, ErrorHandlerServiceProvider::class)`.
+Enable diagnostics with a real boolean in
+`new ErrorHandlerServiceProvider(debug: $debug)`, read from trusted application
+configuration. No specific configuration key is read by the library.
 
-For a required reporter and a selected profile, use one aggregate in base,
-selected profile, application order. The later profile replaces the base response
-alias, and the application supplies its required reporter and PSR-17 bindings.
-Library providers do not instantiate or merge another provider. Follow the
-complete [JSON](json.md#compose-independent-providers) or
-[Whoops](whoops.md#compose-the-independent-whoops-profile) route. Select one
-profile explicitly; these providers do not inspect `Accept` or environment values.
+Explicit `cli: true` appends Symfony terminal formatting to the default reporter
+aggregate; it does not select HTTP diagnostics. An application OutputInterface
+service supplies an optional Console destination; otherwise it uses stderr.
+Keep one Console exception owner; see [terminal diagnostics](reporters.md#symfony-terminal-diagnostics).
+
+The provider also declares concrete public HTML, JSON and Whoops renderers and a lazy cached
+`PrettyPageHandler` service. Supply that page through the application map to
+customize it. The removed separate JSON/Whoops providers are not needed.
+Use a single merged provider only for the required-interface failure contract
+described above.
 
 Construction and discovery install no PHP callbacks. Repeated
 `get(ErrorHandler::class)` returns a cached handler. Resolve

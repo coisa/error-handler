@@ -52,7 +52,14 @@ foreach (['public', 'debug'] as $mode) {
     ];
     $cases[] = [
         'provider-json.php', [$mode], 0,
-        'Interop JSON ' . $mode . ": configured profile, fresh scope and one private report passed\n", '',
+        'Interop JSON ' . $mode . ": configured provider, fresh scope and one private report passed\n", '',
+    ];
+}
+
+foreach (['public', 'debug'] as $mode) {
+    $cases[] = [
+        'http-html.php', [$mode], 0,
+        'HTTP HTML ' . $mode . ": Symfony rendering and one original report passed\n", '',
     ];
 }
 
@@ -63,10 +70,19 @@ foreach (['public', 'development'] as $mode) {
     ];
 }
 
-foreach (['default', 'configured'] as $mode) {
+foreach (['public', 'default', 'configured'] as $mode) {
     $cases[] = [
         'provider-whoops.php', [$mode], 0,
-        'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n", '',
+        'public' === $mode
+            ? "HTML provider public: Symfony renderer, fresh scopes and private reporting passed\n"
+            : 'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n", '',
+    ];
+}
+
+foreach (['direct', 'provider', 'console'] as $mode) {
+    $cases[] = [
+        'symfony-cli.php', [$mode], 0,
+        'Symfony CLI ' . $mode . ": one terminal diagnostic and explicit capture ownership passed\n", '',
     ];
 }
 

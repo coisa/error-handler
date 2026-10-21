@@ -1,6 +1,6 @@
 # Executable cookbook
 
-These complete examples use PHP `^8.3`. The development dependencies include Nyholm PSR-7 and Phly EventDispatcher; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+These complete examples use PHP `^8.3`. The development dependencies include Nyholm PSR-7 and FastForward EventDispatcher; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](https://github.com/coisa/error-handler/blob/master/examples/README.md).
 
 These are source-checkout programs: Composer archives omit the top-level
 `examples/` directory. Keep the complete directory, including its bootstrap and
@@ -92,7 +92,7 @@ $application = new class implements ServiceProviderInterface {
     }
 };
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 /**
  * @var ErrorHandlerInterface $errors
@@ -169,10 +169,9 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
-use FastForward\Container\ServiceProvider\ArrayServiceProvider;
-use Phly\EventDispatcher\EventDispatcher;
-use Phly\EventDispatcher\ListenerProvider\ListenerProviderAggregate;
-use Psr\EventDispatcher\EventDispatcherInterface;
+use FastForward\Config\ArrayConfig;
+use FastForward\EventDispatcher\ServiceProvider\EventDispatcherServiceProvider;
+use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
 
@@ -215,13 +214,11 @@ $events = new ErrorEventListenerProvider(
 );
 $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
 
-$dispatcher = new EventDispatcher(new ListenerProviderAggregate($throwables, $events));
-
-$application = new ArrayServiceProvider([
-    EventDispatcherInterface::class => static fn(): EventDispatcherInterface => $dispatcher,
+$configuration = new ArrayConfig([
+    ListenerProviderInterface::class => [$throwables, $events],
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($configuration, EventDispatcherServiceProvider::class, ErrorHandlerServiceProvider::class);
 
 $errors = $services->get(ErrorHandlerInterface::class);
 
@@ -278,7 +275,7 @@ $application = new ArrayServiceProvider([
     StreamFactoryInterface::class => static fn(): StreamFactoryInterface => $psr17,
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 $process = $services->get(ErrorHandlerInterface::class);
 $middleware = $services->get(ErrorHandlerMiddleware::class);
@@ -465,7 +462,7 @@ $application = new ArrayServiceProvider([
     ShutdownHandlerInterface::class => new ServiceFactory($shutdown),
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 $errors = $services->get(ErrorHandlerInterface::class);
 
@@ -524,7 +521,7 @@ $application = new ArrayServiceProvider([
     StreamFactoryInterface::class => static fn(): StreamFactoryInterface => $psr17,
 ]);
 
-$services = container(ErrorHandlerServiceProvider::class, $application);
+$services = container($application, ErrorHandlerServiceProvider::class);
 
 $makeHandler = $services->get(ErrorHandlerFactory::class);
 $first = $makeHandler($services);
@@ -936,6 +933,9 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ProblemNormalizer;
+use Symfony\Component\Serializer\Serializer;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
@@ -968,7 +968,9 @@ $reporter = new CallableThrowableHandler(
 
 $errors = new ErrorHandler($reporter);
 
-$json = new JsonThrowableResponseFactory($messages, $messages, $debug);
+$serializer = new Serializer([new ProblemNormalizer(true)], [new JsonEncoder()]);
+
+$json = new JsonThrowableResponseFactory($messages, $messages, $serializer, $debug);
 
 $middleware = new ErrorHandlerMiddleware($errors, $json);
 
@@ -1006,24 +1008,28 @@ $response = $middleware->process($messages->createServerRequest('GET', '/example
 
 exampleCheck([$original] === $reports, 'Expected exactly one private report of the original event.');
 exampleCheck(503 === $response->getStatusCode(), 'The integer HTTP error code was not preserved.');
-exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected a JSON representation.');
+exampleCheck(
+    'application/problem+json' === $response->getHeaderLine('Content-Type'),
+    'Expected a JSON Problem Details representation.',
+);
+$publicBody = '{"type":"about:blank","title":"Service Unavailable","status":503,"detail":"Request failed"}';
+
 if ($debug) {
     $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-    exampleCheck('Request failed' === $payload['error'], 'The public error label changed.');
     exampleCheck(
-        $original->getMessage() === $payload['exception']['message'] && [] !== $payload['exception']['trace'],
+        $original->getMessage() === $payload['detail'] && [] !== $payload['trace'],
         'Explicit development metadata is missing.',
     );
-    foreach ($payload['exception']['trace'] as $frame) {
+    foreach ($payload['trace'] as $frame) {
         exampleCheck(
-            !array_key_exists('args', $frame) && !array_key_exists('object', $frame),
+            [] === ($frame['args'] ?? []) && !array_key_exists('object', $frame),
             'Private trace arguments or objects must not be serialized.',
         );
     }
     exampleCheck('no-store' === $response->getHeaderLine('Cache-Control'), 'Debug details must not be cached.');
 } else {
     exampleCheck(
-        '{"error":"Request failed"}' === (string) $response->getBody(),
+        $publicBody === (string) $response->getBody(),
         'The generic JSON body must not contain the private diagnostic.',
     );
 }
@@ -1037,9 +1043,70 @@ exampleCheck($bufferLevel === ob_get_level(), 'JSON composition unexpectedly cha
 echo 'HTTP JSON ' . $mode . ': explicit payload, status preservation and one private report passed' . PHP_EOL;
 ```
 
+<a id="http-html"></a>
+## Public and diagnostic Symfony HTML
+
+Report explicitly once, then render with the required current request. Public mode hides diagnostic details; trusted debug enables Symfony diagnostics. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-html.php).
+
+<!-- source: examples/http-html.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
+use Nyholm\Psr7\Factory\Psr17Factory;
+
+require __DIR__ . '/bootstrap.php';
+
+$mode = $argv[1] ?? 'public';
+if (!in_array($mode, ['public', 'debug'], true)) {
+    throw new InvalidArgumentException('Choose public or debug mode.');
+}
+
+// This boolean belongs to trusted application configuration, never the request.
+$debug = 'debug' === $mode;
+$reports = [];
+$errors = new ErrorHandler(
+    /** @param Throwable $error the unchanged original diagnostic delivered privately */
+    static function (Throwable $error) use (&$reports): void {
+        $reports[] = $error; // Replace with the application's private diagnostic transport.
+    },
+);
+
+$messages = new Psr17Factory();
+$failure = new RuntimeException('Private synthetic HTML diagnostic', 503);
+$request = $messages->createServerRequest('GET', 'http://example.test/html');
+$renderer = new HtmlThrowableResponseFactory($messages, $messages, $debug);
+
+// An explicit pipeline owns reporting; the renderer only builds a response.
+$errors->handleThrowable($failure);
+$response = $renderer->createResponseFromThrowable($failure, $request);
+
+if ([$failure] !== $reports || 503 !== $response->getStatusCode()) {
+    throw new RuntimeException('Expected one original report and the HTTP error status.');
+}
+if (
+    'text/html; charset=UTF-8' !== $response->getHeaderLine('Content-Type')
+    || ($debug && 'no-store' !== $response->getHeaderLine('Cache-Control'))
+) {
+    throw new RuntimeException('Expected HTML and a no-store policy for debug.');
+}
+if ($debug !== str_contains((string) $response->getBody(), $failure->getMessage())) {
+    throw new RuntimeException('Only explicit debug may disclose the diagnostic.');
+}
+if ($failure->getMessage() === $response->getReasonPhrase()) {
+    throw new RuntimeException('Diagnostic text must not become the reason phrase.');
+}
+
+// Applications own emission; this fixture prints no diagnostic HTML.
+echo 'HTTP HTML ' . $mode . ': Symfony rendering and one original report passed' . PHP_EOL;
+```
+
 ## Explicit development HTML
 
-Trusted configuration selects pure JSON or optional Whoops HTML. The application owns diagnostic policy; no request enables it. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php).
+Trusted configuration selects public Symfony HTML or explicit optional Whoops HTML. The application owns diagnostic policy; no request enables it. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php).
 
 <!-- source: examples/http-whoops.php -->
 ```php
@@ -1049,7 +1116,7 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -1078,7 +1145,7 @@ $reporter = new CallableThrowableHandler(
     },
 );
 
-$renderer = new JsonThrowableResponseFactory($messages, $messages);
+$renderer = new HtmlThrowableResponseFactory($messages, $messages);
 
 if ($debug) {
     $renderer = new WhoopsThrowableResponseFactory(
@@ -1145,15 +1212,18 @@ if ($debug) {
     );
 } else {
     exampleCheck(0 === $pageCalls, 'Public mode must not construct a Whoops page.');
-    exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected public JSON.');
-    exampleCheck('{"error":"Request failed"}' === (string) $response->getBody(), 'Expected the generic public body.');
+    exampleCheck('text/html; charset=UTF-8' === $response->getHeaderLine('Content-Type'), 'Expected public HTML.');
+    exampleCheck(
+        !str_contains((string) $response->getBody(), 'synthetic-development-detail'),
+        'Public HTML must not disclose the diagnostic.',
+    );
 }
 
 // No response is emitted. Hiding selected keys is not complete redaction or production authorization.
 echo 'HTTP Whoops ' . $mode . ': explicit renderer selection and one private report passed' . PHP_EOL;
 ```
 
-## JSON service-provider profile
+## JSON negotiation with the single provider
 
 Compose base, JSON and application maps explicitly, with a real bool for debug and a fresh middleware scope. [Source](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php).
 
@@ -1167,10 +1237,8 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -1192,7 +1260,7 @@ $mode = $argv[1] ?? 'public';
 exampleCheck(in_array($mode, ['public', 'debug'], true), 'Choose the public or debug example mode.');
 
 // This CLI choice stands in for trusted application configuration, never request headers.
-$settings = config(['error_handler' => ['json' => ['debug' => 'debug' === $mode]]]);
+$settings = config(['error_handler' => ['debug' => 'debug' === $mode]]);
 $messages = new Psr17Factory();
 $original = new RuntimeException('Private synthetic provider failure', 503);
 $reports = [];
@@ -1213,20 +1281,11 @@ $application = new ArrayServiceProvider([
     ThrowableHandlerInterface::class => new ServiceFactory($reporter),
 ]);
 
-// Merge the required reporter and renderer after library defaults in one provider.
-if ('debug' === $mode) {
-    $services = container(new AggregateServiceProvider(
-        new ErrorHandlerServiceProvider(),
-        new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
-        $application,
-    ));
-} else {
-    $services = container(new AggregateServiceProvider(
-        new ErrorHandlerServiceProvider(),
-        new JsonErrorHandlerServiceProvider(),
-        $application,
-    ));
-}
+// The application is searched first; one library provider supplies negotiation and lifecycle.
+$services = container(
+    $application,
+    new ErrorHandlerServiceProvider(debug: $settings->get('error_handler.debug', false)),
+);
 
 // Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.
 $middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
@@ -1262,28 +1321,34 @@ $next = new class ($original) implements RequestHandlerInterface {
     }
 };
 
-$response = $middleware->process($messages->createServerRequest('GET', '/provider-json'), $next);
+$request = $messages->createServerRequest('GET', '/provider-json')
+    ->withHeader('Accept', 'application/json')
+;
 
-exampleCheck([$original] === $reports, 'The profile must report the exact original once.');
+$response = $middleware->process($request, $next);
+
+exampleCheck([$original] === $reports, 'Middleware must report the exact original once.');
 exampleCheck(503 === $response->getStatusCode(), 'Expected the native HTTP error code.');
 exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected JSON.');
+
+$publicBody = '{"type":"about:blank","title":"Service Unavailable","status":503,"detail":"Request failed"}';
 
 if ('debug' === $mode) {
     $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
     exampleCheck(
-        $original->getMessage() === $payload['exception']['message'],
+        $original->getMessage() === $payload['detail'],
         'Trusted debug configuration did not reach the renderer.',
     );
     exampleCheck('no-store' === $response->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
 } else {
-    exampleCheck('{"error":"Request failed"}' === (string) $response->getBody(), 'Public JSON leaked diagnostics.');
+    exampleCheck($publicBody === (string) $response->getBody(), 'Public JSON leaked diagnostics.');
 }
 
 // Applications emit the response; this CLI fixture prints only its verification summary.
-echo 'Interop JSON ' . $mode . ': configured profile, fresh scope and one private report passed' . PHP_EOL;
+echo 'Interop JSON ' . $mode . ': configured provider, fresh scope and one private report passed' . PHP_EOL;
 ```
 
-## Whoops service-provider profile
+## Public HTML and explicit Whoops negotiation
 
 Compose independent maps in one aggregate, configure the page service and reuse it sequentially while creating distinct request scopes. [Source](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php).
 
@@ -1295,14 +1360,19 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\WhoopsErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
+use FastForward\Container\Factory\CallableFactory;
 use FastForward\Container\Factory\ServiceFactory;
-use FastForward\Container\ServiceProvider\AggregateServiceProvider;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -1321,9 +1391,9 @@ exampleCheck(
 );
 
 // FastForward is a required runtime dependency of this PHP 8.3+ major.
-// Selecting this profile deliberately chooses diagnostic HTML; no request enables it.
+// Trusted debug permits HTML; the current request must still accept it.
 $mode = $argv[1] ?? 'default';
-exampleCheck(in_array($mode, ['default', 'configured'], true), 'Choose default or configured mode.');
+exampleCheck(in_array($mode, ['public', 'default', 'configured'], true), 'Choose public, default or configured mode.');
 
 $messages = new Psr17Factory();
 $reports = [];
@@ -1343,6 +1413,10 @@ $factories = [
 ];
 
 if ('configured' === $mode) {
+    if (!class_exists(PrettyPageHandler::class)) {
+        throw new RuntimeException('The configured development page needs filp/whoops:^2.18.7.');
+    }
+
     $settings = config([
         'development' => [
             'page_title' => 'Synthetic application diagnostics',
@@ -1361,14 +1435,34 @@ if ('configured' === $mode) {
     $factories[PrettyPageHandler::class] = new ServiceFactory($page);
 }
 
+if ('public' !== $mode) {
+    // Whoops is an explicit application choice; package presence never selects it.
+    $factories[ThrowableResponseFactoryInterface::class] = new CallableFactory(
+        /**
+         * Retain request negotiation while selecting a diagnostic HTML integration.
+         *
+         * @param ContainerInterface $services the composed application services
+         *
+         * @return NegotiatingThrowableResponseFactory the explicit application response policy
+         */
+        static function (ContainerInterface $services): NegotiatingThrowableResponseFactory {
+            /** @var ThrowableResponseFactoryInterface $fallback the generic error response */
+            $fallback = $services->get(ThrowableResponseFactory::class);
+
+            return new NegotiatingThrowableResponseFactory($fallback, [
+                'text/plain' => static fn() => $fallback,
+                'application/json' => static fn() => $services->get(JsonThrowableResponseFactory::class),
+                'application/problem+json' => static fn() => $services->get(JsonThrowableResponseFactory::class),
+                'text/html' => static fn() => $services->get(WhoopsThrowableResponseFactory::class),
+            ]);
+        },
+    );
+}
+
 $application = new ArrayServiceProvider($factories);
 
-// One aggregate selects HTML explicitly and applies the application's page override.
-$services = container(new AggregateServiceProvider(
-    new ErrorHandlerServiceProvider(),
-    new WhoopsErrorHandlerServiceProvider(),
-    $application,
-));
+// Application definitions win; development modes explicitly select the Whoops HTML candidate.
+$services = container($application, new ErrorHandlerServiceProvider(debug: 'public' !== $mode));
 
 $middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
 exampleCheck($middlewareFactory instanceof ErrorHandlerMiddlewareFactory, 'Expected the fresh-scope factory.');
@@ -1420,23 +1514,37 @@ $route = static function (Throwable $failure): RequestHandlerInterface {
 };
 
 $first = $firstScope->process(
-    $messages->createServerRequest('GET', '/first'),
+    $messages->createServerRequest('GET', '/first')->withHeader('Accept', 'text/html'),
     $route($failures[0]),
 );
 
 $second = $secondScope->process(
-    $messages->createServerRequest('GET', '/second'),
+    $messages->createServerRequest('GET', '/second')->withHeader('Accept', 'text/html'),
     $route($failures[1]),
 );
 
 exampleCheck($failures === $reports, 'Each original must reach the private reporter once.');
 exampleCheck(503 === $first->getStatusCode() && 404 === $second->getStatusCode(), 'Expected original HTTP codes.');
 exampleCheck('text/html; charset=UTF-8' === $first->getHeaderLine('Content-Type'), 'Expected HTML.');
-exampleCheck('no-store' === $first->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
+exampleCheck(
+    'public' === $mode || 'no-store' === $first->getHeaderLine('Cache-Control'),
+    'Diagnostics must not be cached.',
+);
 exampleCheck(
     !str_contains((string) $second->getBody(), $failures[0]->getMessage()),
     'The next page must not retain the first diagnostic.',
 );
+
+if ('public' === $mode) {
+    exampleCheck(0 === $pageCalls, 'Public HTML must not resolve a Whoops page.');
+    foreach ($failures as $failure) {
+        exampleCheck(
+            !str_contains((string) $first->getBody(), $failure->getMessage())
+                && !str_contains((string) $second->getBody(), $failure->getMessage()),
+            'Public HTML must not expose diagnostics.',
+        );
+    }
+}
 
 if ('configured' === $mode) {
     exampleCheck(1 === $pageCalls, 'Expected one cached configured page for sequential renders.');
@@ -1451,7 +1559,102 @@ if ('configured' === $mode) {
 }
 
 // No HTTP emission. Hiding selected keys is not comprehensive redaction.
-echo 'Whoops provider ' . $mode . ': lazy pages, fresh scopes and private reporting passed' . PHP_EOL;
+echo 'public' === $mode
+    ? 'HTML provider public: Symfony renderer, fresh scopes and private reporting passed' . PHP_EOL
+    : 'Whoops provider ' . $mode . ': lazy pages, fresh scopes and private reporting passed' . PHP_EOL;
+```
+
+
+## Symfony terminal diagnostics
+
+Choose explicit terminal reporting, an opt-in provider or one outer Console exception catch.
+The BufferedOutput is a synthetic destination; omit it for stderr in an application.
+[Source](https://github.com/coisa/error-handler/blob/master/examples/symfony-cli.php).
+
+<!-- source: examples/symfony-cli.php -->
+```php
+<?php
+
+declare(strict_types=1);
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\OutputInterface;
+
+use function FastForward\Container\container;
+
+require __DIR__ . '/bootstrap.php';
+
+$mode = $argv[1] ?? 'direct';
+exampleCheck(in_array($mode, ['direct', 'provider', 'console'], true), 'Choose direct, provider or console.');
+
+// BufferedOutput makes this synthetic recipe observable without printing private diagnostics.
+// Omit the constructor argument in an application to write directly to stderr.
+$output = new BufferedOutput();
+$terminal = new SymfonyCliThrowableHandler($output);
+$errors = new ErrorHandler($terminal);
+$failure = new RuntimeException('Synthetic terminal diagnostic');
+
+if ('provider' === $mode) {
+    $application = new ArrayServiceProvider([
+        OutputInterface::class => new ServiceFactory($output),
+    ]);
+    $services = container($application, new ErrorHandlerServiceProvider(cli: true));
+    $errors = $services->get(ErrorHandler::class);
+}
+
+if ('console' === $mode) {
+    $application = new Application('Synthetic command');
+    $application->setAutoExit(false);
+    $application->setCatchExceptions(false);
+    $application->addCommands([new class ($failure) extends Command {
+        /** @param Throwable $failure the unchanged synthetic command failure */
+        public function __construct(private readonly Throwable $failure)
+        {
+            parent::__construct('fail');
+        }
+
+        /**
+         * Fail without letting Console become a second exception renderer.
+         *
+         * @param InputInterface  $input  the synthetic command input
+         * @param OutputInterface $output the application-owned command output
+         *
+         * @return int this synthetic command never returns normally
+         *
+         * @throws Throwable the unchanged command failure
+         */
+        protected function execute(InputInterface $input, OutputInterface $output): int
+        {
+            throw $this->failure;
+        }
+    }]);
+
+    // The bootstrap owns this catch and reports once; Console's exception catch is disabled.
+    try {
+        $application->run(new ArrayInput(['command' => 'fail']), $output);
+    } catch (Throwable $caught) {
+        exampleCheck($failure === $caught, 'The original command failure must reach the bootstrap.');
+        $errors->handleThrowable($caught);
+    }
+} else {
+    $errors->handleThrowable($failure);
+}
+
+$diagnostic = $output->fetch();
+exampleCheck(1 === substr_count($diagnostic, $failure->getMessage()), 'Expected one terminal diagnostic.');
+exampleCheck(str_contains($diagnostic, RuntimeException::class), 'Expected Symfony exception formatting.');
+
+// Reporting does not set an exit status; this verification program succeeds intentionally.
+echo 'Symfony CLI ' . $mode . ': one terminal diagnostic and explicit capture ownership passed' . PHP_EOL;
 ```
 
 ## Failure and lifetime boundaries
@@ -1460,4 +1663,4 @@ Middleware requires lifecycle and reporting on one scoped object. It reports onc
 
 Unregister in reverse order and use distinct nested instances. Failed-reporter suppression applies within a registered lifecycle; independent direct calls remain usable. Arbitrary exit/die, engine fatals, callback side effects and concurrent native callback scopes are not recovered. See [provider](fast-forward.md), [API](api.md), [migration](migration.md) and [testing](testing.md).
 
-The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. The JSON/developer-HTML adapters and independent profiles delivered in 2.5.0 are retained with pure renderers after the middleware's report. ErrorHandler accepts matching callables directly while preserving interface precedence, default policies and explicit lifecycle ownership.
+The explicit logging, filtering, callable PHP-error and best-effort adapters are retained from delivered 2.x APIs. The default aggregate remains fail-fast; no implicit adapter discovery is added. Concrete JSON/Whoops adapters remain available. The single provider negotiates JSON or public/debug Symfony HTML from each current request; optional Whoops requires an explicit application override. All response factories require the current request, and middleware reports before rendering. ErrorHandler accepts matching callables directly while preserving interface precedence, default policies and explicit lifecycle ownership.

@@ -21,6 +21,7 @@ use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
@@ -97,7 +98,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
 
         self::assertSame(0, $calls);
         $this->expectOutputString('');
-        $response = $renderer->createResponseFromThrowable($original);
+        $response = $renderer->createResponseFromThrowable(
+            $original,
+            new ServerRequest('GET', 'https://example.test/'),
+        );
 
         self::assertSame(1, $calls);
         self::assertSame($status, $response->getStatusCode());
@@ -164,8 +168,14 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
         );
         $responses = new ReportingThrowableResponseFactory($reporter, $renderer);
 
-        $firstResponse = $responses->createResponseFromThrowable($first);
-        $secondResponse = $responses->createResponseFromThrowable($second);
+        $firstResponse = $responses->createResponseFromThrowable(
+            $first,
+            new ServerRequest('GET', 'https://example.test/'),
+        );
+        $secondResponse = $responses->createResponseFromThrowable(
+            $second,
+            new ServerRequest('GET', 'https://example.test/'),
+        );
 
         self::assertSame([$first, $second], $reported);
         self::assertSame([$first, $second], $inspected);
@@ -195,7 +205,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
             /** @return PrettyPageHandler the upstream defaults used as a positive exposure control */
             static fn(): PrettyPageHandler => new PrettyPageHandler(),
         );
-        $visible = (string) $default->createResponseFromThrowable($original)->getBody();
+        $visible = (string) $default->createResponseFromThrowable(
+            $original,
+            new ServerRequest('GET', 'https://example.test/'),
+        )->getBody();
 
         $configured = new WhoopsThrowableResponseFactory(
             $messages,
@@ -210,7 +223,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
                 return $page;
             },
         );
-        $hidden = (string) $configured->createResponseFromThrowable($original)->getBody();
+        $hidden = (string) $configured->createResponseFromThrowable(
+            $original,
+            new ServerRequest('GET', 'https://example.test/'),
+        )->getBody();
 
         foreach ([$authorization, $cookie, $environment] as $secret) {
             self::assertStringContainsString($secret, $visible);
@@ -242,7 +258,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
 
         try {
             (new ReportingThrowableResponseFactory($reporter, $renderer))
-                ->createResponseFromThrowable(new \RuntimeException('Original event'))
+                ->createResponseFromThrowable(
+                    new \RuntimeException('Original event'),
+                    new ServerRequest('GET', 'https://example.test/'),
+                )
             ;
             self::fail('The private reporter failure must propagate.');
         } catch (\LogicException $caught) {
@@ -291,7 +310,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
 
         try {
             try {
-                $renderer->createResponseFromThrowable(new \RuntimeException('Original event'));
+                $renderer->createResponseFromThrowable(
+                    new \RuntimeException('Original event'),
+                    new ServerRequest('GET', 'https://example.test/'),
+                );
             } catch (\Throwable $error) {
                 $caught = $error;
             }
@@ -363,7 +385,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
         $reporter->expects(self::once())->method('handleThrowable')->with(self::identicalTo($original));
 
         try {
-            (new ReportingThrowableResponseFactory($reporter, $renderer))->createResponseFromThrowable($original);
+            (new ReportingThrowableResponseFactory($reporter, $renderer))->createResponseFromThrowable(
+                $original,
+                new ServerRequest('GET', 'https://example.test/'),
+            );
             self::fail('The original collaborator failure must propagate.');
         } catch (\LogicException $caught) {
             self::assertSame($failure, $caught);
@@ -399,7 +424,10 @@ final class WhoopsThrowableResponseFactoryTest extends TestCase
         $renderer = new WhoopsThrowableResponseFactory($messages, $messages, $factory);
 
         $this->expectException(\TypeError::class);
-        $renderer->createResponseFromThrowable(new \RuntimeException('Original event'));
+        $renderer->createResponseFromThrowable(
+            new \RuntimeException('Original event'),
+            new ServerRequest('GET', 'https://example.test/'),
+        );
     }
 
     /** @return array<string, array{mixed}> invalid null, scalar and unrelated object results */
