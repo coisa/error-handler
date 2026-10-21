@@ -20,6 +20,25 @@ retired PHPUnit 9 annotation metadata. Dependency resolution is version-specific
 record PHP, Composer and `composer show --locked` rather than assuming all runners
 resolve the same packages. No host runtime installation is required by this guide.
 
+## Symfony compatibility combinations
+
+The workflow's dedicated Symfony matrix selects these component lines and runs
+the complete Composer quality check on each resolved graph:
+
+| PHP | ErrorHandler / Serializer | HttpFoundation |
+| --- | --- | --- |
+| 8.3 | 5.4 / 5.4 | 6.4 |
+| 8.3 | 6.4 / 6.4 | 6.4 |
+| 8.4 | 7.0 / 7.0 | 7.4 |
+| 8.5 | 8.0 / 8.0 | 8.1 |
+
+ErrorHandler and Serializer admit compatible major versions 5, 6, 7 and 8;
+HttpFoundation admits 6, 7 and 8. Composer's declared patch floors remain
+authoritative, including the HttpFoundation Accept-parser security fixes.
+Matrix selectors intersect those constraints; they do not permit an older
+vulnerable patch. Record the actual locked component versions and native result
+for each run. Selected combinations do not establish every possible solver graph.
+
 ## Direct and process tests
 
 The Unit suite exercises handlers, listeners, providers, HTTP adapters and native
@@ -63,6 +82,14 @@ no suppression, native-function double or fabricated path establishes this resul
 Child execution remains separate from parent unit coverage. Existing renderer
 unit tests exercise real-file rendering and collaborator failures directly.
 
+The terminal handler's native-stderr case uses a two-second, 64 MiB child with
+a 64 KiB observed-output bound and cleared inherited environment. It blocks Console
+autoloading, reports two synthetic throwables to stderr, verifies that stdout contains only the continuation
+marker and confirms the caller continues. Direct tests separately exercise raw
+Console/error-output routing and collaborator failures. Child execution is
+behavioral evidence; its lines are not merged into the parent's Xdebug/PCOV
+coverage. No coverage driver is installed or enabled by that fixture.
+
 Whoops remains optional. Composer consumer resolution must reject 2.18.6, accept
 2.18.7 and still install without Whoops. A declared development dependency alone
 does not enforce or prove that optional consumer floor.
@@ -84,6 +111,11 @@ including nested examples and its license, with exact source bytes. Functional
 PHPUnit cases reject missing, changed and unrelated resource assets; the bundled
 application programs use an explicit consumer autoloader. See the
 [skill examples](../resources/skills/coisa-error-handler/examples/README.md).
+The standalone production alias-factory fixture enables E_ALL and converts runtime
+diagnostics, including deprecations, into failures before loading the consumer
+autoloader. A no-dev graph that resolves successfully must still execute that
+fixture cleanly; dependency installation alone is not execution evidence.
+
 FastForward may normalize construction failures and retry autowiring: failed
 required construction is asserted without promising one attempt or original cause.
 
@@ -132,6 +164,26 @@ DotAccessData from that runtime graph. The Nyholm development minimum is 1.8.2,
 which includes its PHP 8.5 nullable-parameter fixes. Applications select their
 own PSR-17 implementation. Keep dependency diagnostics under `E_ALL` visible and
 record the graph, test totals, native uncovered lines and hosted SHA in PR evidence.
+
+## FastForward event-dispatcher integration limits
+
+The event recipe and functional composition use published
+[FastForward EventDispatcher 1.0.0](https://github.com/php-fast-forward/event-dispatcher/tree/v1.0.0),
+configured with Error Handler's own typed listener-provider objects. They verify
+raw Throwable identity, the separate CoiSA ErrorEvent and one private log record
+after delivery. This is the tested integration path, not certification of every
+upstream dispatcher feature.
+
+Bounded checks of that specific upstream release also found that its subscriber
+adapter consumes registrations after the first dispatch; a listener throwing a
+PDOException with a string SQLSTATE code can have that failure replaced by
+TypeError. Explicitly dispatching its own NamedEvent returns the inner object,
+and explicitly dispatching its own ErrorEvent can replace the current listener
+failure with the wrapper's earlier throwable. Those wrapper cases concern
+FastForward's classes, not CoiSA's ErrorEvent. The library does not patch these
+upstream behaviors. Applications may supply another PSR-14 dispatcher; do not
+infer a guarantee for failing transports or subscriber/wrapper paths from the
+recipe's successful in-memory delivery.
 
 ## Limits
 

@@ -25,6 +25,25 @@ use Psr\Container\ContainerExceptionInterface;
 
 use function FastForward\Container\container;
 
+error_reporting(E_ALL);
+set_error_handler(
+    /**
+     * Reject runtime diagnostics in the resolved production graph, including deprecations.
+     *
+     * @param int    $severity the PHP diagnostic severity
+     * @param string $message  the diagnostic message
+     * @param string $file     the originating source file
+     * @param int    $line     the originating source line
+     *
+     * @return never diagnostics are failures of this standalone verification process
+     *
+     * @throws ErrorException for every runtime diagnostic
+     */
+    static function (int $severity, string $message, string $file, int $line): never {
+        throw new ErrorException($message, 0, $severity, $file, $line);
+    },
+);
+
 require $argv[1] ?? dirname(__DIR__, 2) . '/vendor/autoload.php';
 
 $reported = [];

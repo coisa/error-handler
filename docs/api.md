@@ -93,7 +93,10 @@ event respectively. Their callback failures propagate. `LogErrorEventListener`
 forwards the diagnostic event to an application PSR-3 logger.
 `ErrorEvent::getThrowable()` preserves the original object; stringifying the
 event includes private diagnostics and must not produce a public HTTP body.
-See [the complete event/logger example](examples.md#events).
+See [the complete event/logger example](examples.md#events). It uses FastForward
+EventDispatcher 1.0.0 with this library's own listener-provider instances.
+Applications may choose another PSR-14 dispatcher; upstream subscriber,
+listener-failure and wrapper behavior has [separately documented limits](testing.md#fastforward-event-dispatcher-integration-limits).
 
 ## Direct PSR-3 logging
 

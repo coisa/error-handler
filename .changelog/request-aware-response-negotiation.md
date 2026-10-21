@@ -19,6 +19,8 @@ selection independent across requests that reuse the same cached service.
 Serialize Problem Details with Symfony Serializer, preserving public HTTP status
 codes and keeping trace arguments and objects out of debug responses. Support
 compatible Symfony component majors without requiring a matching VarDumper major.
+Exclude older component patches that emit native PHP 8.4+ deprecations, including
+incompatible transitive VarDumper versions, without adding a direct dependency.
 Offer an explicit Symfony CLI reporter through the same provider, writing to
 STDERR or the application's Console error output without installing native hooks.
 Demonstrate PSR-14 reporting with FastForward Event Dispatcher and its provider.
