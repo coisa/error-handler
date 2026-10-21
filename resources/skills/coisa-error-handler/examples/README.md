@@ -1,31 +1,27 @@
 # Complete application examples
 
-These programs support `coisa/error-handler ^2.4` and PHP 7.4-compatible
-syntax. They accept an existing consumer autoloader as their first argument;
-they never install dependencies, emit HTTP or contact a real diagnostic service.
-Every named class has its own matching file.
-The JSON/Whoops/provider programs require `coisa/error-handler ^2.5`, first
-published in 2.5.0, and their named APIs in the installed library.
-Inspect the selected package first as described in the
-[availability checks](../references/json.md#inspect-the-selected-installation);
-the common `^2.4` requirement alone does not establish their presence.
-The HTML route has its own [Whoops availability checks](../references/whoops.md#inspect-the-selected-installation).
+These programs exercise the skill's API baseline on PHP `^8.3`. Inspect the
+consumer's installed package version, source and autoloader first. They never install dependencies, emit HTTP or contact a
+real diagnostic service. Every named class has its own matching file.
+
+Pass the application's existing `vendor/autoload.php` as the first argument.
+Programs load their bundled fixtures explicitly; they do not depend on the
+library's development autoload map. Commands below use a normal Composer vendor
+path. In a source checkout, replace `vendor/coisa/error-handler/` with `./`;
+for a copied skill, use that copy's `examples/` path. Keep the application
+autoloader argument in either case. A path or version mismatch is a failure,
+not permission to install or upgrade the library automatically.
 
 ## Configured reporting
 
-Install the library in the application with Composer 2:
-
-```sh
-composer require 'coisa/error-handler:^2.4' --no-plugins --no-scripts
-```
-
-Run from the library source root:
+Use the application's existing Composer autoloader for the installed package. From
+the library source root after its documented dependency setup:
 
 ```sh
 php resources/skills/coisa-error-handler/examples/configured.php ./vendor/autoload.php
 ```
 
-From an installed distribution:
+When the selected source is installed under the normal Composer vendor path:
 
 ```sh
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/configured.php ./vendor/autoload.php
@@ -36,9 +32,10 @@ autoloader. Expect exit 0 and
 `configured reporting: original delivered once`.
 
 `config/error-handler.php` selects a `RecordingThrowableHandler`.
-`ConfiguredErrorHandlerFactory` applies flat explicit overrides after that
-configuration, rejects absent/invalid reporters and returns a fresh
-`ErrorHandler`. The program verifies original-object identity and one delivery.
+`ConfiguredErrorHandlerFactory` accepts interface or callable reporters and
+applies flat explicit overrides after that configuration, rejects absent/invalid
+reporters and returns a fresh `ErrorHandler`. The program verifies original-object
+identity and one delivery for the configured interface and a callable override.
 The factory and its keys are application example code, not library APIs.
 
 To integrate in an application, copy those named files into its own source/config
@@ -48,145 +45,159 @@ production autoload mapping is needed just to try them. Replace the in-memory
 reporter with the application's private reporter. Construction installs no
 callbacks; register only at the actual process/request boundary.
 
-## Legacy container
+## FastForward container
 
-Install the optional application implementation compatible with its PHP:
+The library requires FastForward `^1.10` at runtime. Run with the selected major
+source:
 
 ```sh
-composer require 'laminas/laminas-servicemanager:^3.0 || ^4.0' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/container.php ./vendor/autoload.php
 ```
 
 The source-checkout equivalent replaces `vendor/coisa/error-handler/` with
 `./`. Expect exit 0 and
-`legacy container: application reporter, caching and fresh scope passed`.
+`Interop provider: application reporter, caching and fresh scope passed`.
 
-The application parent binds `ThrowableHandlerInterface`, which takes priority
-over library definitions. The program checks repeated resolution returns the
-cached core while explicit `ErrorHandlerFactory` invocation gives a different
-handler. It supplies no implicit registration. See
-[container composition](../references/container.md) for ConfigProvider and failure
-boundaries.
+The application maps its required `ThrowableHandlerInterface` to the reporter's
+first-class method callable through FastForward's `ServiceFactory`.
+One `AggregateServiceProvider` merges library
+definitions first and application definitions last, so the explicit reporter wins.
+The program checks cached core identity and invokes the reusable
+`ServiceProvider\Factory\ErrorHandlerFactory` service for a distinct scope.
+Resolution installs no callbacks. See [container composition](../references/container.md)
+for ordinary optional discovery and actual failure/fallback boundaries.
 
 ## Explicit HTTP policy
 
-Supply Nyholm as the application's PSR-17 implementation:
+Supply Nyholm as the application's PSR-17 implementation if it has not selected
+one already:
 
 ```sh
-composer require 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'nyholm/psr7:^1.8.2' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/http.php ./vendor/autoload.php
 ```
 
 Expect exit 0 and
 `HTTP: private report once and fixed public response passed`.
 
-`PublicThrowableResponseFactory` is a complete application implementation of the
-library's response-factory interface. It sends the original to the private
-reporter once, then creates status 500, a standard PSR-17 reason and the literal
-body `{"error":"Request failed"}`, with JSON content type and `no-store`.
-It neither captures output nor copies exception details into the response.
+`PublicThrowableResponseFactory` is a complete, pure application implementation
+of the library's response-factory interface. Middleware sends the original to
+the private reporter once before this renderer creates status 500, a standard
+PSR-17 reason and the literal body `{"error":"Request failed"}`, with JSON
+content type and `no-store`. The renderer never reports again, captures output
+or copies exception details. This is not a built-in JSON adapter.
+
 `ThrowingRequestHandler` supplies a synthetic request failure; middleware owns
 callback registration/restoration. The URI `http://example.test/` constructs a
 request value and is never contacted. Applications own the real emitter and
-should test their reporter/PSR-17 failures as well as successful rendering.
+should test reporter/PSR-17 failures as well as successful rendering.
 
 ## Library JSON responses
 
-After verifying the installed `JsonThrowableResponseFactory` and
-`ReportingThrowableResponseFactory`, supply an application PSR-17 implementation
-such as Nyholm and run both configurations. For an authorized installation:
+Use the same application PSR-17 implementation as the HTTP program. The built-in
+renderer takes the factories and a trusted boolean; no provider is needed:
 
 ```sh
-composer require 'coisa/error-handler:^2.5' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/json.php ./vendor/autoload.php public
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/json.php ./vendor/autoload.php debug
 ```
 
 Expect exit 0 and `JSON public: original reported once and explicit response passed`
-or the equivalent `JSON debug` line. In a source checkout, replace
-`vendor/coisa/error-handler/` with `./`; a copied skill uses its own program path.
+or `JSON debug: original reported once and explicit response passed`.
+The explicit CLI mode represents trusted application configuration, never an
+HTTP input. Middleware reports the original once and invokes the pure JSON
+renderer directly. The program checks status 503, JSON content type, the exact
+public Problem Details (`type`, `title`, `status`, generic `detail`) or selected diagnostic metadata,
+metadata-only trace frames and unchanged caller buffers. Debug adds `no-store`;
+it can expose messages and paths. See [JSON policy](../references/json.md).
 
-The program explicitly selects a boolean configuration, supplies a recording
-private reporter and wraps the pure JSON factory with the reporting decorator.
-It checks HTTP 503, content type, the exact generic public body or selected
-metadata-only debug trace, one identical private report, PSR-17 reason selection
-and unchanged output-buffer level. Debug on PHP 7.4 requires ext-json; PHP 8
-includes it. The application still owns actual response emission.
+## Interop JSON negotiation
 
-## Interop JSON profile
-
-This optional application route needs PHP 8.3+ and FastForward as an application
-runtime dependency. It does not change the library core's PHP 7.4 contract:
+Use FastForward from the major's runtime graph and the application's PSR-17
+implementation. The program reads a real boolean with FastForward Config before
+constructing the provider:
 
 ```sh
-composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-json.php ./vendor/autoload.php public
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-json.php ./vendor/autoload.php debug
 ```
 
-First inspect that this installed library offers both Interop providers and the
-fresh middleware factory. Expect exit 0 and
-`Interop JSON public: independent providers and fresh scope passed`, or the
-equivalent `Interop JSON debug` line. Use the source/copied-path substitution
-above when appropriate.
+Expect exit 0 and
+`Interop JSON public: single provider and fresh scope passed` or
+`Interop JSON debug: single provider and fresh scope passed`.
+The application supplies PSR-17 and reporter services first, followed by one
+`ErrorHandlerServiceProvider(debug: $debug)`. Each current request explicitly
+accepts JSON. This selects the pure JSON renderer without constructing Whoops
+or adding a reporting decorator.
+The program invokes the reusable middleware factory for a fresh scope, checks
+the actual selected renderer, and verifies one report and the requested public
+or debug body. FastForward Config supplies application values, not automatic
+provider hydration. See [provider precedence](../references/container.md).
 
-The application map supplies PSR-17 and its private reporter. JSON precedes the
-base provider in the separate-provider call. FastForward Config supplies the
-trusted bool before constructing the debug provider; it does not hydrate it.
-The program checks the actual reporting renderer, distinct explicit middleware
-scopes, one original report and the selected JSON body. Read
-[provider precedence and failure behavior](../references/json.md#compose-independent-providers)
-before applying required overrides; ordering is not a fail-closed policy.
+## Library HTML responses
+
+Symfony HTML needs no optional Whoops package. With the application's PSR-17
+implementation installed, run:
+
+```sh
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/html.php ./vendor/autoload.php public
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/html.php ./vendor/autoload.php debug
+```
+
+Expect exit 0 and `HTTP HTML public: Symfony rendering and one original report passed`
+or the same summary with `debug`. The program reports the original once, then
+calls `HtmlThrowableResponseFactory::createResponseFromThrowable($failure, $request)`.
+The required current request is explicit. Public HTML omits exception details;
+trusted debug enables Symfony diagnostics. Both return HTML and status503 without emission; debug adds no-store. The provider uses this same renderer by default.
 
 ## Development HTML
 
-After verifying the installed Whoops renderer and reporting decorator, explicitly
-select this route only for application-controlled development HTML. Install
-optional Whoops and a PSR-17 implementation for the selected environment:
+The application explicitly chooses a development HTML pipeline. If this optional
+route is authorized and Whoops is not already a runtime dependency, add it to the
+application rather than relying on this library's development dependencies:
 
 ```sh
-composer require 'coisa/error-handler:^2.5' --no-plugins --no-scripts
-composer require --dev 'filp/whoops:^2.18.7' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+composer require 'filp/whoops:^2.18.7' --no-plugins --no-scripts
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/whoops.php ./vendor/autoload.php
 ```
 
-Expect exit 0 and
+Use the application's selected PSR-17 implementation as above. Expect exit 0 and
 `Whoops HTML: explicit development page and one original report passed`.
-The source/copied-path substitution above also applies. The complete program
-configures a page title and selected hidden fields, reports privately before
-rendering, and checks HTTP 503, escaped diagnostic text, content type, `no-store`,
-default PSR-17 reason and unchanged buffer level. It emits no HTTP. Selected key
-hiding does not establish complete redaction. Keep a generic response policy
-for public users; the renderer does not negotiate a request's format.
+The program supplies a trusted page callback, checks that construction invokes
+no page, and verifies one private report, status 503, escaped HTML, `no-store` and
+unchanged caller buffers. The callback creates/configures the page; middleware
+receives the pure renderer directly. No `Accept` header or public environment flag
+enables this route. Selected field hiding is not complete redaction.
 
-## Interop Whoops profile
+## Interop HTML negotiation
 
-Verify the installed provider and middleware-factory APIs first. PHP 8.3+ and
-FastForward are required only for this optional container integration. If the
-selected application runtime uses this profile with `--no-dev`, it must keep
-Whoops, FastForward and its PSR-17 implementation in its own runtime requirements:
+Keep Whoops in the selected application's actual runtime graph, including a
+`--no-dev` installation. With the same PSR-17 implementation, run public and explicitly selected Whoops modes:
 
 ```sh
-composer require 'coisa/error-handler:^2.5' 'fast-forward/container:^1.9' 'filp/whoops:^2.18.7' 'nyholm/psr7:^1.8' --no-plugins --no-scripts
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php public
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php default
 php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/provider-whoops.php ./vendor/autoload.php configured
 ```
 
-Expect exit 0 and
-`Interop Whoops default: explicit aggregate, shared page and original reports passed`,
-or the equivalent `Interop Whoops configured` line. Both modes compose one
-`AggregateServiceProvider` in base, Whoops, application order. The independent
-Whoops provider has no constructor; the configured application prepares its
-`PrettyPageHandler` before composition and registers it with `ServiceFactory`.
-The program checks two fresh middleware scopes, each original reported once,
-sequential diagnostic replacement and retained page configuration.
+Expect exit 0 and `Interop HTML public: Symfony renderer and original reports passed`,
+`Interop Whoops default: single provider, shared page and original reports passed`
+or `Interop Whoops configured: single provider, shared page and original reports passed`.
+Public mode uses the single provider's Symfony HTML with debug false and needs
+no Whoops package. Development default/configured modes explicitly override the
+negotiating factory's HTML candidate with Whoops; JSON and generic candidates
+remain available. Installing Whoops alone never changes the library default.
+All modes supply the application first and invoke the middleware factory for
+distinct scopes. The configured mode reads a trusted page title through
+FastForward Config, prepares the page before `get()` and binds it with
+`ServiceFactory`. The provider's only option is a trusted debug boolean.
+Checks cover original-object delivery, statuses, selected renderer, retained
+page configuration and replacement of sequential diagnostic data.
 
-Read [page lifetime and container fallback](../references/whoops.md#compose-the-independent-whoops-profile)
-before changing the composition. An aggregate selects bindings but does not
-disable autowire fallback after a concrete page factory fails. Separate providers
-can lose the missing-package hint and report the original twice through capture.
-The [diagnostic limits](../references/whoops.md#verify-diagnostic-and-delivery-limits)
-also explain native source-frame preservation and legitimate warning delivery.
+The page can be cached and reused sequentially, retaining the latest diagnostic;
+the Run, response and body are fresh. Map precedence does not disable concrete
+autowiring fallback. See [Whoops composition and limits](../references/whoops.md),
+including trusted development activation and diagnostic exposure.
 
 ## Failure and verification boundaries
 
@@ -195,4 +206,26 @@ configuration is checked before constructing the core. Reporter/PSR-17 failures
 propagate; the examples do not suppress them or claim success. The library's
 PHPUnit suite exercises these application fixtures and failure paths. Production
 delivery, a real web server, arbitrary fatal callbacks and an agent host's
-activation are outside these programs.
+activation are outside these programs. JSON and Whoops programs use the major's
+report-before-render contract; adding `ReportingThrowableResponseFactory` to
+their middleware would report the original again. The explicit utility remains
+available to application pipelines that have not already reported.
+
+## Symfony terminal diagnostics
+
+The optional `symfony/console` application package supplies the observable output
+and Console application used by this recipe. The handler's default stderr mode
+itself does not require Console.
+
+```sh
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/symfony-cli.php ./vendor/autoload.php direct
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/symfony-cli.php ./vendor/autoload.php provider
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/symfony-cli.php ./vendor/autoload.php console
+```
+
+Each exits 0 with `Symfony CLI <mode>: one terminal diagnostic and explicit capture ownership passed`.
+It verifies one diagnostic in BufferedOutput; real applications omit the handler's
+output argument for stderr or inject their Console output. Provider mode sets
+`cli: true`. Console mode disables its default exception catch and reports once
+at the outer application boundary. A real application chooses the failure exit
+status. See [reporter boundaries](../references/reporters.md#symfony-terminal-diagnostics).

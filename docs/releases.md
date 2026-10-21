@@ -30,7 +30,9 @@ Categories are `added`, `changed`, `deprecated`, `removed`, `fixed` and `securit
 Always specify `type`: `patch` for compatible fixes or maintenance, `minor` for
 compatible additions, and `major` for breaking changes. A tooling change or an
 upstream dependency's major version does not itself require a library major.
-The 2.x maintenance line preserves its public API and PHP requirements.
+Compatible patch and minor releases preserve the public API and PHP requirements
+of their major line. See the [migration guide](migration.md) for the 2.x to 3.x
+transition.
 
 PR references are discovered automatically after contributions are merged.
 Write the fragment before opening its PR; no follow-up edit is needed to add
@@ -81,8 +83,8 @@ active while disabling this tool's automatic synchronization, set
 installation with plugins disabled, run `composer skills:update` when you want
 the local instructions. Do not commit or edit the generated copy.
 
-The plugin is a development tool requiring PHP 8.2+. It does not install the
-Changelog CLI or change this library's PHP 7.4+ runtime support. The workflow
+The plugin is a development tool. It does not install the Changelog CLI or
+change this library's PHP `^8.3` runtime requirement. The workflow
 supplies its own Changelog runtime. The library's bundled `coisa-error-handler`
 consumer skill remains under `resources/skills`; this project setup does not
 replace it. Neither `skills.json` nor `.agents/` is included in Composer archives.
@@ -132,12 +134,11 @@ No qualifying merged PR leaves the description alone; ambiguous or unavailable
 evidence blocks preparation rather than inventing a reference.
 
 The workflow follows upstream's official `v0` compatibility branch. This is a
-branch/channel, not a version tag; the reviewed implementation matches published
-`v0.2.0`. Minor updates in the `0.x` channel can change contracts. Verify the
-channel's resolved commit and compatible release contract when investigating a
-run or updating the integration.
+branch/channel, not a version tag. Minor updates in the `0.x` channel can change
+contracts. Verify the channel's resolved commit and compatible published release
+contract when investigating a run or updating the integration.
 
-Review the [upstream lifecycle contract](https://github.com/php-fast-forward/changelog/blob/v0.2.0/docs/reusable-lifecycle.md)
+Review the [upstream lifecycle contract](https://github.com/php-fast-forward/changelog/blob/v0.3.0/docs/reusable-lifecycle.md)
 before changing the workflow's runtime reference or settings. The caller supplies
 no consumer PHP, Composer or Node runtime and keeps its current Linux runner and
 job-scoped permissions. Do not add privileged execution of PR code.
@@ -147,7 +148,7 @@ changelog status verifies release inputs; it does not run the PHP suite.
 With `GITHUB_TOKEN`, GitHub can require owner approval before workflows on a
 generated PR run. Approve those runs and verify their exact head before merging.
 An optional GitHub App is an application-level authentication choice, described
-in the [upstream guide](https://github.com/php-fast-forward/changelog/blob/v0.2.0/docs/github-app.md).
+in the [upstream guide](https://github.com/php-fast-forward/changelog/blob/v0.3.0/docs/github-app.md).
 This workflow configures no App, secret, repository setting or branch rule.
 
 Central-history maintenance requires the reusable's verified maintain/admin

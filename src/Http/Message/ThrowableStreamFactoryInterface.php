@@ -21,9 +21,9 @@ use Psr\Http\Message\StreamInterface;
 /**
  * Interface ThrowableStreamFactoryInterface.
  *
- * Defines the contract for creating PSR-7 streams from Throwable instances.
- * Implementing classes SHALL ensure that throwable details are converted
- * into a valid PSR-7 stream representation, suitable for logging or HTTP responses.
+ * Defines the contract for creating PSR-7 streams for Throwable instances.
+ * Implementations choose the representation, which may be generic and omit
+ * diagnostic details. Creating a stream does not imply reporting or emission.
  *
  * @package CoiSA\ErrorHandler\Http\Message
  */
@@ -32,12 +32,12 @@ interface ThrowableStreamFactoryInterface
     /**
      * Creates a stream from a Throwable instance.
      *
-     * This method SHALL process the provided Throwable and convert its details
-     * into a PSR-7 compliant StreamInterface instance.
+     * The representation may omit the throwable's diagnostic details according
+     * to the application's public-output policy.
      *
      * @param \Throwable $throwable the throwable instance to convert into a stream
      *
-     * @return StreamInterface the generated PSR-7 stream containing throwable details
+     * @return StreamInterface the generated PSR-7 stream representation
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface;
 }

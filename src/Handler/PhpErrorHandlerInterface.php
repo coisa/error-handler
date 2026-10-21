@@ -46,6 +46,6 @@ interface PhpErrorHandlerInterface
         int $code,
         string $message,
         string $filename,
-        int $line
+        int $line,
     ): void;
 }

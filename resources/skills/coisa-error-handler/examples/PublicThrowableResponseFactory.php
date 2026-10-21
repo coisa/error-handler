@@ -16,20 +16,17 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Example;
 
-use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Application policy: report privately once, then build a fixed public response.
+ * Application policy: build a fixed public response after middleware reports privately.
  */
 final class PublicThrowableResponseFactory implements ThrowableResponseFactoryInterface
 {
-    /** @var ThrowableHandlerInterface the application's private diagnostic sink */
-    private ThrowableHandlerInterface $reporter;
-
     /** @var ResponseFactoryInterface the application-supplied PSR-17 response factory */
     private ResponseFactoryInterface $responses;
 
@@ -37,35 +34,31 @@ final class PublicThrowableResponseFactory implements ThrowableResponseFactoryIn
     private StreamFactoryInterface $streams;
 
     /**
-     * Compose reporting and response construction without installing callbacks.
+     * Compose pure response construction without reporting or installing callbacks.
      *
-     * @param ThrowableHandlerInterface $reporter  the private reporter
-     * @param ResponseFactoryInterface  $responses the application's response factory
-     * @param StreamFactoryInterface    $streams   the application's stream factory
+     * @param ResponseFactoryInterface $responses the application's response factory
+     * @param StreamFactoryInterface   $streams   the application's stream factory
      */
     public function __construct(
-        ThrowableHandlerInterface $reporter,
         ResponseFactoryInterface $responses,
-        StreamFactoryInterface $streams
+        StreamFactoryInterface $streams,
     ) {
-        $this->reporter = $reporter;
         $this->responses = $responses;
         $this->streams = $streams;
     }
 
     /**
-     * Report once before returning a generic body without exception details.
+     * Return a generic body without copying exception details or reporting again.
      *
-     * @param \Throwable $throwable the original failure, kept in private diagnostics
+     * @param \Throwable             $throwable the original failure, already reported by middleware
+     * @param ServerRequestInterface $request   the current request supplied by middleware
      *
-     * @return ResponseInterface a status-500 response with an application-owned JSON body
+     * @return ResponseInterface a status-500 response with an application-owned body
      *
-     * @throws \Throwable when reporting or a PSR-17 collaborator fails
+     * @throws \Throwable when a supplied PSR-17 factory fails
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
+    public function createResponseFromThrowable(\Throwable $throwable, ServerRequestInterface $request): ResponseInterface
     {
-        $this->reporter->handleThrowable($throwable);
-
         return $this->responses->createResponse(500)
             ->withHeader('Content-Type', 'application/json')
             ->withHeader('Cache-Control', 'no-store')

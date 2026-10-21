@@ -18,14 +18,14 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 
 use CoiSA\ErrorHandler\Handler\CallableShutdownHandler;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Verifies explicit zero-argument delivery and unchanged callback failures.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\CallableShutdownHandler
  */
+#[CoversClass(CallableShutdownHandler::class)]
 final class CallableShutdownHandlerTest extends TestCase
 {
     /** Construction is inert; each explicit shutdown call invokes the callback once. */

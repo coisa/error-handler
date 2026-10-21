@@ -18,14 +18,14 @@ namespace CoiSA\ErrorHandler\Test\Unit\EventDispatcher\Listener;
 
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Verifies callback return values cannot replace the listener's throwable event.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener
  */
+#[CoversClass(ThrowableCallableListener::class)]
 final class ThrowableCallableListenerTest extends TestCase
 {
     /**

@@ -17,7 +17,6 @@ declare(strict_types=1);
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -29,9 +28,9 @@ require_once __DIR__ . '/RecordingThrowableHandler.php';
 
 require_once __DIR__ . '/ThrowingRequestHandler.php';
 
-foreach ([WhoopsThrowableResponseFactory::class, ReportingThrowableResponseFactory::class] as $class) {
+foreach ([WhoopsThrowableResponseFactory::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
+        throw new RuntimeException('The selected library installation lacks ' . $class);
     }
 }
 
@@ -67,9 +66,7 @@ if (0 !== $pageCalls) {
     throw new RuntimeException('Construction must not invoke the page callback.');
 }
 
-$rendering = new ReportingThrowableResponseFactory($reporter, $html);
-
-$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $rendering);
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $html);
 
 $entryLevel = ob_get_level();
 $response = $middleware->process(
@@ -90,7 +87,7 @@ if ('text/html; charset=UTF-8' !== $response->getHeaderLine('Content-Type')
     throw new RuntimeException('Expected non-cacheable development HTML.');
 }
 
-if (false === strpos((string) $response->getBody(), '&lt;private synthetic HTML diagnostic&gt;')) {
+if (!str_contains((string) $response->getBody(), '&lt;private synthetic HTML diagnostic&gt;')) {
     throw new RuntimeException('Expected the escaped development diagnostic.');
 }
 

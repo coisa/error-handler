@@ -20,16 +20,16 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler;
 use PHPUnit\Framework\TestCase;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies wrapper creation without losing the original throwable or dispatcher failure.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\DispatchErrorEventThrowableHandler
- *
- * @uses \CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent
  */
+#[CoversClass(DispatchErrorEventThrowableHandler::class)]
+#[UsesClass(ErrorEvent::class)]
 final class DispatchErrorEventThrowableHandlerTest extends TestCase
 {
     /** Dispatch one concrete ErrorEvent wrapping the exact original throwable. */

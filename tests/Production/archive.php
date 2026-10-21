@@ -37,11 +37,11 @@ foreach (new RecursiveIteratorIterator($archive) as $file) {
 
     $path = substr($file->getPathname(), strlen($prefix));
 
-    // Runtime code, useful guides and the canonical consumer skill are distribution assets.
+    // Runtime code, useful guides and the canonical skill are distribution assets.
     $allowed = in_array($path, ['composer.json', 'LICENSE', 'README.md', 'CHANGELOG.md', 'SECURITY.md'], true)
-        || 0 === strpos($path, 'src/')
-        || 0 === strpos($path, 'docs/')
-        || 0 === strpos($path, 'resources/skills/coisa-error-handler/');
+        ||   str_starts_with($path, 'src/')
+        ||   str_starts_with($path, 'docs/')
+        ||   str_starts_with($path, 'resources/skills/coisa-error-handler/');
 
     if (!$allowed) {
         throw new RuntimeException('Unexpected development asset in distribution: ' . $path);

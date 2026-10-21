@@ -17,6 +17,7 @@ declare(strict_types=1);
 namespace CoiSA\ErrorHandler\Http\Message;
 
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Interface ThrowableResponseFactoryInterface.
@@ -36,9 +37,13 @@ interface ThrowableResponseFactoryInterface
      * that complies with the PSR-7 standard. The response MUST include
      * an appropriate status code, headers, and error message.
      *
-     * @param \Throwable $throwable the Throwable instance to convert into a response
+     * @param \Throwable             $throwable the Throwable instance to convert into a response
+     * @param ServerRequestInterface $request   the incoming request supplying representation context
      *
      * @return ResponseInterface the generated HTTP response
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface;
+    public function createResponseFromThrowable(
+        \Throwable $throwable,
+        ServerRequestInterface $request,
+    ): ResponseInterface;
 }

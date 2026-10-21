@@ -18,14 +18,14 @@ namespace CoiSA\ErrorHandler\Test\Unit\Exception;
 
 use CoiSA\ErrorHandler\Exception\ErrorException;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Verifies PHP-error metadata and original previous-throwable identity.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Exception\ErrorException
  */
+#[CoversClass(ErrorException::class)]
 final class ErrorExceptionTest extends TestCase
 {
     /** All supplied metadata and the original causal object survive conversion. */

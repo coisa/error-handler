@@ -39,7 +39,7 @@ if ('closed-capture-without-caller' === $case) {
     echo json_encode([
         'entryLevel' => $entry,
         'remaining' => ob_get_level(),
-        'fallbackSame' => (string) $original === (string) $stream,
+        'body' => (string) $stream,
     ], JSON_THROW_ON_ERROR) . "\n";
 
     return;

@@ -22,7 +22,7 @@ namespace CoiSA\ErrorHandler\Handler;
  * Handles PHP fatal errors during the shutdown phase.
  * This class SHALL capture the last error using `error_get_last()` and delegate
  * its processing to the provided PhpErrorHandlerInterface instance if it is
- * classified as a catchable fatal error.
+ * classified as a fatal error. Reporting does not recover the fatal failure.
  *
  * @package CoiSA\ErrorHandler\Handler
  */
@@ -47,7 +47,8 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
      * Handles the last PHP error during shutdown.
      *
      * This method SHALL retrieve the last error using `error_get_last()` and,
-     * if it is classified as a catchable fatal error, delegate it to the error handler.
+     * if it is classified as a fatal error, delegate it to the error handler.
+     * This notification does not recover the fatal failure.
      */
     public function handleShutdown(): void
     {
@@ -66,24 +67,22 @@ final class PhpLastErrorShutdownHandler implements ShutdownHandlerInterface
     }
 
     /**
-     * Determines if an error level represents a catchable fatal error.
+     * Determines if an error level represents a fatal shutdown event.
      *
      * This method SHALL check if the provided error level corresponds
      * to one of the fatal error types: E_ERROR, E_PARSE, E_CORE_ERROR,
-     * E_CORE_WARNING, E_COMPILE_ERROR, E_COMPILE_WARNING.
+     * E_COMPILE_ERROR. Warnings are not fatal shutdown events.
      *
      * @param int $level the PHP error level to check
      *
-     * @return bool true if the error is a catchable fatal error, false otherwise
+     * @return bool true if the error is a classified fatal event, false otherwise
      */
     private function isCatchableFatalError(int $level): bool
     {
         $errors = E_ERROR
             | E_PARSE
             | E_CORE_ERROR
-            | E_CORE_WARNING
-            | E_COMPILE_ERROR
-            | E_COMPILE_WARNING;
+            | E_COMPILE_ERROR;
 
         return ($level & $errors) > 0;
     }

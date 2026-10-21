@@ -16,7 +16,6 @@ declare(strict_types=1);
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -81,7 +80,7 @@ $renderer = new WhoopsThrowableResponseFactory(
 );
 $middleware = new ErrorHandlerMiddleware(
     new ErrorHandler($reporter),
-    new ReportingThrowableResponseFactory($reporter, $renderer),
+    $renderer,
 );
 $next = new class ($original) implements RequestHandlerInterface {
     /** @var Throwable the unchanged downstream diagnostic */
@@ -163,7 +162,7 @@ echo json_encode([
     'status' => $response->getStatusCode(),
     'contentType' => $response->getHeaderLine('Content-Type'),
     'cacheControl' => $response->getHeaderLine('Cache-Control'),
-    'htmlContainsOriginal' => false !== strpos((string) $response->getBody(), $original->getMessage()),
+    'htmlContainsOriginal' =>   str_contains((string) $response->getBody(), $original->getMessage()),
     'bufferSame' => $bufferSame && $entry === ob_get_level(),
     'callbacksSame' => $previousError === $currentError && $previousException === $currentException,
 ], JSON_THROW_ON_ERROR) . "\n";

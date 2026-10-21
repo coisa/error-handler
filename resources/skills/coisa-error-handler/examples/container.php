@@ -14,26 +14,37 @@
 
 declare(strict_types=1);
 
-use CoiSA\ErrorHandler\Container\ErrorHandlerContainer;
-use CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
-use Laminas\ServiceManager\ServiceManager;
+use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
+use FastForward\Container\Factory\ServiceFactory;
+use FastForward\Container\ServiceProvider\AggregateServiceProvider;
+use FastForward\Container\ServiceProvider\ArrayServiceProvider;
+
+use function FastForward\Container\container;
 
 require __DIR__ . '/bootstrap.php';
 
 require_once __DIR__ . '/RecordingThrowableHandler.php';
 
-$reporter = new RecordingThrowableHandler();
+/** @var array{reporter: RecordingThrowableHandler} $configuration */
+$configuration = require __DIR__ . '/config/error-handler.php';
+$reporter = $configuration['reporter'];
 
-$application = new ServiceManager([
-    'services' => [ThrowableHandlerInterface::class => $reporter],
+$application = new ArrayServiceProvider([
+    ThrowableHandlerInterface::class => new ServiceFactory($reporter->handleThrowable(...)),
 ]);
 
-$services = new ErrorHandlerContainer($application);
+$services = container(new AggregateServiceProvider(
+    new ErrorHandlerServiceProvider(),
+    $application,
+));
+
 $errors = $services->get(ErrorHandler::class);
-$fresh = (new ErrorHandlerFactory())($services);
+$factory = $services->get(ErrorHandlerFactory::class);
+$fresh = $factory($services);
 $failure = new RuntimeException('Synthetic container failure');
 
 $errors->handleThrowable($failure);
@@ -46,4 +57,4 @@ if ([$failure] !== $reporter->getThrowables()) {
     throw new RuntimeException('Expected the application reporter to receive the original once.');
 }
 
-echo 'legacy container: application reporter, caching and fresh scope passed' . PHP_EOL;
+echo 'Interop provider: application reporter, caching and fresh scope passed' . PHP_EOL;

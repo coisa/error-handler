@@ -18,7 +18,6 @@ use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
-use CoiSA\ErrorHandler\ServiceProvider\JsonErrorHandlerServiceProvider;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\ServiceFactory;
 use FastForward\Container\ServiceProvider\ArrayServiceProvider;
@@ -36,13 +35,13 @@ require __DIR__ . '/bootstrap.php';
 
 exampleCheck(
     PHP_VERSION_ID >= 80300 && function_exists('FastForward\Container\container'),
-    'Install fast-forward/container:^1.9 in the application and use PHP 8.3 or newer.',
+    'Load the FastForward runtime dependency of this source on PHP 8.3 or newer.',
 );
 $mode = $argv[1] ?? 'public';
 exampleCheck(in_array($mode, ['public', 'debug'], true), 'Choose the public or debug example mode.');
 
 // This CLI choice stands in for trusted application configuration, never request headers.
-$settings = config(['error_handler' => ['json' => ['debug' => 'debug' === $mode]]]);
+$settings = config(['error_handler' => ['debug' => 'debug' === $mode]]);
 $messages = new Psr17Factory();
 $original = new RuntimeException('Private synthetic provider failure', 503);
 $reports = [];
@@ -63,20 +62,11 @@ $application = new ArrayServiceProvider([
     ThrowableHandlerInterface::class => new ServiceFactory($reporter),
 ]);
 
-// Separate providers are first-wins: the JSON selection must precede the base capture alias.
-if ('debug' === $mode) {
-    $services = container(
-        new JsonErrorHandlerServiceProvider($settings->get('error_handler.json.debug', false)),
-        ErrorHandlerServiceProvider::class,
-        $application,
-    );
-} else {
-    $services = container(
-        JsonErrorHandlerServiceProvider::class,
-        ErrorHandlerServiceProvider::class,
-        $application,
-    );
-}
+// The application is searched first; one library provider supplies negotiation and lifecycle.
+$services = container(
+    $application,
+    new ErrorHandlerServiceProvider(debug: $settings->get('error_handler.debug', false)),
+);
 
 // Cache the factory, then invoke it for a distinct handler and wrapper for each HTTP scope.
 $middlewareFactory = $services->get(ErrorHandlerMiddlewareFactory::class);
@@ -112,22 +102,28 @@ $next = new class ($original) implements RequestHandlerInterface {
     }
 };
 
-$response = $middleware->process($messages->createServerRequest('GET', '/provider-json'), $next);
+$request = $messages->createServerRequest('GET', '/provider-json')
+    ->withHeader('Accept', 'application/json')
+;
 
-exampleCheck([$original] === $reports, 'The profile must report the exact original once.');
+$response = $middleware->process($request, $next);
+
+exampleCheck([$original] === $reports, 'Middleware must report the exact original once.');
 exampleCheck(503 === $response->getStatusCode(), 'Expected the native HTTP error code.');
 exampleCheck('application/json' === $response->getHeaderLine('Content-Type'), 'Expected JSON.');
+
+$publicBody = '{"type":"about:blank","title":"Service Unavailable","status":503,"detail":"Request failed"}';
 
 if ('debug' === $mode) {
     $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
     exampleCheck(
-        $original->getMessage() === $payload['exception']['message'],
+        $original->getMessage() === $payload['detail'],
         'Trusted debug configuration did not reach the renderer.',
     );
     exampleCheck('no-store' === $response->getHeaderLine('Cache-Control'), 'Diagnostics must not be cached.');
 } else {
-    exampleCheck('{"error":"Request failed"}' === (string) $response->getBody(), 'Public JSON leaked diagnostics.');
+    exampleCheck($publicBody === (string) $response->getBody(), 'Public JSON leaked diagnostics.');
 }
 
 // Applications emit the response; this CLI fixture prints only its verification summary.
-echo 'Interop JSON ' . $mode . ': configured profile, fresh scope and one private report passed' . PHP_EOL;
+echo 'Interop JSON ' . $mode . ': configured provider, fresh scope and one private report passed' . PHP_EOL;

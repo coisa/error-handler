@@ -18,6 +18,7 @@ namespace CoiSA\ErrorHandler\Http\Message;
 
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Delivers a throwable once before delegating to an explicitly selected pure renderer.
@@ -40,7 +41,7 @@ final class ReportingThrowableResponseFactory implements ThrowableResponseFactor
      */
     public function __construct(
         ThrowableHandlerInterface $throwableHandler,
-        ThrowableResponseFactoryInterface $responseFactory
+        ThrowableResponseFactoryInterface $responseFactory,
     ) {
         $this->throwableHandler = $throwableHandler;
         $this->responseFactory = $responseFactory;
@@ -51,16 +52,19 @@ final class ReportingThrowableResponseFactory implements ThrowableResponseFactor
      *
      * A reporter failure prevents rendering. Neither failure path retries or reports again.
      *
-     * @param \Throwable $throwable the original failure passed unchanged to both collaborators
+     * @param \Throwable             $throwable the original failure passed unchanged to both collaborators
+     * @param ServerRequestInterface $request   the incoming request forwarded unchanged to the pure renderer
      *
      * @return ResponseInterface the delegate's unmodified response
      *
      * @throws \Throwable the identical reporter or renderer failure
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
-    {
+    public function createResponseFromThrowable(
+        \Throwable $throwable,
+        ServerRequestInterface $request,
+    ): ResponseInterface {
         $this->throwableHandler->handleThrowable($throwable);
 
-        return $this->responseFactory->createResponseFromThrowable($throwable);
+        return $this->responseFactory->createResponseFromThrowable($throwable, $request);
     }
 }
