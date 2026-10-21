@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 
+## [2.5.5] - 2026-10-20
+
+### Fixed
+
+- Require optional Whoops `^2.18.7` for development HTML, adopting its upstream fix
+  for native STDIN and `php -r` source inspection. Reject older Whoops versions
+  through Composer without making the optional package mandatory. Preserve original exception
+  frames, one original report, legitimate application warnings and the existing
+  2.x response and lifecycle policies. Align installation guidance and the bundled
+  consumer skill, with bounded native source regressions alongside the renderer's
+  unit tests.
+
+  ([#121](https://github.com/coisa/error-handler/pull/121))
+
 ## [2.5.4] - 2026-10-20
 
 ### Changed
@@ -284,6 +298,7 @@ This version is marked as a prerelease on GitHub.
 
 - A Composer library requiring PHP `^7.1`, with Apache 2.0 licensing.
 
+[2.5.5]: https://github.com/coisa/error-handler/compare/v2.5.4...v2.5.5
 [2.5.4]: https://github.com/coisa/error-handler/compare/v2.5.3...v2.5.4
 [2.5.3]: https://github.com/coisa/error-handler/compare/v2.5.2...v2.5.3
 [2.5.2]: https://github.com/coisa/error-handler/compare/v2.5.1...v2.5.2
