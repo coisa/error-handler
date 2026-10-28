@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 
+## [3.0.1] - 2026-10-28
+
+### Fixed
+
+- Correct the production-verification guide to describe the single service provider,
+  built-in Symfony HTML and explicitly selected optional Whoops rendering. Clarify
+  that construction-only fixtures verify service composition without rendering HTTP
+  responses.
+
+  ([#127](https://github.com/coisa/error-handler/pull/127))
+
 ## [3.0.0] - 2026-10-28
 
 ### Changed
@@ -392,6 +403,7 @@ This version is marked as a prerelease on GitHub.
 
 - A Composer library requiring PHP `^7.1`, with Apache 2.0 licensing.
 
+[3.0.1]: https://github.com/coisa/error-handler/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/coisa/error-handler/compare/v2.5.5...v3.0.0
 [2.5.5]: https://github.com/coisa/error-handler/compare/v2.5.4...v2.5.5
 [2.5.4]: https://github.com/coisa/error-handler/compare/v2.5.3...v2.5.4
