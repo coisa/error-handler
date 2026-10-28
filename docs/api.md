@@ -117,6 +117,16 @@ Construct it explicitly or bind `ThrowableHandlerInterface` using the
 See [the complete logging example](https://github.com/coisa/error-handler/blob/master/examples/logging.php). Unlike this direct
 adapter, `LogErrorEventListener` retains its event-string message policy.
 
+For structured logging through an `ErrorEvent`, compose `ErrorEventCallableListener`
+with `LogThrowableHandler` and pass `$event->getThrowable()` to the reporter.
+This explicit bridge keeps the exact throwable message and original exception
+context without changing the legacy event listener. Run the
+[event recipe](examples.md#events) in `structured` mode or use the
+[bundled application program](../resources/skills/coisa-error-handler/examples/event-logging.php).
+The bridge forwards logger failures unchanged, with no retries or discovery.
+The application dispatcher still owns its subsequent failure behavior; retain the
+[documented dispatcher integration limits](testing.md#fastforward-event-dispatcher-integration-limits).
+
 ## Conditional reporting
 
 `Handler\FilteringThrowableHandler($reporter, $predicate)` wraps an explicit

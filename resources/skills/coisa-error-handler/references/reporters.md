@@ -139,6 +139,21 @@ Error Handler listener-provider objects. Compose that configuration and provider
 before ErrorHandlerServiceProvider. The dispatcher remains an application choice;
 Error Handler only consumes the PSR-14 interface.
 
+For a structured PSR-3 record, construct `LogThrowableHandler` with the application's
+logger, level and context, then invoke it from an `ErrorEventCallableListener`
+callback using `$event->getThrowable()`. The reporter records the exact message
+and retains the identical Throwable under `context['exception']`; it does not
+stringify the entire wrapper. `LogErrorEventListener` keeps its existing full-string
+policy. Choose one logging listener, rather than attaching both and logging twice.
+
+The [complete installed-package example](../examples/event-logging.php) supplies
+the application dispatcher/configuration and private synthetic logger. See its
+[command and dependencies](../examples/README.md#structured-event-logging).
+The bridge forwards logger failures unchanged and adds no retry. The selected
+dispatcher still owns its outward failure behavior; see the
+[FastForward integration limits](https://github.com/coisa/error-handler/blob/master/docs/testing.md#fastforward-event-dispatcher-integration-limits).
+Registering native PHP callbacks is a separate application decision.
+
 Use the consumer's existing PHPUnit doubles or synthetic recording collaborators.
 Verify original-object identity, order/nonmatch behavior, empty aggregates,
 partial reporting failures and exact logger context. No example proves delivery

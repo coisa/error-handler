@@ -30,6 +30,11 @@ $cases = [
         'event-dispatcher.php', [], 0,
         "throwable: Synthetic warning\nevent: Synthetic warning\nPrivate log records: 1\n", '',
     ],
+    [
+        'event-dispatcher.php', ['structured'], 0,
+        "throwable: Synthetic warning\nevent: Synthetic warning\nPrivate log records: 1\n"
+            . "Structured exception context: original throwable\n", '',
+    ],
     ['http-middleware.php', [], 0, "HTTP 503 | Internal Server Error\nReported: 2\n", ''],
     [
         'http-rendering.php', [], 0,

@@ -247,6 +247,10 @@ final class ConsumerSkillExamplesTest extends TestCase
     public static function provideShippedProgramsUseTheExplicitConsumerAutoloaderCases(): iterable
     {
         return [
+            'structured event logging' => [
+                'event-logging.php', [],
+                'Event logging: one structured record with the original throwable passed',
+            ],
             'configuration' => ['configured.php', [], 'configured reporting: original delivered once'],
             'container' => [
                 'container.php', [],
