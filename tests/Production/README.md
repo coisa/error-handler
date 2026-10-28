@@ -15,11 +15,17 @@ artificial 8.5 upper constraint. Resolve with the actual PHP runtime and Compose
 using `--no-dev --no-plugins --no-scripts`. The runtime graph supplies FastForward,
 Interop and the PSR interfaces. No Nyholm, application logger or other incidental
 consumer dependency is needed for these construction/reporting checks. The
-production autoloader also exposes JSON, Whoops and the explicit reporting
-adapter, and both profile maps can be discovered without constructing optional
-Whoops objects or installing callbacks. Actual HTML rendering requires the
-application to install Whoops; the PHPUnit and documented recipes exercise that
-composition separately.
+production autoloader also exposes JSON, Symfony HTML, optional Whoops,
+negotiation and explicit reporting adapters. The single
+`ErrorHandlerServiceProvider` can be discovered without constructing optional
+Whoops objects or installing callbacks.
+
+Symfony ErrorHandler is a required runtime dependency and supplies the built-in
+public/debug HTML renderer. Whoops is needed only when an application explicitly
+selects its optional development renderer. These construction/reporting checks
+do not render HTTP responses; the PHPUnit suites and
+[documented HTML recipes](../../docs/http.md#public-html) exercise rendering
+separately with application-supplied PSR-17 implementations.
 
 `container.php` uses the real Interop provider and FastForward container. It
 checks default aliases, cached identities, distinct explicit core scopes and
