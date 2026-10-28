@@ -104,7 +104,7 @@ if ('public' !== $mode) {
                 'text/plain' => static fn() => $fallback,
                 'application/json' => static fn() => $services->get(JsonThrowableResponseFactory::class),
                 'application/problem+json' => static fn() => $services->get(JsonThrowableResponseFactory::class),
-                'text/html' => static fn() => $services->get(WhoopsThrowableResponseFactory::class),
+                'text/html; charset=UTF-8' => static fn() => $services->get(WhoopsThrowableResponseFactory::class),
             ]);
         },
     );

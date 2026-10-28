@@ -29,6 +29,9 @@ final class NegotiatingThrowableResponseFactoryFactory
     /**
      * Creates a reusable selector; only the selected representation is constructed on a failure.
      *
+     * The HTML candidate includes the renderer's charset so parameter-specific
+     * preferences and exclusions apply to the representation actually returned.
+     *
      * @param ContainerInterface $container the resolver supplying concrete pure renderers
      *
      * @return NegotiatingThrowableResponseFactory the request-independent negotiation service
@@ -49,7 +52,7 @@ final class NegotiatingThrowableResponseFactoryFactory
                 $container,
                 JsonThrowableResponseFactory::class,
             ),
-            'text/html' => static fn(): ThrowableResponseFactoryInterface => self::resolveRenderer(
+            'text/html; charset=UTF-8' => static fn(): ThrowableResponseFactoryInterface => self::resolveRenderer(
                 $container,
                 HtmlThrowableResponseFactory::class,
             ),

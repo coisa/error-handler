@@ -94,6 +94,8 @@ $services = container($application, new ErrorHandlerServiceProvider(debug: true)
 This is the same `ServiceProvider\ErrorHandlerServiceProvider` used for ordinary
 reporting and JSON. No separate HTML provider is required. Send
 `Accept: text/html` on the current request. Debug alone never forces HTML.
+The explicit map uses `text/html; charset=UTF-8`, matching Whoops output so
+charset-specific Accept preferences and exclusions remain effective.
 The default negotiator always uses Symfony HTML. These development modes override
 only the HTML candidate with Whoops and never resolve it for a JSON-only request. Direct selection of the concrete renderer still
 requires the optional package at construction.

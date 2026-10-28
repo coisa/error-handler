@@ -84,6 +84,61 @@ final class NegotiatedErrorHandlerServiceProviderTest extends TestCase
         }
     }
 
+    /**
+     * Negotiates the actual UTF-8 HTML representation through the public provider composition.
+     *
+     * @param string $accept      the client's media preferences and charset-specific quality
+     * @param string $contentType the permitted representation after applying the most specific range
+     */
+    #[DataProvider('provideNegotiationUsesTheHtmlRenderersUtf8RepresentationCases')]
+    public function testNegotiationUsesTheHtmlRenderersUtf8Representation(string $accept, string $contentType): void
+    {
+        $reporter = $this->createMock(ThrowableHandlerInterface::class);
+        $reporter->expects(self::never())->method('handleThrowable');
+        $services = container($this->application($reporter), ErrorHandlerServiceProvider::class);
+        $renderer = $services->get(ThrowableResponseFactoryInterface::class);
+        self::assertInstanceOf(NegotiatingThrowableResponseFactory::class, $renderer);
+        $failure = new \RuntimeException('Private charset-negotiation diagnostic', 503);
+        $request = self::jsonRequest()->withHeader('Accept', $accept);
+
+        $response = $renderer->createResponseFromThrowable($failure, $request);
+
+        self::assertSame($contentType, $response->getHeaderLine('Content-Type'));
+        self::assertSame(503, $response->getStatusCode());
+        self::assertSame('Accept', $response->getHeaderLine('Vary'));
+        self::assertStringNotContainsString($failure->getMessage(), (string) $response->getBody());
+    }
+
+    /** @return iterable<string, array{string, string}> charset-specific preferences for the built-in HTML candidate */
+    public static function provideNegotiationUsesTheHtmlRenderersUtf8RepresentationCases(): iterable
+    {
+        yield 'no preference retains generic fallback' => ['', 'text/plain'];
+
+        yield 'bare HTML accepts its UTF-8 representation' => ['text/html', 'text/html; charset=UTF-8'];
+
+        yield 'explicit UTF-8' => ['text/html; charset=UTF-8', 'text/html; charset=UTF-8'];
+
+        yield 'mixed media and parameter case' => ['TEXT/HTML; CHARSET=utf-8', 'text/html; charset=UTF-8'];
+
+        yield 'specific HTML quality beats JSON' => [
+            'text/html; charset=utf-8;q=1, application/json;q=0.5', 'text/html; charset=UTF-8',
+        ];
+
+        yield 'specific HTML quality loses to JSON' => [
+            'text/html; charset=UTF-8;q=0.4, text/html;q=1, application/json;q=0.5', 'application/json',
+        ];
+
+        yield 'specific UTF-8 exclusion overrides broad HTML permission' => [
+            'text/html; charset=utf-8;q=0, text/html;q=1, application/json;q=0.5', 'application/json',
+        ];
+
+        yield 'specific UTF-8 preference overrides broad HTML exclusion' => [
+            'text/html; charset=UTF-8;q=1, text/html;q=0, application/json;q=0.5', 'text/html; charset=UTF-8',
+        ];
+
+        yield 'unavailable charset retains generic fallback' => ['text/html; charset=ISO-8859-1', 'text/plain'];
+    }
+
     /** Installed optional Whoops services cannot replace the configured Symfony HTML default. */
     public function testDebugUsesSymfonyAndDoesNotResolveOptionalWhoops(): void
     {

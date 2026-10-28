@@ -98,7 +98,43 @@ final class NegotiatingThrowableResponseFactoryFactoryTest extends TestCase
         yield 'Problem Details' => ['application/problem+json', JsonThrowableResponseFactory::class,
             'application/problem+json'];
 
-        yield 'HTML' => ['text/html', HtmlThrowableResponseFactory::class, 'text/html'];
+        yield 'HTML' => ['text/html', HtmlThrowableResponseFactory::class, 'text/html; charset=UTF-8'];
+
+        yield 'explicit HTML charset' => [
+            'text/html; charset=UTF-8', HtmlThrowableResponseFactory::class, 'text/html; charset=UTF-8',
+        ];
+
+        yield 'case-insensitive HTML charset' => [
+            'TEXT/HTML; CHARSET=utf-8', HtmlThrowableResponseFactory::class, 'text/html; charset=UTF-8',
+        ];
+
+        yield 'actual HTML charset excluded despite broader permission' => [
+            'text/html; charset=utf-8;q=0, text/html;q=1, application/json;q=0.5',
+            JsonThrowableResponseFactory::class,
+            'application/json',
+        ];
+
+        yield 'actual HTML charset preferred over broader exclusion' => [
+            'text/html; charset=UTF-8;q=1, text/html;q=0, application/json;q=0.5',
+            HtmlThrowableResponseFactory::class,
+            'text/html; charset=UTF-8',
+        ];
+
+        yield 'parameter-specific HTML quality remains below JSON' => [
+            'text/html; charset=UTF-8;q=0.4, text/html;q=1, application/json;q=0.5',
+            JsonThrowableResponseFactory::class,
+            'application/json',
+        ];
+
+        yield 'unavailable HTML charset falls back' => [
+            'text/html; charset=ISO-8859-1', ThrowableResponseFactory::class, 'application/custom',
+        ];
+
+        yield 'excluding another HTML charset still permits UTF-8' => [
+            'text/html; charset=ISO-8859-1;q=0, text/html;q=1',
+            HtmlThrowableResponseFactory::class,
+            'text/html; charset=UTF-8',
+        ];
     }
 
     /** Verifies a shared factory resolves each invocation's representation without retaining a request. */

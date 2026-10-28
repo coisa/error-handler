@@ -39,6 +39,11 @@ A JSON-only request never resolves Whoops. Whoops is never selected by default,
 whether installed or absent. Applications can explicitly replace the HTML
 candidate with Whoops while preserving negotiation.
 
+The HTML candidate is `text/html; charset=UTF-8`, matching the emitted response.
+Bare `text/html` accepts it; a charset-specific preference or zero-quality
+exclusion applies to that actual representation. Custom maps must likewise
+describe their renderers' media parameters.
+
 The fallback is an error response for the original failure, not a new 406.
 Negotiated responses add Accept to Vary while preserving existing fields.
 Reporting still occurs once before negotiation. Renderers receive the exact
