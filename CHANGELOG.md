@@ -9,6 +9,15 @@ The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags
 
 ## [3.0.1] - 2026-10-28
 
+### Added
+
+- Document structured PSR-3 logging from ErrorEvent using the existing callable
+  listener and throwable reporter. Include executable checkout and installed-package
+  recipes and verification of original-object context, one delivery and unchanged
+  logger-failure propagation through the bridge, preserving the legacy event listener's policy.
+
+  ([#128](https://github.com/coisa/error-handler/pull/128))
+
 ### Fixed
 
 - Correct the production-verification guide to describe the single service provider,

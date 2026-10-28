@@ -67,6 +67,33 @@ The program checks cached core identity and invokes the reusable
 Resolution installs no callbacks. See [container composition](../references/container.md)
 for ordinary optional discovery and actual failure/fallback boundaries.
 
+## Structured event logging
+
+Use the application's existing PSR-14 dispatcher; this complete program selects
+FastForward Event Dispatcher. If the application has not installed it already,
+add that optional application implementation:
+
+```sh
+composer require 'fast-forward/event-dispatcher:^1.0' --no-plugins --no-scripts
+php vendor/coisa/error-handler/resources/skills/coisa-error-handler/examples/event-logging.php ./vendor/autoload.php
+```
+
+Expect exit 0, empty stderr and
+`Event logging: one structured record with the original throwable passed`.
+The synthetic logger contacts no service. FastForward ArrayConfig selects one
+ErrorEvent listener, and `DispatchErrorEventThrowableHandler` wraps the original
+failure before the application dispatcher delivers it. The callable listener
+passes `getThrowable()` to `LogThrowableHandler`, retaining the original object
+in `context['exception']` along with the selected level and application metadata.
+
+This is explicit application composition using existing adapters. It does not
+change `LogErrorEventListener`, discover loggers automatically, register native
+callbacks or add retries. Choose this listener instead of the full-string logger
+when a structured processor needs the original exception; attaching both would
+deliberately log twice. The bridge forwards logger failures unchanged without
+retry; the chosen dispatcher's outward failure behavior still applies. See
+[reporter and dispatcher boundaries](../references/reporters.md#psr-14).
+
 ## Explicit HTTP policy
 
 Supply Nyholm as the application's PSR-17 implementation if it has not selected
