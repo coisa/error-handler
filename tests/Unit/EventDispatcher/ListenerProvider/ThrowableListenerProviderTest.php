@@ -19,25 +19,25 @@ namespace CoiSA\ErrorHandler\Test\Unit\EventDispatcher\ListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies Throwable selection, append order and lookup without listener execution.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider
- *
- * @uses \CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent
  */
+#[CoversClass(ThrowableListenerProvider::class)]
+#[UsesClass(ErrorEvent::class)]
 final class ThrowableListenerProviderTest extends TestCase
 {
     /**
      * Both Exception and Error events retain constructor and appended listener order.
      *
      * @param bool $isError whether the event is an Error rather than an Exception
-     *
-     * @dataProvider providePreservesListenerIdentityAndAttachmentOrderCases
      */
+    #[DataProvider('providePreservesListenerIdentityAndAttachmentOrderCases')]
     public function testPreservesListenerIdentityAndAttachmentOrder(bool $isError): void
     {
         $calls = [];

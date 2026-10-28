@@ -18,9 +18,11 @@ use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Example\RecordingThrowableHandler;
 use CoiSA\ErrorHandler\Example\ThrowingRequestHandler;
 use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ReportingThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\ProblemNormalizer;
+use Symfony\Component\Serializer\Serializer;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -28,9 +30,9 @@ require_once __DIR__ . '/RecordingThrowableHandler.php';
 
 require_once __DIR__ . '/ThrowingRequestHandler.php';
 
-foreach ([JsonThrowableResponseFactory::class, ReportingThrowableResponseFactory::class] as $class) {
+foreach ([JsonThrowableResponseFactory::class] as $class) {
     if (!class_exists($class)) {
-        throw new RuntimeException('This route needs coisa/error-handler:^2.5; missing ' . $class);
+        throw new RuntimeException('The selected library installation lacks ' . $class);
     }
 }
 
@@ -50,11 +52,11 @@ $createFailure = static fn(): RuntimeException => new RuntimeException('Private 
 
 $failure = $createFailure();
 
-$json = new JsonThrowableResponseFactory($http, $http, $configuration['debug']);
+$serializer = new Serializer([new ProblemNormalizer(true)], [new JsonEncoder()]);
 
-$rendering = new ReportingThrowableResponseFactory($reporter, $json);
+$json = new JsonThrowableResponseFactory($http, $http, $serializer, $configuration['debug']);
 
-$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $rendering);
+$middleware = new ErrorHandlerMiddleware(new ErrorHandler($reporter), $json);
 
 $entryLevel = ob_get_level();
 $response = $middleware->process(
@@ -66,7 +68,7 @@ if ([$failure] !== $reporter->getThrowables() || $entryLevel !== ob_get_level())
     throw new RuntimeException('Expected one private report without changing the output-buffer stack.');
 }
 
-if (503 !== $response->getStatusCode() || 'application/json' !== $response->getHeaderLine('Content-Type')) {
+if (503 !== $response->getStatusCode() || 'application/problem+json' !== $response->getHeaderLine('Content-Type')) {
     throw new RuntimeException('Expected the original HTTP status and JSON content type.');
 }
 
@@ -74,15 +76,17 @@ if ($failure->getMessage() === $response->getReasonPhrase()) {
     throw new RuntimeException('The diagnostic must not become the response reason.');
 }
 
+$publicBody = '{"type":"about:blank","title":"Service Unavailable","status":503,"detail":"Request failed"}';
+
 if ($configuration['debug']) {
     $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
-    if ($failure->getMessage() !== $payload['exception']['message'] || [] === $payload['exception']['trace']) {
+    if ($failure->getMessage() !== $payload['detail'] || [] === $payload['trace']) {
         throw new RuntimeException('Expected explicitly configured development metadata.');
     }
 
-    foreach ($payload['exception']['trace'] as $frame) {
-        if (array_key_exists('args', $frame) || array_key_exists('object', $frame)) {
+    foreach ($payload['trace'] as $frame) {
+        if ([] !== ($frame['args'] ?? []) || array_key_exists('object', $frame)) {
             throw new RuntimeException('Trace arguments and objects must remain private.');
         }
     }
@@ -90,7 +94,7 @@ if ($configuration['debug']) {
     if ('no-store' !== $response->getHeaderLine('Cache-Control')) {
         throw new RuntimeException('Development responses must disable caching.');
     }
-} elseif ('{"error":"Request failed"}' !== (string) $response->getBody()) {
+} elseif ($publicBody !== (string) $response->getBody()) {
     throw new RuntimeException('Expected generic JSON without the private diagnostic.');
 }
 

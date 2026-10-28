@@ -18,23 +18,23 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 
 use CoiSA\ErrorHandler\Handler\CallablePhpErrorHandler;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Verifies inert construction, exact delivery and application-owned policy/failures.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\CallablePhpErrorHandler
  */
+#[CoversClass(CallablePhpErrorHandler::class)]
 final class CallablePhpErrorHandlerTest extends TestCase
 {
     /**
      * Deliver precisely four original values once, ignoring false/null or another result.
      *
      * @param mixed $result the callback result discarded by the void interface
-     *
-     * @dataProvider providePreservesFourArgumentsAndIgnoresCallbackResultCases
      */
+    #[DataProvider('providePreservesFourArgumentsAndIgnoresCallbackResultCases')]
     public function testPreservesFourArgumentsAndIgnoresCallbackResult($result): void
     {
         $calls = [];
@@ -72,9 +72,8 @@ final class CallablePhpErrorHandlerTest extends TestCase
      * Preserve an Error or Exception object without conversion, retry or suppression.
      *
      * @param class-string<\Throwable> $failureClass the original callback failure type
-     *
-     * @dataProvider providePropagatesTheSameCallbackFailureOnceCases
      */
+    #[DataProvider('providePropagatesTheSameCallbackFailureOnceCases')]
     public function testPropagatesTheSameCallbackFailureOnce(string $failureClass): void
     {
         $failure = new $failureClass('Synthetic callback failure');

@@ -63,6 +63,65 @@ jobs:
       - name: Run formatting, PHPCS, PHPUnit and maximum src-plus-tests analysis
         run: composer --no-plugins check
 
+  symfony-compatibility:
+    name: Symfony ${{ matrix.error-handler }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.3'
+            error-handler: '~5.4.0'
+            serializer: '~5.4.0'
+            http-foundation: '~6.4.0'
+          - php: '8.3'
+            error-handler: '~6.4.0'
+            serializer: '~6.4.0'
+            http-foundation: '~6.4.0'
+          - php: '8.4'
+            error-handler: '~7.0.0'
+            serializer: '~7.0.0'
+            http-foundation: '~7.4.0'
+          - php: '8.5'
+            error-handler: '~8.0.0'
+            serializer: '~8.0.0'
+            http-foundation: '~8.1.0'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Isolate Composer state
+        run: |
+          echo "COMPOSER_HOME=$RUNNER_TEMP/composer-home" >> "$GITHUB_ENV"
+          echo "COMPOSER_CACHE_DIR=$RUNNER_TEMP/composer-cache" >> "$GITHUB_ENV"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, mbstring, xml, xmlwriter
+          ini-values: error_reporting=E_ALL
+          coverage: none
+          tools: composer:v2
+
+      - name: Resolve the supported Symfony combination
+        env:
+          ERROR_HANDLER: ${{ matrix.error-handler }}
+          SERIALIZER: ${{ matrix.serializer }}
+          HTTP_FOUNDATION: ${{ matrix.http-foundation }}
+        run: |
+          composer update --no-plugins --no-scripts --no-interaction --prefer-dist --no-progress \
+            --with "symfony/error-handler:$ERROR_HANDLER" \
+            --with "symfony/serializer:$SERIALIZER" \
+            --with "symfony/http-foundation:$HTTP_FOUNDATION"
+          composer check-platform-reqs
+          composer show --locked
+
+      - name: Verify the adapters and application composition
+        run: composer --no-plugins check
+
   production:
     name: Production / PHP ${{ matrix.php }} / ${{ matrix.dependencies }}
     runs-on: ubuntu-latest
@@ -70,10 +129,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        php: ['8.3', '8.4', '8.5']
         dependencies: [highest]
         include:
-          - php: '7.4'
+          - php: '8.3'
             dependencies: lowest
           - php: '8.5'
             dependencies: lowest
@@ -246,3 +305,4 @@ jobs:
         with:
           header: phpunit-coverage
           path: ${{ steps.coverage-diff.outputs.file }}
+

@@ -18,228 +18,175 @@ namespace CoiSA\ErrorHandler\Test\Unit\ServiceProvider;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
-use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
 use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
+use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ThrowableHandlerAggregateFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\NegotiatingThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\WhoopsThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\SymfonyCliThrowableHandlerFactory;
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\SerializerInterface;
+use Whoops\Handler\PrettyPageHandler;
 use FastForward\Container\Factory\AliasFactory;
-use FastForward\Container\Factory\ServiceFactory;
-use FastForward\Container\ServiceProvider\ArrayServiceProvider;
-use Nyholm\Psr7\Factory\Psr17Factory;
+use FastForward\Container\Factory\InvokableFactory;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerExceptionInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Server\RequestHandlerInterface;
-
-use function FastForward\Container\container;
+use Psr\Container\ContainerInterface;
 
 /**
- * Exercises optional lifecycle composition through the real FastForward container.
+ * Verifies lazy public definitions and their real FastForward factory behavior.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider
- * @covers \CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory
  */
+#[CoversClass(ErrorHandlerServiceProvider::class)]
+#[UsesClass(ErrorHandlerFactory::class)]
+#[UsesClass(ErrorHandlerMiddlewareFactory::class)]
+#[UsesClass(ThrowableHandlerAggregateFactory::class)]
 final class ErrorHandlerServiceProviderTest extends TestCase
 {
-    /**
-     * Resolving cached process, middleware and factory services leaves native callbacks alone.
-     *
-     * @runInSeparateProcess
-     *
-     * @preserveGlobalState disabled
-     */
-    public function testDiscoveryAndCachedAliasesDoNotInstallCallbacks(): void
+    /** Verifies provider discovery exposes the supported IDs without installing callbacks. */
+    public function testDiscoveryIsInertAndDefinesThePublicServices(): void
     {
-        /** @return bool retains ownership of synthetic surrounding PHP errors */
-        $previousError = static fn(): bool => true;
+        $before = self::callbacks();
+        $provider = new ErrorHandlerServiceProvider();
+        $definitions = $provider->getFactories();
 
-        /**
-         * Rejects an unexpected native exception callback invocation.
-         *
-         * @param \Throwable $event an event that should remain in the calling test
-         */
-        $previousException = static function (\Throwable $event): void {
-            throw new \LogicException('Unexpected callback delivery.', 0, $event);
-        };
-        set_error_handler($previousError);
-        set_exception_handler($previousException);
-
-        try {
-            $reporter = $this->createMock(ThrowableHandlerInterface::class);
-            $reporter->expects(self::never())->method('handleThrowable');
-            $services = container(ErrorHandlerServiceProvider::class, $this->application($reporter));
-            $process = $services->get(ErrorHandler::class);
-            self::assertInstanceOf(ErrorHandler::class, $process);
-            self::assertSame($process, $services->get(ErrorHandlerInterface::class));
-            self::assertSame($process, $services->get(ErrorHandler::class));
-            $middleware = $services->get(ErrorHandlerMiddleware::class);
-            self::assertInstanceOf(ErrorHandlerMiddleware::class, $middleware);
-            self::assertSame($middleware, $services->get(ErrorHandlerMiddleware::class));
-            $factory = $services->get(ErrorHandlerMiddlewareFactory::class);
-            self::assertInstanceOf(ErrorHandlerMiddlewareFactory::class, $factory);
-            self::assertSame($factory, $services->get(ErrorHandlerMiddlewareFactory::class));
-            self::assertNotSame($middleware, $factory($services));
-            self::assertSame($previousError, set_error_handler($previousError));
-            restore_error_handler();
-            self::assertSame($previousException, set_exception_handler($previousException));
-            restore_exception_handler();
-        } finally {
-            restore_error_handler();
-            restore_exception_handler();
-        }
-    }
-
-    /** The base retains captured reporter output and the existing 2.x status policy. */
-    public function testBaseRetainsLegacyCaptureDefaults(): void
-    {
-        $this->expectOutputString('');
-        $original = new \RuntimeException('Legacy reason', 503);
-        $reports = [];
-        $reporter = new CallableThrowableHandler(
-            /**
-             * Emits an application-selected body for the legacy capture adapter.
-             *
-             * @param \Throwable $event the original diagnostic event
-             */
-            static function (\Throwable $event) use (&$reports): void {
-                $reports[] = $event;
-                echo 'Legacy captured output';
-            },
+        self::assertEqualsCanonicalizing([
+            ErrorHandlerInterface::class,
+            ErrorHandler::class,
+            ErrorHandlerFactory::class,
+            ThrowableHandlerInterface::class,
+            ThrowableHandlerAggregate::class,
+            SymfonyCliThrowableHandler::class,
+            Serializer::class,
+            SerializerInterface::class,
+            ThrowableResponseFactoryInterface::class,
+            NegotiatingThrowableResponseFactory::class,
+            JsonThrowableResponseFactory::class,
+            HtmlThrowableResponseFactory::class,
+            WhoopsThrowableResponseFactory::class,
+            PrettyPageHandler::class,
+            ThrowableStreamFactoryInterface::class,
+            ErrorHandlerMiddleware::class,
+            ErrorHandlerMiddlewareFactory::class,
+        ], array_keys($definitions));
+        self::assertInstanceOf(ErrorHandlerFactory::class, $definitions[ErrorHandler::class]);
+        self::assertInstanceOf(ThrowableHandlerAggregateFactory::class, $definitions[ThrowableHandlerAggregate::class]);
+        self::assertInstanceOf(ErrorHandlerMiddlewareFactory::class, $definitions[ErrorHandlerMiddleware::class]);
+        self::assertInstanceOf(
+            NegotiatingThrowableResponseFactoryFactory::class,
+            $definitions[NegotiatingThrowableResponseFactory::class],
         );
-        $services = container(ErrorHandlerServiceProvider::class, $this->application($reporter));
-
-        /** @var ThrowableResponseFactoryInterface $renderer */
-        $renderer = $services->get(ThrowableResponseFactoryInterface::class);
-        $response = $renderer->createResponseFromThrowable($original);
-
-        self::assertSame(500, $response->getStatusCode());
-        self::assertSame('Legacy reason', $response->getReasonPhrase());
-        self::assertSame('Legacy captured output', (string) $response->getBody());
-        self::assertSame([$original], $reports);
-        self::assertSame(
-            $services->get(ThrowableStreamFactory::class),
-            $services->get(ThrowableStreamFactoryInterface::class),
+        self::assertInstanceOf(
+            WhoopsThrowableResponseFactoryFactory::class,
+            $definitions[WhoopsThrowableResponseFactory::class],
         );
-    }
-
-    /** A missing application reporter is a construction failure, never an empty aggregate. */
-    public function testApplicationMustProvideItsReporter(): void
-    {
-        $services = container(ErrorHandlerServiceProvider::class);
-
-        $this->expectException(ContainerExceptionInterface::class);
-        $services->get(ErrorHandlerInterface::class);
+        self::assertInstanceOf(
+            SymfonyCliThrowableHandlerFactory::class,
+            $definitions[SymfonyCliThrowableHandler::class],
+        );
+        self::assertSame([], $provider->getExtensions());
+        self::assertSame($before, self::callbacks());
     }
 
     /**
-     * Native callback identities prove distinct HTTP handlers around a cached process handler.
+     * Verifies each interface alias delegates to its concrete target and preserves identity.
      *
-     * @runInSeparateProcess
-     *
-     * @preserveGlobalState disabled
+     * @param class-string $alias  the public interface service ID
+     * @param class-string $target the concrete service ID resolved by the alias
      */
-    public function testFactoryCreatesIndependentNestedScopes(): void
+    #[DataProvider('provideAliasesResolveTheDeclaredTargetCases')]
+    public function testAliasesResolveTheDeclaredTarget(string $alias, string $target): void
     {
-        $reporter = $this->createMock(ThrowableHandlerInterface::class);
-        $reporter->expects(self::never())->method('handleThrowable');
-        $services = container(ErrorHandlerServiceProvider::class, $this->application($reporter));
+        $service = new \stdClass();
+        $container = $this->createMock(ContainerInterface::class);
+        $container->expects(self::once())->method('get')->with($target)->willReturn($service);
+        $container->expects(self::never())->method('has');
+        $definition = (new ErrorHandlerServiceProvider())->getFactories()[$alias];
 
-        /** @var ErrorHandler $process */
-        $process = $services->get(ErrorHandler::class);
+        self::assertInstanceOf(AliasFactory::class, $definition);
+        self::assertSame($service, $definition($container));
+    }
 
-        /** @var ErrorHandlerMiddlewareFactory $factory */
-        $factory = $services->get(ErrorHandlerMiddlewareFactory::class);
-        $outer = $factory($services);
-        $inner = $factory($services);
-        $response = (new Psr17Factory())->createResponse(204);
-        $scopes = [];
-        $innerNext = $this->createMock(RequestHandlerInterface::class);
-        $innerNext->expects(self::once())->method('handle')->willReturnCallback(
-            /**
-             * Observes the nested public callback and returns the exact downstream response.
-             *
-             * @return ResponseInterface the unmodified successful result
-             */
-            static function () use (&$scopes, $response): ResponseInterface {
-                $scopes[] = self::currentErrorHandler();
+    /** @return iterable<string, array{class-string, class-string}> Public alias target pairs. */
+    public static function provideAliasesResolveTheDeclaredTargetCases(): iterable
+    {
+        yield 'process' => [ErrorHandlerInterface::class, ErrorHandler::class];
 
-                return $response;
-            },
-        );
-        $outerNext = $this->createMock(RequestHandlerInterface::class);
-        $outerNext->expects(self::once())->method('handle')->willReturnCallback(
-            /**
-             * Enters another middleware scope and verifies restoration of its caller.
-             *
-             * @param ServerRequestInterface $request the unchanged outer request
-             *
-             * @return ResponseInterface the nested result
-             */
-            static function (ServerRequestInterface $request) use (&$scopes, $inner, $innerNext): ResponseInterface {
-                $outerHandler = self::currentErrorHandler();
-                $scopes[] = $outerHandler;
-                $actual = $inner->process($request, $innerNext);
-                self::assertSame($outerHandler, self::currentErrorHandler());
+        yield 'reporter' => [ThrowableHandlerInterface::class, ThrowableHandlerAggregate::class];
 
-                return $actual;
-            },
-        );
+        yield 'response' => [ThrowableResponseFactoryInterface::class, NegotiatingThrowableResponseFactory::class];
 
-        $process->register();
+        yield 'serializer' => [SerializerInterface::class, Serializer::class];
 
-        try {
-            self::assertSame($process, self::currentErrorHandler());
-            $actual = $outer->process((new Psr17Factory())->createServerRequest('GET', '/nested'), $outerNext);
-            self::assertSame($response, $actual);
-            self::assertCount(2, $scopes);
-            self::assertNotSame($process, $scopes[0]);
-            self::assertNotSame($process, $scopes[1]);
-            self::assertNotSame($scopes[0], $scopes[1]);
-            self::assertSame($process, self::currentErrorHandler());
-        } finally {
-            $process->unregister();
-        }
+        yield 'generic stream' => [ThrowableStreamFactoryInterface::class, GenericThrowableStreamFactory::class];
     }
 
     /**
-     * Supplies only application-owned interfaces, leaving scope construction to the provider.
+     * Verifies reusable factory objects are constructed without resolving their dependencies.
      *
-     * @param ThrowableHandlerInterface $reporter the private diagnostic destination
-     *
-     * @return ArrayServiceProvider required external collaborators
+     * @param class-string $service the factory-object service ID
      */
-    private function application(ThrowableHandlerInterface $reporter): ArrayServiceProvider
+    #[DataProvider('provideFactoryObjectsAreLazyInvokableDefinitionsCases')]
+    public function testFactoryObjectsAreLazyInvokableDefinitions(string $service): void
     {
-        return new ArrayServiceProvider([
-            ResponseFactoryInterface::class => new ServiceFactory(new Psr17Factory()),
-            StreamFactoryInterface::class => AliasFactory::get(ResponseFactoryInterface::class),
-            ThrowableHandlerInterface::class => new ServiceFactory($reporter),
-        ]);
+        $before = self::callbacks();
+        $container = $this->createMock(ContainerInterface::class);
+        $container->expects(self::never())->method('get');
+        $container->expects(self::never())->method('has');
+        $definition = (new ErrorHandlerServiceProvider())->getFactories()[$service];
+
+        self::assertInstanceOf(InvokableFactory::class, $definition);
+        $first = $definition($container);
+        $second = $definition($container);
+
+        self::assertInstanceOf($service, $first);
+        self::assertInstanceOf($service, $second);
+        self::assertNotSame($first, $second);
+        self::assertSame($before, self::callbacks());
+    }
+
+    /** @return iterable<string, array{class-string}> Factory objects supplied by the provider. */
+    public static function provideFactoryObjectsAreLazyInvokableDefinitionsCases(): iterable
+    {
+        yield 'handler factory' => [ErrorHandlerFactory::class];
+
+        yield 'middleware factory' => [ErrorHandlerMiddlewareFactory::class];
     }
 
     /**
-     * Reads the installed PHP error callback without retaining the temporary probe.
+     * Reads process-global callbacks while restoring both temporary probe stacks.
      *
-     * @return ErrorHandler the object publicly installed by the active scope
+     * @return array{null|callable, null|callable} current error and exception callbacks
+     *
+     * @phpstan-impure
      */
-    private static function currentErrorHandler(): ErrorHandler
+    private static function callbacks(): array
     {
-        /** @return bool keeps the native probe inert */
-        $probe = static fn(): bool => true;
-        $callback = set_error_handler($probe);
+        /** @return bool A temporary callback used only to inspect the active error callback. */
+        $error = set_error_handler(static fn(): bool => false);
         restore_error_handler();
-        self::assertIsArray($callback);
-        self::assertInstanceOf(ErrorHandler::class, $callback[0]);
+        $exception = set_exception_handler(
+            /** @param \Throwable $error The unused exception-probe input. */
+            static function (\Throwable $error): void {
+            },
+        );
+        restore_exception_handler();
 
-        return $callback[0];
+        return [$error, $exception];
     }
 }

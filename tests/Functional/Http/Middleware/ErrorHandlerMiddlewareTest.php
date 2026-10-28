@@ -18,94 +18,169 @@ namespace CoiSA\ErrorHandler\Test\Functional\Http\Middleware;
 
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
+use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\StreamInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
 /**
- * Class ErrorHandlerMiddlewareTest.
- *
- * @package CoiSA\ErrorHandler\Test\Functional\Http\Middleware
+ * Verifies reporting and public HTTP rendering remain separate operations.
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ErrorHandlerMiddlewareTest extends TestCase
 {
     /**
-     * Verify explicit middleware composition reports and renders a request failure.
+     * Verifies reporting precedes pure JSON rendering, without captured output or private details.
      */
-    public function testErrorHandlerMiddlewareHandleRequestException(): void
+    public function testReportsOnceBeforeRenderingTheResponse(): void
     {
-        $exception = new \InvalidArgumentException(uniqid('test', true), random_int(400, 500));
-
-        $callableThrowableHandler = new CallableThrowableHandler(
-            /**
-             * Receive the throwable reported by this behavior fixture.
-             *
-             * @param \Throwable $throwable the throwable supplied to the reporter
-             */
-            static function (\Throwable $throwable): void {
-                echo json_encode([
-                    'code'    => $throwable->getCode(),
-                    'message' => $throwable->getMessage(),
-                ]);
+        $failure = new \RuntimeException('Private database credentials', 503);
+        $events = self::operations();
+        $received = [];
+        $reporter = new CallableThrowableHandler(
+            static function (\Throwable $throwable) use ($events, &$received): void {
+                $events[] = 'report';
+                $received[] = $throwable;
             },
         );
-
-        $streamFactory  = $reponseFactory = new Psr17Factory();
-        $serverRequest  = $streamFactory->createServerRequest('GET', 'http://localhost');
-
-        $requestHandler = new class ($exception) implements RequestHandlerInterface {
-            /** @var \Throwable The failure raised by this request fixture. */
-            private $exception;
-
+        $psr17 = new Psr17Factory();
+        $streams = new class ($psr17, $events) implements ThrowableStreamFactoryInterface {
             /**
-             * Retain the failure raised when the synthetic request is handled.
+             * Stores the public stream factory and the observable operation order.
              *
-             * @param \Throwable $exception the request's configured throwable
+             * @param StreamFactoryInterface    $streams creates public body streams
+             * @param \ArrayObject<int, string> $events  receives ordered fixture operations
              */
-            public function __construct(\Throwable $exception)
+            public function __construct(private StreamFactoryInterface $streams, private \ArrayObject $events)
             {
-                $this->exception = $exception;
             }
 
             /**
-             * Raise the configured failure instead of returning a response.
+             * Returns a JSON stream directly without invoking a reporter or writing output.
+             *
+             * @param \Throwable $throwable the private failure whose details remain undisclosed
+             *
+             * @return StreamInterface the application's controlled public JSON body
+             */
+            public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
+            {
+                $this->events[] = 'render';
+
+                return $this->streams->createStream('{"error":"Service unavailable"}');
+            }
+        };
+        $next = self::downstream($failure);
+        $middleware = new ErrorHandlerMiddleware(
+            new ErrorHandler($reporter),
+            new ThrowableResponseFactory($streams, $psr17),
+        );
+        ob_start();
+
+        try {
+            $response = $middleware->process($psr17->createServerRequest('GET', '/'), $next);
+            $output = ob_get_contents();
+        } finally {
+            ob_end_clean();
+        }
+
+        self::assertSame('', $output);
+        self::assertSame(['report', 'render'], $events->getArrayCopy());
+        self::assertSame([$failure], $received);
+        self::assertSame(503, $response->getStatusCode());
+        self::assertSame('{"error":"Service unavailable"}', (string) $response->getBody());
+    }
+
+    /**
+     * Verifies successful responses pass through without reporting or rendering.
+     */
+    public function testPassesThroughSuccessfulResponses(): void
+    {
+        $psr17 = new Psr17Factory();
+        $expected = $psr17->createResponse(204);
+        $reports = 0;
+        $middleware = new ErrorHandlerMiddleware(
+            new ErrorHandler(new CallableThrowableHandler(static function () use (&$reports): void {
+                ++$reports;
+            })),
+            new ThrowableResponseFactory(new GenericThrowableStreamFactory($psr17), $psr17),
+        );
+        $next = new class ($expected) implements RequestHandlerInterface {
+            /**
+             * Stores the application's successful response.
+             *
+             * @param ResponseInterface $response the response that must pass through unchanged
+             */
+            public function __construct(private ResponseInterface $response)
+            {
+            }
+
+            /**
+             * Returns the application's successful response.
              *
              * @param ServerRequestInterface $request the synthetic request
              *
-             * @return ResponseInterface a response is never produced by this fixture
-             *
-             * @throws \Throwable the failure supplied at construction
+             * @return ResponseInterface the unchanged downstream response
              */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                throw $this->exception;
+                return $this->response;
             }
         };
 
-        $errorHandler = new ErrorHandler($callableThrowableHandler);
+        self::assertSame($expected, $middleware->process($psr17->createServerRequest('GET', '/'), $next));
+        self::assertSame(0, $reports);
+    }
 
-        $throwableStreamFactory   = new ThrowableStreamFactory($streamFactory, $callableThrowableHandler);
-        $throwableResponseFactory = new ThrowableResponseFactory($throwableStreamFactory, $reponseFactory);
+    /**
+     * Creates an empty operation log shared by reporting and rendering collaborators.
+     *
+     * @return \ArrayObject<int, string> ordered operation labels recorded by the fixture
+     */
+    private static function operations(): \ArrayObject
+    {
+        return new \ArrayObject();
+    }
 
-        $middleware = new ErrorHandlerMiddleware($errorHandler, $throwableResponseFactory);
-        $response   = $middleware->process($serverRequest, $requestHandler);
+    /**
+     * Creates the failing application used by the rendering regression.
+     *
+     * @param \Throwable $failure the exact failure to report and render
+     *
+     * @return RequestHandlerInterface the synthetic downstream application
+     */
+    private static function downstream(\Throwable $failure): RequestHandlerInterface
+    {
+        return new class ($failure) implements RequestHandlerInterface {
+            /**
+             * Stores the downstream failure.
+             *
+             * @param \Throwable $failure the exact throwable to propagate
+             */
+            public function __construct(private \Throwable $failure)
+            {
+            }
 
-        self::assertInstanceOf(ResponseInterface::class, $response);
-        self::assertSame($exception->getCode(), $response->getStatusCode());
-
-        $body = json_decode((string) $response->getBody(), true);
-
-        self::assertIsArray($body);
-        self::assertSame($exception->getCode(), $body['code']);
-        self::assertSame($exception->getMessage(), $body['message']);
+            /**
+             * Throws the private failure for the middleware to handle.
+             *
+             * @param ServerRequestInterface $request the synthetic incoming request
+             *
+             * @return ResponseInterface the error response supplied by middleware
+             */
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                throw $this->failure;
+            }
+        };
     }
 }

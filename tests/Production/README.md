@@ -1,24 +1,50 @@
-# Alias factory runtime regression
+# Production provider regressions
 
-Run `php tests/Production/alias-factory.php /path/to/consumer/vendor/autoload.php`
-from the source checkout against an isolated consumer on actual PHP 7.4 and modern
-PHP. It verifies exact delegated values, object identity, exception propagation,
-legacy container aliases and core handler construction. It does not install PHP
-callbacks. Tests are excluded from Composer distribution archives.
+Run these entrypoints from the source checkout against a disposable Composer
+consumer requiring only `coisa/error-handler`, with no library development
+dependencies:
 
-`container.php` also constructs the base, JSON and Whoops Interop provider objects
-without requesting their definitions. Their interface contract loads from runtime
-metadata on PHP 7.4 without FastForward or Whoops; using their service maps remains an
-opt-in PHP 8.3+ application integration.
+```sh
+php tests/Production/container.php /path/to/consumer/vendor/autoload.php
+php tests/Production/alias-factory.php /path/to/consumer/vendor/autoload.php
+```
 
-The consumer must require only `coisa/error-handler`; its runtime metadata must
-install `psr/container` transitively. Use Composer 2 with
-`--no-plugins --no-scripts` and no library development dependencies. The
-[PHP CI workflow](../../.github/workflows/ci.yml) runs this fixture together with
-`container.php` and the distribution check in `archive.php`, using current
-runtime dependency resolutions on PHP 7.4 and 8.0–8.5 and lowest resolutions on
-PHP 7.4 and 8.5. See [contributor checks](../../CONTRIBUTING.md) for local commands
-and the distinction between production and development runners.
+The library declares PHP `^8.3`. CI tests PHP 8.3–8.5 with the documented
+dependency bounds; this is a tested range, not an
+artificial 8.5 upper constraint. Resolve with the actual PHP runtime and Composer 2
+using `--no-dev --no-plugins --no-scripts`. The runtime graph supplies FastForward,
+Interop and the PSR interfaces. No Nyholm, application logger or other incidental
+consumer dependency is needed for these construction/reporting checks. The
+production autoloader also exposes JSON, Whoops and the explicit reporting
+adapter, and both profile maps can be discovered without constructing optional
+Whoops objects or installing callbacks. Actual HTML rendering requires the
+application to install Whoops; the PHPUnit and documented recipes exercise that
+composition separately.
+
+`container.php` uses the real Interop provider and FastForward container. It
+checks default aliases, cached identities, distinct explicit core scopes and
+fresh middleware wrappers, then reports synthetic events through the configured
+application reporter. The PSR-17 construction-only sentinels throw if lookup tries
+to render, open a file or consume a resource; they are not response implementations.
+Temporary surrounding PHP callbacks are restored, and lookup must leave them
+unchanged. Nested middleware lifecycle/rendering is covered separately by the
+functional tests; fresh wrapper identity alone does not prove a fresh handler.
+
+`alias-factory.php` retains its historical CI entrypoint name but now tests the
+major integration: application-required interface overrides are merged after
+library definitions in one real `AggregateServiceProvider`. It verifies exact
+reporter/core identities, original-event delivery and failure instead of silent
+fallback when required construction fails. FastForward may retry resolution and
+normalize failures to PSR11 exceptions; this fixture does not promise a single
+construction attempt or unchanged failure identity through that dependency.
+The removed package `AliasFactory` and PHP 7.4 repair are not restored or retested.
+
+The independent `archive.php` check verifies the committed distribution before
+consumer installation. Tests are export-ignored and never shipped as runtime
+services. The [native CI workflow](../../.github/workflows/ci.yml) owns the actual
+PHP/resolution matrix; report its exact candidate and results. These checks prove
+installed provider composition, not production transport delivery, server
+behavior, arbitrary callback recovery or release/publication authority.
 
 The distribution check admits only root metadata, runtime source, useful guides
 and `resources/skills/coisa-error-handler/`. Every runtime and canonical skill

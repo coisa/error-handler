@@ -20,16 +20,16 @@ use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies concrete-event selection and stable listener order without dispatch side effects.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider
- *
- * @uses \CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent
  */
+#[CoversClass(ErrorEventListenerProvider::class)]
+#[UsesClass(ErrorEvent::class)]
 final class ErrorEventListenerProviderTest extends TestCase
 {
     /**
@@ -75,7 +75,7 @@ final class ErrorEventListenerProviderTest extends TestCase
         $provider = new ErrorEventListenerProvider($this->createListener('unused', $calls));
 
         self::assertSame([], [...$provider->getListenersForEvent(new \stdClass())]);
-        self::assertSame([], [...$provider->getListenersForEvent($this->createMock(ErrorEventInterface::class))]);
+        self::assertSame([], [...$provider->getListenersForEvent(self::createStub(ErrorEventInterface::class))]);
         self::assertSame([], [...$provider->getListenersForEvent(new \RuntimeException('Raw throwable'))]);
         self::assertSame([], $calls);
     }

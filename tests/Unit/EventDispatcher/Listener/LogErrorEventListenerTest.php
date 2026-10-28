@@ -21,14 +21,15 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Verifies the legacy event listener logs string output and returns the same event.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener
  */
+#[CoversClass(LogErrorEventListener::class)]
 final class LogErrorEventListenerTest extends TestCase
 {
     /**
@@ -36,9 +37,8 @@ final class LogErrorEventListenerTest extends TestCase
      *
      * @param bool   $customLevel whether to configure an application-selected level
      * @param string $message     the event's exact string representation
-     *
-     * @dataProvider provideLogsTheEventStringAndReturnsTheOriginalCases
      */
+    #[DataProvider('provideLogsTheEventStringAndReturnsTheOriginalCases')]
     public function testLogsTheEventStringAndReturnsTheOriginal(bool $customLevel, string $message): void
     {
         $event = $this->createMock(ErrorEventInterface::class);

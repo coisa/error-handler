@@ -18,6 +18,8 @@ namespace CoiSA\ErrorHandler\Test\Process;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
+use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Verifies native termination outside PHPUnit's result protocol using public process control.
@@ -25,30 +27,28 @@ use Symfony\Component\Process\Process;
  * These are process tests; their children do not contribute parent unit coverage.
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ProcessBehaviorTest extends TestCase
 {
     /**
      * Verifies actual exit status, native reporting order and emitted exception metadata.
      *
      * @param string      $case     the owned fixture selection
-     * @param int         $exit     the established2.x native exit status
+     * @param int         $exit     the major native exit status
      * @param string[]    $events   expected event names in actual delivery order
      * @param null|string $class    the first reported Throwable type when relevant
      * @param null|int    $severity the fatal severity when relevant
      * @param bool        $native   whether PHP emits its own fatal diagnostic
-     *
-     * @dataProvider provideNativeLifecycleCases
      */
+    #[DataProvider('provideNativeLifecycleCases')]
     public function testNativeLifecycle(
         string $case,
         int $exit,
         array $events,
         ?string $class = null,
         ?int $severity = null,
-        bool $native = false
+        bool $native = false,
     ): void {
         $process = new Process([
             PHP_BINARY, '-n', '-d', 'memory_limit=16M', '-d', 'display_errors=stderr',
@@ -97,6 +97,26 @@ final class ProcessBehaviorTest extends TestCase
         if (null !== $severity) {
             self::assertSame($severity, $observed[0]['severity'] ?? null);
         }
+        if (\in_array($case, ['compile-fatal', 'nested-fatal'], true)) {
+            $fatal = $observed[0];
+            $lastError = $fatal['lastError'] ?? null;
+            self::assertIsArray($lastError);
+            self::assertSame(E_COMPILE_ERROR, $lastError['type']);
+            self::assertSame($lastError['message'], $fatal['message']);
+            self::assertSame($lastError['file'], $fatal['file']);
+            self::assertSame($lastError['line'], $fatal['line']);
+
+            $fixture = \dirname(__DIR__) . '/Fixtures/compile-fatal.inc';
+            $lines = file($fixture, FILE_IGNORE_NEW_LINES);
+            self::assertIsArray($lines);
+            $declaration = array_search('class FireInvalidSubclass extends FireFinalClass {}', $lines, true);
+            self::assertIsInt($declaration);
+            self::assertSame($fixture, $fatal['file']);
+            self::assertSame($declaration + 1, $fatal['line']);
+            self::assertIsString($fatal['message']);
+            self::assertStringContainsString('FireInvalidSubclass', $fatal['message']);
+            self::assertStringContainsString('FireFinalClass', $fatal['message']);
+        }
         if ($native) {
             self::assertNotSame('', $process->getErrorOutput());
         } else {
@@ -110,19 +130,32 @@ final class ProcessBehaviorTest extends TestCase
         $fatal = 'CoiSA\ErrorHandler\Exception\ErrorException';
 
         return [
-            'uncaught exception exits zero' => ['exception', 0, ['error'], \RuntimeException::class, null, false],
-            'uncaught engine Error' => ['error', 0, ['error'], \Error::class, null, false],
-            'uncaught TypeError' => ['type-error', 0, ['error'], \TypeError::class, null, false],
-            'uncaught ParseError' => ['parse-error', 0, ['error'], \ParseError::class, null, false],
+            'uncaught exception exits one' => ['exception', 1, ['error'], \RuntimeException::class, null, false],
+            'uncaught engine Error' => ['error', 1, ['error'], \Error::class, null, false],
+            'uncaught TypeError' => ['type-error', 1, ['error'], \TypeError::class, null, false],
+            'uncaught ParseError' => ['parse-error', 1, ['error'], \ParseError::class, null, false],
             'compile fatal' => ['compile-fatal', 255, ['error'], $fatal, E_COMPILE_ERROR, true],
-            'nested fatal reports twice' => ['nested-fatal', 255, ['error', 'error'], $fatal, E_COMPILE_ERROR, true],
+            'nested fatal reports to active owner' => ['nested-fatal', 255, ['error'], $fatal, E_COMPILE_ERROR, true],
             'memory fatal' => ['memory-limit', 255, ['error'], $fatal, E_ERROR, true],
-            'shutdown queue retains registrations' => ['shutdown-repeated', 0,
-                ['shutdown', 'shutdown', 'shutdown', 'shutdown'], null, null, false],
+            'shutdown queue retains one callback' => ['shutdown-repeated', 0, ['shutdown'], null, null, false],
+            'reused handler cannot recover an earlier shutdown fatal' => [
+                'reregister-shutdown-fatal', 255, [], null, null, true,
+            ],
+            'fresh handler cannot recover an earlier shutdown fatal' => [
+                'fresh-shutdown-fatal', 255, [], null, null, true,
+            ],
+            'uncaught delivery still runs shutdown queue' => [
+                'exception-shutdown', 1, ['error', 'shutdown'], \RuntimeException::class, null, false,
+            ],
+            'unregistered shutdown remains inert' => [
+                'unregistered-shutdown', 0, ['continued'], null, null, false,
+            ],
             'native previous callbacks restored' => ['restore', 42,
                 ['error', 'previous-error', 'previous-exception'], $fatal, E_USER_WARNING, false],
-            'reporter failure reenters' => ['reporter-throws', 255,
-                ['reporter-called', 'reporter-called', 'reporter-called'], null, null, true],
+            'reporter failure is not retried' => ['reporter-throws', 255,
+                ['reporter-called'], null, null, true],
+            'fatal reporter failure is not retried' => ['shutdown-reporter-throws', 255,
+                ['reporter-called'], null, null, true],
             'actual shutdown adapter failure' => [
                 'shutdown-throws', 0, ['error'], \RuntimeException::class, null, false,
             ],
@@ -135,9 +168,8 @@ final class ProcessBehaviorTest extends TestCase
      * @param string $case      the hazardous native fixture selection
      * @param int    $remaining the established number of remaining scopes above entry
      * @param int    $callbacks the expected output callback count before shutdown
-     *
-     * @dataProvider provideHazardousOutputHandlersCases
      */
+    #[DataProvider('provideHazardousOutputHandlersCases')]
     public function testHazardousOutputHandlers(string $case, int $remaining, int $callbacks): void
     {
         $process = new Process([
@@ -182,7 +214,7 @@ final class ProcessBehaviorTest extends TestCase
         if ('closed-capture-without-caller' === $case) {
             self::assertSame('', $process->getErrorOutput());
             self::assertSame(
-                ['entryLevel' => 0, 'remaining' => 0, 'fallbackSame' => true],
+                ['entryLevel' => 0, 'remaining' => 0, 'body' => 'Internal Server Error'],
                 json_decode(trim($process->getOutput()), true, 512, JSON_THROW_ON_ERROR),
             );
 
@@ -214,9 +246,8 @@ final class ProcessBehaviorTest extends TestCase
      * Preserves native source frames and real warnings through the released Whoops integration.
      *
      * @param string $mode the actual PHP input route, without fabricated throwable paths
-     *
-     * @dataProvider provideWhoopsNativeSourceFramesCases
      */
+    #[DataProvider('provideWhoopsNativeSourceFramesCases')]
     public function testWhoopsNativeSourceFrames(string $mode): void
     {
         $fixture = \dirname(__DIR__) . '/Fixtures/whoops-source.php';
@@ -238,7 +269,6 @@ final class ProcessBehaviorTest extends TestCase
             array_splice($command, \count($command) - 1, 0, ['--']);
         }
         $inherited = getenv();
-        self::assertIsArray($inherited);
         $environment = array_fill_keys(array_keys($inherited), false);
         $process = new Process($command, null, $environment, 'stdin' === $mode ? $source : null, 2.0);
         $bytes = 0;

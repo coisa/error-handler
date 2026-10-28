@@ -19,14 +19,14 @@ namespace CoiSA\ErrorHandler\Test\Unit\EventDispatcher\Listener;
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEventInterface;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Verifies exact event delivery, ignored callback results and unchanged failures.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\EventDispatcher\Listener\ErrorEventCallableListener
  */
+#[CoversClass(ErrorEventCallableListener::class)]
 final class ErrorEventCallableListenerTest extends TestCase
 {
     /**
@@ -34,8 +34,8 @@ final class ErrorEventCallableListenerTest extends TestCase
      */
     public function testReturnsTheOriginalEventAfterOneCallback(): void
     {
-        $original = $this->createMock(ErrorEventInterface::class);
-        $replacement = $this->createMock(ErrorEventInterface::class);
+        $original = self::createStub(ErrorEventInterface::class);
+        $replacement = self::createStub(ErrorEventInterface::class);
         $observed = null;
         $calls = 0;
         $listener = new ErrorEventCallableListener(
@@ -65,7 +65,7 @@ final class ErrorEventCallableListenerTest extends TestCase
      */
     public function testPropagatesTheIdenticalCallbackFailure(): void
     {
-        $event = $this->createMock(ErrorEventInterface::class);
+        $event = self::createStub(ErrorEventInterface::class);
         $failure = new \Error('Synthetic event callback failure');
         $calls = 0;
         $listener = new ErrorEventCallableListener(

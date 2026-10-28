@@ -52,7 +52,8 @@ $filtered = new FilteringThrowableHandler(
      *
      * @return bool true forwards this event to the deprecation branch
      */
-    static fn(Throwable $error): bool => $error instanceof ErrorException && E_USER_DEPRECATED === $error->getSeverity(),
+    static fn(Throwable $error): bool => $error instanceof ErrorException
+        && E_USER_DEPRECATED === $error->getSeverity(),
 );
 $routes = new ThrowableHandlerAggregate($allReports, $filtered);
 $deprecation = new ErrorException('Synthetic deprecation', 0, E_USER_DEPRECATED);

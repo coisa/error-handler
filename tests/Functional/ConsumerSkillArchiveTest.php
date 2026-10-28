@@ -16,15 +16,15 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\Test\Functional;
 
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Exercises the actual distribution gate with disposable, independently malformed archives.
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversNothing]
 final class ConsumerSkillArchiveTest extends TestCase
 {
     /** @var string an exclusively owned temporary archive directory */
@@ -40,7 +40,7 @@ final class ConsumerSkillArchiveTest extends TestCase
     {
         $this->temporaryDirectory = sys_get_temp_dir() . '/coisa-skill-archive-' . bin2hex(random_bytes(12));
 
-        if (!mkdir($this->temporaryDirectory, 0700)) {
+        if (!mkdir($this->temporaryDirectory, 0o700)) {
             throw new \RuntimeException('Could not create the isolated archive fixture.');
         }
 

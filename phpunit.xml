@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.5/phpunit.xsd"
          bootstrap="vendor/autoload.php"
-         stopOnError="true"
-         stopOnFailure="true"
-         colors="true"
-         verbose="true">
+         cacheDirectory="tmp/phpunit"
+         failOnRisky="true"
+         failOnWarning="true"
+         failOnDeprecation="true"
+         failOnPhpunitDeprecation="true"
+         colors="true">
     <testsuites>
         <testsuite name="Unit">
             <directory suffix="Test.php">tests/Unit</directory>
@@ -17,17 +19,11 @@
             <directory suffix="Test.php">tests/Process</directory>
         </testsuite>
     </testsuites>
-    <coverage processUncoveredFiles="true">
-        <include>
-            <directory suffix=".php">src</directory>
-        </include>
+    <source><include><directory>src</directory></include></source>
+    <coverage>
         <report>
             <clover outputFile="tests/clover.xml"/>
-            <html outputDirectory="tests/html" lowUpperBound="35" highLowerBound="70"/>
             <text outputFile="php://stdout"/>
         </report>
     </coverage>
-    <logging>
-        <testdoxHtml outputFile="tests/testdox.html"/>
-    </logging>
 </phpunit>

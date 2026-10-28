@@ -19,21 +19,21 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
 use CoiSA\ErrorHandler\Handler\PhpLastErrorShutdownHandler;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 
 /**
  * Verifies real absent/nonfatal last-error states without faking native PHP functions.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\PhpLastErrorShutdownHandler
  */
+#[CoversClass(PhpLastErrorShutdownHandler::class)]
 final class PhpLastErrorShutdownHandlerTest extends TestCase
 {
     /**
      * No last error means no shutdown delivery.
-     *
-     * @runInSeparateProcess
      */
+    #[RunInSeparateProcess]
     public function testDoesNothingWhenNoLastErrorExists(): void
     {
         error_clear_last();
@@ -48,9 +48,8 @@ final class PhpLastErrorShutdownHandlerTest extends TestCase
 
     /**
      * A real nonfatal last warning is ignored; restore callbacks/mask and clear fixture state.
-     *
-     * @runInSeparateProcess
      */
+    #[RunInSeparateProcess]
     public function testDoesNotReportARealNonfatalLastError(): void
     {
         $delegate = $this->createMock(PhpErrorHandlerInterface::class);

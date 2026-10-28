@@ -16,32 +16,63 @@ declare(strict_types=1);
 
 namespace CoiSA\ErrorHandler\ServiceProvider;
 
-use CoiSA\ErrorHandler\Container\Factory\ErrorHandlerFactory;
 use CoiSA\ErrorHandler\ErrorHandler;
 use CoiSA\ErrorHandler\ErrorHandlerInterface;
-use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactory;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerAggregate;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use CoiSA\ErrorHandler\Handler\SymfonyCliThrowableHandler;
+use CoiSA\ErrorHandler\Http\Message\HtmlThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\JsonThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\NegotiatingThrowableResponseFactory;
+use CoiSA\ErrorHandler\Http\Message\WhoopsThrowableResponseFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableResponseFactoryInterface;
-use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactory;
+use CoiSA\ErrorHandler\Http\Message\GenericThrowableStreamFactory;
 use CoiSA\ErrorHandler\Http\Message\ThrowableStreamFactoryInterface;
 use CoiSA\ErrorHandler\Http\Middleware\ErrorHandlerMiddleware;
 use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerMiddlewareFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ErrorHandlerFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\ThrowableHandlerAggregateFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\NegotiatingThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\WhoopsThrowableResponseFactoryFactory;
+use CoiSA\ErrorHandler\ServiceProvider\Factory\SymfonyCliThrowableHandlerFactory;
 use FastForward\Container\Factory\AliasFactory;
 use FastForward\Container\Factory\InvokableFactory;
 use Interop\Container\ServiceProviderInterface;
-use Psr\Container\ContainerInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Whoops\Handler\PrettyPageHandler;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\Normalizer\ProblemNormalizer;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
- * Defines optional FastForward lifecycle services while retaining the 2.x capture defaults.
+ * Declares lifecycle services and interface aliases for FastForward autowiring.
  *
- * Applications supply their private reporter and PSR-17 implementations. Discovery
- * never installs native callbacks; middleware scopes are created by an explicit factory.
+ * Resolving a service MUST NOT install PHP's process-wide callbacks.
+ * HTTP representation is selected for each request by a shared, stateless negotiator.
+ * Whoops remains an explicitly selected optional adapter, independent of the default HTML renderer.
+ *
+ * @package CoiSA\ErrorHandler\ServiceProvider
  */
 final class ErrorHandlerServiceProvider implements ServiceProviderInterface
 {
     /**
-     * Describes cached process services and reusable factories for fresh HTTP scopes.
+     * Selects trusted diagnostics without enabling them from request headers.
      *
-     * @return array<string, callable(ContainerInterface): mixed> inert service definitions
+     * @param bool $debug whether JSON and Symfony HTML may include development diagnostics
+     * @param bool $cli   explicitly enables terminal diagnostics without inferring the server API
+     */
+    public function __construct(
+        private readonly bool $debug = false,
+        private readonly bool $cli = false,
+    ) {
+    }
+
+    /**
+     * Supplies aliases and factories that define reporter composition and handler lifetimes.
+     *
+     * @return array<class-string, callable> lazy service definitions
      */
     public function getFactories(): array
     {
@@ -49,17 +80,42 @@ final class ErrorHandlerServiceProvider implements ServiceProviderInterface
             ErrorHandlerInterface::class => AliasFactory::get(ErrorHandler::class),
             ErrorHandler::class => new ErrorHandlerFactory(),
             ErrorHandlerFactory::class => new InvokableFactory(ErrorHandlerFactory::class),
+            ThrowableHandlerInterface::class => AliasFactory::get(ThrowableHandlerAggregate::class),
+            ThrowableHandlerAggregate::class => new ThrowableHandlerAggregateFactory($this->cli),
+            SymfonyCliThrowableHandler::class => new SymfonyCliThrowableHandlerFactory(),
+            ThrowableResponseFactoryInterface::class => AliasFactory::get(NegotiatingThrowableResponseFactory::class),
+            NegotiatingThrowableResponseFactory::class => new NegotiatingThrowableResponseFactoryFactory(),
+            JsonThrowableResponseFactory::class => new InvokableFactory(
+                JsonThrowableResponseFactory::class,
+                ResponseFactoryInterface::class,
+                StreamFactoryInterface::class,
+                SerializerInterface::class,
+                $this->debug,
+            ),
+            SerializerInterface::class => AliasFactory::get(Serializer::class),
+            Serializer::class => new InvokableFactory(
+                Serializer::class,
+                [new ProblemNormalizer(true)],
+                [new JsonEncoder()],
+            ),
+            HtmlThrowableResponseFactory::class => new InvokableFactory(
+                HtmlThrowableResponseFactory::class,
+                ResponseFactoryInterface::class,
+                StreamFactoryInterface::class,
+                $this->debug,
+            ),
+            PrettyPageHandler::class => new InvokableFactory(PrettyPageHandler::class),
+            WhoopsThrowableResponseFactory::class => new WhoopsThrowableResponseFactoryFactory(),
+            ThrowableStreamFactoryInterface::class => AliasFactory::get(GenericThrowableStreamFactory::class),
             ErrorHandlerMiddleware::class => new ErrorHandlerMiddlewareFactory(),
             ErrorHandlerMiddlewareFactory::class => new InvokableFactory(ErrorHandlerMiddlewareFactory::class),
-            ThrowableResponseFactoryInterface::class => AliasFactory::get(ThrowableResponseFactory::class),
-            ThrowableStreamFactoryInterface::class => AliasFactory::get(ThrowableStreamFactory::class),
         ];
     }
 
     /**
-     * Leaves application services unchanged.
+     * Supplies no service extensions; applications own registration and decoration.
      *
-     * @return array<string, callable> no implicit extensions
+     * @return array<string, callable> an empty extension map
      */
     public function getExtensions(): array
     {

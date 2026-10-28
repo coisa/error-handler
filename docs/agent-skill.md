@@ -3,10 +3,9 @@
 The Composer library ships the complete
 [`coisa-error-handler` package](../resources/skills/coisa-error-handler/SKILL.md)
 under `resources/skills/coisa-error-handler`, including its MIT license,
-references and executable application examples. It supports the library's
-`^2.4` API and PHP `^7.4 || ^8.0`. Earlier API versions are outside that skill
-contract. JSON/Whoops/provider routes were published in 2.5.0 and require `^2.5`;
-the common skill baseline remains `^2.4`. Inspect `composer show coisa/error-handler` and the actual files;
+references and executable application examples. It describes the accompanying
+library API and PHP `^8.3`; CI targets PHP 8.3–8.5. Match the skill to the installed
+package version and inspect `composer show coisa/error-handler` and its source;
 do not upgrade a production dependency just to obtain instructions.
 
 Shipping a skill does not install it in a discovery directory or activate it in
@@ -18,8 +17,8 @@ an explicit consumer choice.
 ## Optional Composer project synchronization
 
 `llm/skills ^1.15` is optional development tooling and requires PHP 8.2+ with
-Composer 2. It does not change this library's PHP 7.4 runtime contract. A consumer
-on an earlier PHP can use the manual route below. The library declares
+Composer 2. The library's PHP 8.3 minimum is stricter; the plugin remains optional,
+and the manual route needs no installer. The library declares
 `extra.skills.source: resources/skills` but does not require or approve the
 plugin on the consumer's behalf.
 

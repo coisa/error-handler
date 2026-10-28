@@ -19,76 +19,70 @@ use Symfony\Component\Process\Process;
 require getenv('ERROR_HANDLER_AUTOLOAD') ?: dirname(__DIR__) . '/vendor/autoload.php';
 
 $cases = [
-    ['direct.php', [], 0, "reported: Example failure\ncontinued\n"],
-    ['logging.php', [], 0, "direct PSR-3 logging, exact messages and original context passed\n"],
-    ['handlers.php', [], 0, "callable, aggregate, conversion, suppression and shutdown adapters passed\n"],
-    ['php-errors.php', [], 0, "callable PHP errors: four arguments, explicit mask policy and conversion passed\n"],
-    ['filtering.php', [], 0, "explicit filtering, severity selection and original-object delivery passed\n"],
-    ['best-effort.php', [], 0, "best-effort order, original cause and all reporter failures passed\n"],
-    ['events.php', [], 0, "raw throwable, ErrorEvent, listener providers and PSR-3 logging passed\n"],
-    ['container.php', [], 0, "legacy container, cached services, fresh factory and ConfigProvider passed\n"],
     [
-        'http-json.php',
-        ['public'],
-        0,
-        "HTTP JSON public: explicit payload, status preservation and one private report passed\n",
+        'cli.php', [], 1, '',
+        "CoiSA\\ErrorHandler\\Exception\\ErrorException: Example warning; execution continues.\n"
+            . "RuntimeException: Example uncaught exception; exit status is 1.\n",
     ],
+    ['fast-forward.php', [], 0, "Reported: FastForward provider warning\n", ''],
+    ['reporters.php', [], 0, "first: Synthetic failure\nsecond: Synthetic failure\n", ''],
     [
-        'http-json.php',
-        ['debug'],
-        0,
-        "HTTP JSON debug: explicit payload, status preservation and one private report passed\n",
+        'event-dispatcher.php', [], 0,
+        "throwable: Synthetic warning\nevent: Synthetic warning\nPrivate log records: 1\n", '',
     ],
+    ['http-middleware.php', [], 0, "HTTP 503 | Internal Server Error\nReported: 2\n", ''],
     [
-        'http-whoops.php',
-        ['public'],
-        0,
-        "HTTP Whoops public: explicit renderer selection and one private report passed\n",
+        'http-rendering.php', [], 0,
+        "HTTP 503 | application/json\n{\"error\":\"Service unavailable\"}\nPrivate reports: 1\n", '',
     ],
-    [
-        'http-whoops.php',
-        ['development'],
-        0,
-        "HTTP Whoops development: explicit renderer selection and one private report passed\n",
-    ],
-    ['process.php', ['warning'], 0, "reported: Process warning\ncontinued\n"],
-    ['process.php', ['scope'], 0, "reported: Scoped warning\ncallbacks restored\n"],
-    ['process.php', ['uncaught'], 0, "reported: Uncaught fixture\n"],
-    ['process.php', ['shutdown'], 0, "leaving main\nshutdown callback\n"],
-    ['process.php', ['fatal'], 255, null],
+    ['custom-handlers.php', [], 0, "PHP errors: 1 | Shutdown notifications: 1\n", ''],
+    ['scopes.php', [], 0, "Fresh handlers: yes | Fresh middleware: yes\nHTTP 500 | Reports: 2\n", ''],
+    ['output-capture.php', [], 0, "Captured body: Public failure page\n", ''],
+    ['logging.php', [], 0, "direct PSR-3 logging, exact messages and original context passed\n", ''],
+    ['filtering.php', [], 0, "explicit filtering, severity selection and original-object delivery passed\n", ''],
+    ['best-effort.php', [], 0, "best-effort order, original cause and all reporter failures passed\n", ''],
+    ['php-errors.php', [], 0, "callable PHP errors: four arguments, explicit mask policy and conversion passed\n", ''],
 ];
 
-if (in_array('--with-fast-forward', $argv, true)) {
-    if (PHP_VERSION_ID < 80300 || !function_exists('FastForward\Container\container')) {
-        throw new RuntimeException('FastForward scenarios require PHP 8.3+ and fast-forward/container:^1.9.');
-    }
 
-    foreach (['public', 'debug'] as $mode) {
-        $cases[] = [
-            'provider-json.php',
-            [$mode],
-            0,
-            'Interop JSON ' . $mode . ": configured profile, fresh scope and one private report passed\n",
-        ];
-    }
-
-    foreach (['default', 'configured'] as $mode) {
-        $cases[] = [
-            'provider-whoops.php',
-            [$mode],
-            0,
-            'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n",
-        ];
-    }
+foreach (['public', 'debug'] as $mode) {
+    $cases[] = [
+        'http-json.php', [$mode], 0,
+        'HTTP JSON ' . $mode . ": explicit payload, status preservation and one private report passed\n", '',
+    ];
+    $cases[] = [
+        'provider-json.php', [$mode], 0,
+        'Interop JSON ' . $mode . ": configured provider, fresh scope and one private report passed\n", '',
+    ];
 }
 
-foreach (['capture', 'empty', 'zero', 'safe', 'success', 'renderer-failure', 'reporter-failure'] as $mode) {
+foreach (['public', 'debug'] as $mode) {
     $cases[] = [
-        'http.php',
-        [$mode],
-        0,
-        'HTTP ' . $mode . ': response/reporting contract and callback restoration passed; buffer delta '
-            . "0\n",
+        'http-html.php', [$mode], 0,
+        'HTTP HTML ' . $mode . ": Symfony rendering and one original report passed\n", '',
+    ];
+}
+
+foreach (['public', 'development'] as $mode) {
+    $cases[] = [
+        'http-whoops.php', [$mode], 0,
+        'HTTP Whoops ' . $mode . ": explicit renderer selection and one private report passed\n", '',
+    ];
+}
+
+foreach (['public', 'default', 'configured'] as $mode) {
+    $cases[] = [
+        'provider-whoops.php', [$mode], 0,
+        'public' === $mode
+            ? "HTML provider public: Symfony renderer, fresh scopes and private reporting passed\n"
+            : 'Whoops provider ' . $mode . ": lazy pages, fresh scopes and private reporting passed\n", '',
+    ];
+}
+
+foreach (['direct', 'provider', 'console'] as $mode) {
+    $cases[] = [
+        'symfony-cli.php', [$mode], 0,
+        'Symfony CLI ' . $mode . ": one terminal diagnostic and explicit capture ownership passed\n", '',
     ];
 }
 
@@ -104,13 +98,13 @@ if (false !== $autoload) {
     $environment['ERROR_HANDLER_AUTOLOAD'] = $autoload;
 }
 
-foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput]) {
+foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput, $expectedErrors]) {
     $command = array_merge([
         PHP_BINARY,
-        '-n',
         '-d', 'memory_limit=64M',
         '-d', 'display_errors=stderr',
         '-d', 'log_errors=0',
+        '-d', 'error_reporting=-1',
         __DIR__ . '/' . $file,
     ], $arguments);
     $process = new Process($command, null, $environment, null, 5.0);
@@ -144,15 +138,12 @@ foreach ($cases as [$file, $arguments, $expectedExit, $expectedOutput]) {
     $output = $process->getOutput();
     $errors = $process->getErrorOutput();
 
-    if ($exit !== $expectedExit || (null !== $expectedOutput && ($output !== $expectedOutput || '' !== $errors))) {
+    if ($exit !== $expectedExit || $output !== $expectedOutput || $errors !== $expectedErrors) {
         throw new RuntimeException(
             $file . ' ' . implode(' ', $arguments) . ' failed: exit=' . $exit . "\n" . $output . $errors,
         );
     }
 
-    if (null === $expectedOutput && (false === strpos($output, 'reported: Cannot redeclare') || 255 !== $exit)) {
-        throw new RuntimeException('The fatal fixture did not report its native compile failure.');
-    }
 
     echo $file . (' ' . implode(' ', $arguments)) . ': passed' . PHP_EOL;
 }

@@ -18,14 +18,14 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 
 use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * Verifies original-object delivery and failure identity through the callable adapter.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\CallableThrowableHandler
  */
+#[CoversClass(CallableThrowableHandler::class)]
 final class CallableThrowableHandlerTest extends TestCase
 {
     /** Each explicit invocation delivers the original object once and ignores callback results. */

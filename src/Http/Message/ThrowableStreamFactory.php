@@ -23,9 +23,9 @@ use Psr\Http\Message\StreamInterface;
 /**
  * Class ThrowableStreamFactory.
  *
- * Creates PSR-7 streams from Throwable instances.
- * This class SHALL ensure that throwable instances are converted into a
- * readable stream for inclusion in PSR-7 responses or logging mechanisms.
+ * Captures deliberately public renderer output as an optional compatibility adapter.
+ * Middleware reports diagnostics separately before rendering. Consumers MUST NOT
+ * pass that diagnostic reporter here again. The provider uses a pure generic renderer by default.
  *
  * @package CoiSA\ErrorHandler\Http\Message
  */
@@ -49,7 +49,7 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      */
     public function __construct(
         StreamFactoryInterface $streamFactory,
-        ThrowableHandlerInterface $throwableHandler
+        ThrowableHandlerInterface $throwableHandler,
     ) {
         $this->streamFactory = $streamFactory;
         $this->throwableHandler = $throwableHandler;
@@ -60,91 +60,80 @@ final class ThrowableStreamFactory implements ThrowableStreamFactoryInterface
      *
      * This method SHALL process the throwable using the handler and convert
      * its output into a PSR-7 compatible stream.
-     * If the handler closes capture before returning, the diagnostic fallback
-     * is used without reading or closing buffers at or below the entry level.
-     * On capture failure, removable buffers above the entry level are discarded
-     * best-effort. Cleanup stops on failure or lack of progress and never replaces
-     * the primary throwable. Output-handler side effects cannot be undone.
-     * An output callback that terminates the process or triggers an engine fatal
-     * can prevent control from returning and the primary failure from being rethrown.
+     * It SHALL preserve the body "0" and use a generic fallback for empty output.
+     * Renderers MUST balance removable buffers and MUST NOT close caller-owned buffers.
+     * Output SHALL be read only when a buffer remains above the caller's entry depth.
      *
      * @param \Throwable $throwable the throwable instance to process
      *
-     * @return StreamInterface the resulting PSR-7 stream containing throwable details
+     * @return StreamInterface the rendered response body or a generic fallback
      *
-     * @throws \Throwable the original handler, capture or stream-factory failure
+     * @throws \Throwable If rendering, buffer cleanup or stream construction fails.
+     *                    A renderer failure takes precedence over any later cleanup failure.
      */
     public function createStreamFromThrowable(\Throwable $throwable): StreamInterface
     {
-        return $this->streamFactory->createStream($this->captureThrowableOutput($throwable));
-    }
-
-    /**
-     * Captures reporter output using the existing empty and false-like fallback.
-     *
-     * When cleanup returns, the primary reporter or capture failure is rethrown.
-     * Successful capture retains its existing nested-buffer behavior.
-     * Missing capture uses the same fallback without consuming caller buffers.
-     *
-     * @param \Throwable $throwable the throwable passed unchanged to the reporter
-     *
-     * @return string the captured output or the throwable's diagnostic string
-     *
-     * @throws \Throwable the original reporter or capture failure
-     */
-    private function captureThrowableOutput(\Throwable $throwable): string
-    {
-        $entryLevel = ob_get_level();
+        $initialLevel = ob_get_level();
+        $failure = null;
+        $buffer = false;
         ob_start();
 
         try {
             $this->throwableHandler->handleThrowable($throwable);
+            $buffer = ob_get_level() > $initialLevel ? ob_get_contents() : false;
+        } catch (\Throwable $rendererFailure) {
+            $failure = $rendererFailure;
+        } finally {
+            $cleanupFailure = $this->cleanOutputBuffers($initialLevel);
+        }
 
-            if (ob_get_level() <= $entryLevel) {
-                return (string) $throwable;
-            }
-
-            return ob_get_clean() ?: (string) $throwable;
-        } catch (\Throwable $failure) {
-            $this->discardOutputBuffers($entryLevel);
-
+        if (null !== $failure) {
             throw $failure;
         }
+        if (null !== $cleanupFailure) {
+            throw $cleanupFailure;
+        }
+        if (false === $buffer || '' === $buffer) {
+            $buffer = 'Internal Server Error';
+        }
+
+        return $this->streamFactory->createStream($buffer);
     }
 
     /**
-     * Discards reachable removable buffers after a primary capture failure.
+     * Discards reachable removable buffers created during rendering.
      *
-     * Cleanup does not attempt to close buffers at or below the entry level.
-     * It stops on a protected buffer, failed close or absent progress. A throwing
-     * callback does not stop cleanup when PHP already removed its buffer.
-     * Callback side effects cannot be undone; cleanup failures must not replace
-     * the primary failure. Process termination or an engine fatal inside an output
-     * callback can prevent cleanup from returning.
+     * Cleanup MUST stop at caller-owned or non-removable buffers and when removal
+     * makes no progress. Its first failure is returned so the caller can preserve
+     * a renderer failure in preference to a later cleanup failure.
      *
-     * @param int $entryLevel the output-buffer depth before capture started
+     * @param int $initialLevel the caller's output-buffer depth before rendering
+     *
+     * @return null|\Throwable the first cleanup failure, or null when no removal failed
      */
-    private function discardOutputBuffers(int $entryLevel): void
+    private function cleanOutputBuffers(int $initialLevel): ?\Throwable
     {
-        while (ob_get_level() > $entryLevel) {
-            $level = ob_get_level();
-            $status = ob_get_status();
+        $failure = null;
 
-            if (0 === ($status['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)) {
-                return;
+        while (ob_get_level() > $initialLevel) {
+            $flags = ob_get_status()['flags'] ?? null;
+            if (!\is_int($flags) || ($flags & PHP_OUTPUT_HANDLER_REMOVABLE) === 0) {
+                break;
             }
 
+            $level = ob_get_level();
+
             try {
-                if (!ob_end_clean()) {
-                    return;
-                }
+                ob_end_clean();
             } catch (\Throwable $cleanupFailure) {
-                // PHP can remove the buffer before its callback failure propagates.
+                $failure ??= $cleanupFailure;
             }
 
             if (ob_get_level() >= $level) {
-                return;
+                break;
             }
         }
+
+        return $failure;
     }
 }

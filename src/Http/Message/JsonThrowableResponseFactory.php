@@ -18,10 +18,13 @@ namespace CoiSA\ErrorHandler\Http\Message;
 
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Symfony\Component\ErrorHandler\Exception\FlattenException;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
- * Builds JSON responses; applications own diagnostic reporting and response emission.
+ * Builds JSON Problem Details; applications own reporting and response emission.
  *
  * Integer HTTP error codes 400–599 are preserved; other codes use 500.
  * Debug details require an explicit application choice; generic output is the default.
@@ -35,29 +38,29 @@ final class JsonThrowableResponseFactory implements ThrowableResponseFactoryInte
     /** @var StreamFactoryInterface the application-owned body factory */
     private StreamFactoryInterface $streamFactory;
 
+    /** @var SerializerInterface the application serializer configured with a problem normalizer and JSON encoder */
+    private SerializerInterface $serializer;
+
     /** @var bool whether trusted application configuration explicitly enables diagnostics */
     private bool $debug;
 
     /**
-     * Configures pure JSON rendering without changing the library's default renderer.
+     * Configures pure Problem Details rendering with an explicit serializer.
      *
      * @param ResponseFactoryInterface $responseFactory the factory providing HTTP status reason phrases
      * @param StreamFactoryInterface   $streamFactory   the factory providing a new body per response
+     * @param SerializerInterface      $serializer      the serializer using ProblemNormalizer and JsonEncoder
      * @param bool                     $debug           whether to expose exception metadata for development
-     *
-     * @throws \LogicException when debug rendering is selected without an available JSON encoder
      */
     public function __construct(
         ResponseFactoryInterface $responseFactory,
         StreamFactoryInterface $streamFactory,
-        bool $debug = false
+        SerializerInterface $serializer,
+        bool $debug = false,
     ) {
-        if ($debug && !\function_exists('json_encode')) {
-            throw new \LogicException('Debug JSON responses require the JSON extension and json_encode().');
-        }
-
         $this->responseFactory = $responseFactory;
         $this->streamFactory = $streamFactory;
+        $this->serializer = $serializer;
         $this->debug = $debug;
     }
 
@@ -67,19 +70,33 @@ final class JsonThrowableResponseFactory implements ThrowableResponseFactoryInte
      * The throwable message is never used as the response's reason phrase.
      * This method does not report, capture output, install callbacks or emit a response.
      *
-     * @param \Throwable $throwable the original failure providing status and optional debug metadata
+     * @param \Throwable             $throwable the original failure providing status and optional debug metadata
+     * @param ServerRequestInterface $request   the request; diagnostics use trusted configuration only
      *
-     * @return ResponseInterface the application response with an application/json body
+     * @return ResponseInterface the application response with a JSON Problem Details body
      *
-     * @throws \Throwable     the identical failure raised by an HTTP collaborator
-     * @throws \JsonException if controlled debug metadata cannot be encoded
+     * @throws \Throwable the identical failure raised by an HTTP or serializer collaborator
      */
-    public function createResponseFromThrowable(\Throwable $throwable): ResponseInterface
-    {
+    public function createResponseFromThrowable(
+        \Throwable $throwable,
+        ServerRequestInterface $request,
+    ): ResponseInterface {
         $code = $throwable->getCode();
         $status = (\is_int($code) && $code >= 400 && $code <= 599) ? $code : 500;
-        $response = $this->responseFactory->createResponse($status)->withHeader('Content-Type', 'application/json');
-        $stream = $this->streamFactory->createStream($this->createBody($throwable));
+        $response = $this->responseFactory->createResponse($status)
+            ->withHeader('Content-Type', 'application/problem+json')
+        ;
+        $stream = $this->streamFactory->createStream($this->serializer->serialize(
+            $this->createProblem($throwable, $status),
+            'json',
+            [
+                'debug' => $this->debug,
+                'type' => 'about:blank',
+                'title' => $response->getReasonPhrase(),
+                'status' => $status,
+                'json_encode_options' => JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR,
+            ],
+        ));
 
         if ($this->debug) {
             $response = $response->withHeader('Cache-Control', 'no-store');
@@ -89,30 +106,26 @@ final class JsonThrowableResponseFactory implements ThrowableResponseFactoryInte
     }
 
     /**
-     * Encodes only selected native metadata, replacing invalid UTF-8 without serializing objects.
+     * Selects native metadata without traversing exception objects or trace arguments.
      *
      * @param \Throwable $throwable the original failure whose metadata is explicitly selected
+     * @param int        $status    the library's selected HTTP error status
      *
-     * @return string the complete JSON document without captured reporter output
-     *
-     * @throws \JsonException if controlled debug metadata cannot be encoded
+     * @return FlattenException a detached problem value without a previous exception chain
      */
-    private function createBody(\Throwable $throwable): string
+    private function createProblem(\Throwable $throwable, int $status): FlattenException
     {
-        if (!$this->debug) {
-            return '{"error":"Request failed"}';
-        }
-
-        return json_encode([
-            'error' => 'Request failed',
-            'exception' => [
-                'class' => \get_class($throwable),
-                'message' => $throwable->getMessage(),
-                'file' => $throwable->getFile(),
-                'line' => $throwable->getLine(),
-                'trace' => $this->createTraceMetadata($throwable),
-            ],
-        ], JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+        return (new FlattenException())
+            ->setStatusCode($status)
+            ->setStatusText('Request failed')
+            ->setMessage($this->debug ? $throwable->getMessage() : 'Request failed')
+            ->setClass($this->debug ? $throwable::class : '')
+            ->setTrace(
+                $this->debug ? $this->createTraceMetadata($throwable) : [],
+                $this->debug ? $throwable->getFile() : '',
+                $this->debug ? $throwable->getLine() : 0,
+            )
+        ;
     }
 
     /**

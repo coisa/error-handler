@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * This file is part of coisa/error-handler.
+ *
+ * This source file is subject to the license that is bundled
+ * with this source code in the file LICENSE.
+ *
+ * @link      https://github.com/coisa/error-handler
+ *
+ * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
+ * @license   https://opensource.org/licenses/MIT MIT License
+ */
+
+declare(strict_types=1);
+
+namespace CoiSA\ErrorHandler\ServiceProvider\Factory;
+
+use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\PhpErrorHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ShutdownHandlerInterface;
+use CoiSA\ErrorHandler\Handler\ThrowableHandlerInterface;
+use Psr\Container\ContainerInterface;
+
+/**
+ * Class ErrorHandlerFactory.
+ *
+ * A factory responsible for creating instances of ErrorHandler.
+ * Interface service IDs SHALL supply interface implementations or matching callables.
+ * Normalization belongs to ErrorHandler; this factory preserves optional defaults
+ * and constructs a fresh scope without registering native callbacks.
+ *
+ * @package CoiSA\ErrorHandler\ServiceProvider\Factory
+ */
+final class ErrorHandlerFactory
+{
+    /**
+     * Creates an instance of ErrorHandler.
+     *
+     * This method SHALL retrieve the required handlers from the container
+     * and inject them into the ErrorHandler constructor.
+     *
+     * @param ContainerInterface $container the PSR-11 container instance
+     *
+     * @return ErrorHandler the configured ErrorHandler instance
+     */
+    public function __invoke(ContainerInterface $container): ErrorHandler
+    {
+        /**
+         * @var (callable(\Throwable): mixed)|ThrowableHandlerInterface $throwableHandler
+         */
+        $throwableHandler = $container->get(ThrowableHandlerInterface::class);
+
+        /**
+         * @var null|(callable(int, string, string, int): mixed)|PhpErrorHandlerInterface $phpErrorHandler
+         */
+        $phpErrorHandler = $container->has(PhpErrorHandlerInterface::class)
+            ? $container->get(PhpErrorHandlerInterface::class)
+            : null;
+
+        /**
+         * @var null|(callable(): mixed)|ShutdownHandlerInterface $shutdownHandler
+         */
+        $shutdownHandler = $container->has(ShutdownHandlerInterface::class)
+            ? $container->get(ShutdownHandlerInterface::class)
+            : null;
+
+        return new ErrorHandler($throwableHandler, $phpErrorHandler, $shutdownHandler);
+    }
+}

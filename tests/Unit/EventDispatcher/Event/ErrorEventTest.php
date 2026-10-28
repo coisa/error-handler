@@ -18,14 +18,15 @@ namespace CoiSA\ErrorHandler\Test\Unit\EventDispatcher\Event;
 
 use CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Verifies a wrapped event retains the original throwable and its full string form.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\EventDispatcher\Event\ErrorEvent
  */
+#[CoversClass(ErrorEvent::class)]
 final class ErrorEventTest extends TestCase
 {
     /**
@@ -33,9 +34,8 @@ final class ErrorEventTest extends TestCase
      *
      * @param bool   $isError whether the original is an Error instead of an Exception
      * @param string $message the synthetic throwable's message
-     *
-     * @dataProvider provideRetainsTheOriginalThrowableAndStringCases
      */
+    #[DataProvider('provideRetainsTheOriginalThrowableAndStringCases')]
     public function testRetainsTheOriginalThrowableAndString(bool $isError, string $message): void
     {
         $original = $isError ? new \Error($message) : new \RuntimeException($message);

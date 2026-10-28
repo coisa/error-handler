@@ -19,16 +19,17 @@ namespace CoiSA\ErrorHandler\Test\Unit\Handler;
 use CoiSA\ErrorHandler\Exception\ErrorException;
 use CoiSA\ErrorHandler\Handler\ThrowErrorExceptionPhpErrorHandler;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * Verifies enabled-error metadata, disabled levels and actual @ suppression.
  *
  * @internal
- *
- * @covers \CoiSA\ErrorHandler\Handler\ThrowErrorExceptionPhpErrorHandler
- *
- * @uses \CoiSA\ErrorHandler\Exception\ErrorException
  */
+#[CoversClass(ThrowErrorExceptionPhpErrorHandler::class)]
+#[UsesClass(ErrorException::class)]
 final class ThrowErrorExceptionPhpErrorHandlerTest extends TestCase
 {
     /** Enabled PHP errors retain their message, severity and supplied source location. */
@@ -63,9 +64,8 @@ final class ThrowErrorExceptionPhpErrorHandlerTest extends TestCase
      * A disabled error level returns normally without changing the application's mask.
      *
      * @param int $mask the application reporting mask that excludes user warnings
-     *
-     * @dataProvider provideDoesNotConvertDisabledErrorLevelsCases
      */
+    #[DataProvider('provideDoesNotConvertDisabledErrorLevelsCases')]
     public function testDoesNotConvertDisabledErrorLevels(int $mask): void
     {
         $previous = error_reporting($mask);

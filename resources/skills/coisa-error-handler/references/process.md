@@ -20,7 +20,9 @@ try {
 Verify one report for an enabled warning and no report under the application's
 suppression policy. The default `ThrowErrorExceptionPhpErrorHandler` checks
 `error_reporting()`; a custom adapter owns its own conversion/mask policy.
-The original reporter failure propagates.
+The original reporter failure propagates. During registration, recursion or
+reporter failure stops further retries. Independent unregistered direct
+deliveries remain usable; this does not recover an exiting/fatal reporter.
 
 To report an exception caught by application code:
 
@@ -41,13 +43,16 @@ Choose rethrow/exit policy explicitly; rethrowing into another installed reporte
 can cause a second delivery. For an uncaught process exception, register once at
 bootstrap and let the exception reach that installed callback. Unregistering in an
 unwinding `finally` happens before the uncaught-exception callback, so it may
-remove the intended reporter first. A successful uncaught report does not promise
-exit 1.
+remove the intended reporter first. The registered uncaught-exception callback exits 1 after a successful report.
+Direct `handleThrowable()` calls return and leave exit policy to their caller.
 
 Callbacks are process-wide, including under fibers. Restore nested scopes in
 reverse order with distinct handlers. Reusing one handler for nested registration
-does not create an independent scope. PHP cannot remove queued shutdown
-functions; repeated registration cycles are not bounded worker-scope management.
+does not create an independent scope. Out-of-order removal raises `LogicException`; do not overwrite another owner.
+PHP cannot remove queued shutdown functions. This core queues its shutdown
+callback at most once per instance and only an active scope reports. Creating
+unbounded new handlers still grows that queue; registration is not concurrent
+fiber/request isolation.
 Fatal shutdown reporting observes a failure and does not recover execution.
 
 Check callback identity/restoration after success and reporter failure using the

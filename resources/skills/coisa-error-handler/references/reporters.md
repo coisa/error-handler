@@ -10,10 +10,28 @@ an application collaborator, not a discovered transport.
 the callback's return value. `CallablePhpErrorHandler($callback)` receives
 `(int $code, string $message, string $filename, int $line)` unchanged; return
 values, including false/null, are ignored by its void contract. The callback
-owns mask/conversion policy; this is not native false/fall-through. Inject the
-adapter instance as the core's second argument. The 2.4 constructor expects
-typed handler objects, not bare callables. `CallableShutdownHandler($callback)`
-is an explicit shutdown policy, not fatal recovery. Adapter failures propagate.
+owns mask/conversion policy; this is not native false/fall-through.
+
+All three ErrorHandler constructor inputs accept the matching interface or a
+callable. The reporter is required; PHP-error and shutdown inputs default to null,
+retaining their built-in policies. Normalization uses `CallableThrowableHandler`,
+`CallablePhpErrorHandler` and `CallableShutdownHandler`; it invokes nothing during
+construction. If an object implements the relevant interface and `__invoke()`, the interface method
+and original instance win. Invalid non-callable values raise TypeError; callback
+signature errors arise when PHP invokes the callback, not through preflight calls.
+
+The callable shapes are `callable(Throwable): mixed`,
+`callable(int, string, string, int): mixed` and `callable(): mixed` respectively.
+`CallableShutdownHandler($callback)` or a direct third-argument callback is an
+explicit shutdown policy, not fatal recovery. The ErrorHandler lifecycle still
+requires an active registration before shutdown delivery. Adapter failures retain
+the handler's reporting/propagation policy. Keep explicit adapters when another
+API requires an interface, such as an aggregate or filtering delegate.
+
+For FastForward, bind a callback value through `ServiceFactory($callback)` under
+the matching interface service ID and merge required application overrides last.
+The explicit handler factory preserves cached process services and fresh scope
+creation; arbitrary union autowiring is not a prerequisite.
 
 ## Filtering and ordered delivery
 
@@ -21,10 +39,11 @@ Using the configured reporter from the ordinary setup:
 
 ```php
 use CoiSA\ErrorHandler\ErrorHandler;
+use CoiSA\ErrorHandler\Handler\CallableThrowableHandler;
 use CoiSA\ErrorHandler\Handler\FilteringThrowableHandler;
 
 $selected = new FilteringThrowableHandler(
-    $configuration['reporter'],
+    new CallableThrowableHandler($configuration['reporter']),
     /**
      * Route PHP warnings by severity, without interpreting exception codes.
      *
@@ -53,6 +72,26 @@ with the original, including duplicate slots. If any fail, it throws one
 the previous cause is the original. An empty/all-success pass returns normally.
 Construct these explicitly; neither supplies retries, a recursion guard or
 durable delivery.
+
+## Symfony terminal diagnostics
+
+`SymfonyCliThrowableHandler()` formats through Symfony CliErrorRenderer and writes
+to stderr. It does not need Console, install callbacks or choose an exit status.
+An explicit `OutputInterface` receives raw text; ConsoleOutput uses its error
+channel. Install optional symfony/console only when the application uses that API.
+Renderer/output failures propagate; diagnostics can contain private data.
+
+The provider's `cli: true` appends terminal reporting to its default aggregate;
+`debug` independently controls HTTP details. An explicit ThrowableHandlerInterface
+override replaces that aggregate. Bind OutputInterface in the application for
+an existing destination. No SAPI detection or CLI response negotiation occurs.
+
+When using Symfony Console, choose one exception owner. An outer application catch
+uses `setCatchExceptions(false)` and `setAutoExit(false)`, reports once and decides
+its exit status. Do not also use Console's built-in exception rendering. Run the
+[complete terminal program](../examples/symfony-cli.php) in direct, provider or
+console mode after the explicit autoloader argument. It uses BufferedOutput and
+prints a verification summary instead of private diagnostics.
 
 ## PSR-3
 
@@ -92,6 +131,13 @@ callable listeners.
 `LogErrorEventListener` logs ErrorEvent data through the supplied PSR-3 logger.
 Configuring both raw and wrapped adapters causes separate deliveries; choose that
 deliberately. Dispatcher/listener failures propagate and are not retried.
+
+The [checkout event recipe](https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php)
+uses `fast-forward/event-dispatcher:^1.0`: configure its EventDispatcherServiceProvider
+with FastForward ArrayConfig under `ListenerProviderInterface::class`, listing the
+Error Handler listener-provider objects. Compose that configuration and provider
+before ErrorHandlerServiceProvider. The dispatcher remains an application choice;
+Error Handler only consumes the PSR-14 interface.
 
 Use the consumer's existing PHPUnit doubles or synthetic recording collaborators.
 Verify original-object identity, order/nonmatch behavior, empty aggregates,

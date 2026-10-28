@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="The CoiSA Error Handler 2.x API: reporting, process callbacks, legacy and optional Interop providers, and PSR-15 HTTP composition.">
-  <title>CoiSA Error Handler — 2.x documentation</title>
+  <meta name="description" content="CoiSA Error Handler: private reporting, owned PHP callbacks, FastForward providers and pure HTTP rendering.">
+  <title>CoiSA Error Handler documentation</title>
   <style>
     :root {
       color-scheme: light;
@@ -97,64 +97,53 @@
       <a href="#reporting">Direct reporting</a>
       <a href="#logging">Direct PSR-3 logging</a>
       <a href="#lifecycle">Process lifecycle</a>
-<a href="#php-errors">PHP-error callbacks</a>
+      <a href="#php-errors">PHP-error callbacks</a>
       <a href="#adapters">Adapters and events</a>
       <a href="#filtering">Conditional reporting</a>
       <a href="#best-effort">Best-effort reporting</a>
       <a href="#container">Container integration</a>
-      <a href="#interop">Optional Interop providers</a>
+      <a href="#interop">Request-aware responses</a>
       <a href="#http">HTTP composition</a>
       <a href="#examples">Executable recipes</a>
       <a href="#sources">Guides and verification</a>
     </nav>
     <main id="content" tabindex="-1">
       <div id="overview">
-        <p class="eyebrow">2.x API · PHP 7.4+</p>
-        <h1>Error Handler 2.x</h1>
-        <p class="lead">Compose diagnostic reporting, native PHP callbacks and HTTP responses with explicit application boundaries.</p>
-        <p>The library supplies handlers and PSR adapters. Your application chooses reporters, PSR implementations, callback installation and HTTP emission.</p>
-        <div class="version-note">This guide describes the 2.x API. Check your installed version and matching source.</div>
-        <p>New to the library? Follow <a href="#install">installation</a>, run <a href="#reporting">direct reporting</a>, then choose <a href="#lifecycle">process callbacks</a> or an explicit <a href="#http">HTTP response policy</a>. Add <a href="#container">container integration</a> when the application needs service lookup.</p>
+        <p class="eyebrow">PHP 8.3+ · PSR integrations</p>
+        <h1>CoiSA Error Handler</h1>
+        <p class="lead">Compose private diagnostic reporting, owned PHP callbacks and explicit HTTP response rendering.</p>
+        <p>The library supplies handlers and PSR adapters. Applications choose diagnostic sinks, PSR implementations, callback installation and response emission.</p>
+        <div class="version-note">Match documentation to your installed package version. For an upgrade from 2.x, follow the <a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">migration guide</a> and compare the <a href="https://github.com/coisa/error-handler/tree/v2.5.0">2.x API documentation</a>.</div>
+        <p>Start with <a href="#install">installation</a> and <a href="#reporting">direct reporting</a>, then select <a href="#lifecycle">process callbacks</a> or <a href="#http">HTTP composition</a>. Add application services through the <a href="#container">Interop provider</a>.</p>
       </div>
 
       <section id="install" aria-labelledby="install-title">
-        <h2 id="install-title">Installation</h2>
-        <code class="install-command">composer require 'coisa/error-handler:^2.4'</code>
-        <p>This common baseline covers ordinary reporting and legacy integration. JSON/Whoops adapters and Interop providers were published in 2.5.0; select <code>coisa/error-handler:^2.5</code> for those routes and verify the installed source.</p>
-        <p>The package declares PHP <code>^7.4 || ^8.0</code>. Composer installs PSR interfaces; applications supply concrete dispatchers, loggers and HTTP factories when those integrations are used.</p>
-        <p>For the runnable recipes, use the <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">cookbook's explicit application dependencies</a>. Resolve them with the actual PHP runtime and retain the application's lockfile.</p>
-        <p>Composer 2 and the application's <code>vendor/autoload.php</code> are the starting point. Direct reporting needs no container or HTTP implementation. Nyholm, Phly and Laminas are used only by their respective recipes; install compatible versions for the selected integration. The bounded verifier also needs the documented Symfony Process development dependency.</p>
+        <h2 id="install-title">Installation and setup</h2>
+        <code class="install-command">composer require coisa/error-handler</code>
+        <p>Use Composer 2 to install the library on the actual PHP runtime. The declared PHP constraint is <code>^8.3</code>; the CI matrix targets PHP 8.3–8.5. FastForward Container <code>^1.10</code> and the Interop provider contract are runtime dependencies.</p>
+        <p>Applications supply loggers, dispatchers, PSR-17 implementations and their emitter as needed. The development checkout supplies Nyholm and FastForward EventDispatcher for its synthetic recipes; optional <code>filp/whoops:^2.18.7</code> is needed only where development HTML is selected.</p>
+        <p>Read <a href="https://github.com/coisa/error-handler/blob/master/examples/README.md">example setup</a> for the selected autoloader and verifier dependencies. Resolve with the actual PHP runtime and retain application lockfiles. Consult the <a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">recorded test evidence</a>; a permitted constraint is not proof that every combination is clean.</p>
+        <p>The cookbook below runs from a matching source checkout: Composer archives omit the top-level <code>examples/</code> directory. Keep its bootstrap and assertion helper beside the recipes. Installed applications can instead run the <a href="https://github.com/coisa/error-handler/blob/master/resources/skills/coisa-error-handler/examples/README.md">bundled application programs</a> with their explicit Composer autoloader.</p>
       </section>
 
       <section id="reporting" aria-labelledby="reporting-title">
         <h2 id="reporting-title">Start with direct reporting</h2>
-        <p><code>handleThrowable()</code> delegates to your reporter without installing process callbacks. If the reporter returns, execution continues; reporter failures propagate.</p>
+        <p>A reporter implements <code>ThrowableHandlerInterface::handleThrowable(): void</code>. The core delegates to it without installing PHP callbacks. A direct call returns when the reporter returns; collaborator failures propagate.</p>
         <figure>
-          <figcaption>Excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">examples/direct.php</a> · imports and bootstrap in the complete source</figcaption>
-          <pre tabindex="0" aria-label="Direct reporting PHP source"><code data-source="examples/direct.php">$errors = new ErrorHandler(new CallableThrowableHandler(
-    /**
-     * Print only the synthetic message used by this executable example.
-     *
-     * @param Throwable $error the synthetic failure to report
-     */
-    static function (Throwable $error): void {
-        echo 'reported: ' . $error-&gt;getMessage() . PHP_EOL;
-    },
-));
+          <figcaption>Direct reporting from <a href="https://github.com/coisa/error-handler/blob/master/examples/reporters.php">examples/reporters.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Direct reporting PHP source"><code data-source="examples/reporters.php">$errors = new ErrorHandler($reporters);
 
-$errors-&gt;handleThrowable(new RuntimeException('Example failure'));
-
-echo 'continued' . PHP_EOL;</code></pre>
+// Direct delivery needs no registration and does not terminate the process.
+$errors-&gt;handleThrowable(new RuntimeException('Synthetic failure'));</code></pre>
         </figure>
-        <p>This synthetic reporter prints so its behavior can be verified. Use an appropriate private diagnostic destination in a real application.</p>
-        <p>After setup, run <code>php examples/direct.php</code> from the source checkout. Expect <code>reported: Example failure</code>, then <code>continued</code>. A reporter delivers diagnostics; the core connects it to explicit calls or PHP callbacks. See the <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">API guide</a> for responsibilities and application extension contracts.</p>
+        <p>Run <code>php examples/reporters.php</code> after setup. The synthetic program records its two ordered deliveries and prints them. Replace those recording callbacks with private application sinks. No container or native registration is needed for direct construction.</p>
       </section>
 
       <section id="logging" aria-labelledby="logging-title">
         <h2 id="logging-title">Report directly to an application logger</h2>
-        <p><code>LogThrowableHandler</code> is an explicit opt-in 2.x adapter. Verify that your checkout or release contains it; older installed versions may not provide it. Supply your own PSR-3 logger, optional string level (ERROR by default) and context.</p>
+        <p>The retained <code>LogThrowableHandler</code> adapter takes an application PSR-3 logger, an optional level (ERROR by default) and context.</p>
         <figure>
-          <figcaption>Excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">examples/logging.php</a> · the complete source supplies an in-memory logger, imports and bootstrap</figcaption>
+          <figcaption>Explicit PSR-3 composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">examples/logging.php</a> · imports and application setup are in the complete source</figcaption>
           <pre tabindex="0" aria-label="Direct PSR-3 logging PHP source"><code data-source="examples/logging.php">$context = ['component' =&gt; 'worker', 'exception' =&gt; new LogicException('Caller context')];
 $failure = new RuntimeException('Synthetic worker failure');
 $reporter = new LogThrowableHandler($logger, LogLevel::CRITICAL, $context);
@@ -163,210 +152,219 @@ $process = new ErrorHandler($reporter);
 
 $process-&gt;handleThrowable($failure);</code></pre>
         </figure>
-        <p>Each call logs exactly <code>getMessage()</code>, including empty, and places the original throwable under <code>exception</code> over any caller value. Other context is preserved without coercion; key order is not a contract. The logger decides supported levels and its failures propagate unchanged, without adapter retries or output.</p>
-        <p>No automatic discovery or callback registration is added. A private logger is not a public body renderer: keep process logging and the existing HTTP capture/fallback boundary explicit. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">process composition</a> and the <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">complete contract</a>.</p>
+        <p>Each call logs the exact message, including empty, with the original throwable under <code>exception</code> over a caller value. Other context retains its types and identity. Logger failures propagate unchanged; the adapter adds no retry, output or registration.</p>
+        <p>A logger service alone does not attach this reporter. Compose it explicitly or use a required reporting-interface binding through the <a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">merged-provider override</a>.</p>
       </section>
 
       <section id="lifecycle" aria-labelledby="lifecycle-title">
         <h2 id="lifecycle-title">Choose the process lifetime</h2>
-        <p>For a whole process, register one handler at bootstrap and leave it active for uncaught exceptions. For a caught operation, report inside its catch and restore callbacks in <code>finally</code>.</p>
+        <p>For uncaught process failures, register at bootstrap and leave the handler active through termination. For a caught operation, restore its callbacks in <code>finally</code>. An unwinding <code>finally</code> runs before PHP's uncaught-exception callback, so unregistering there returns responsibility to the previous handler.</p>
         <figure>
-          <figcaption>Scoped-warning excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">examples/process.php</a> · uses its configured handler</figcaption>
-          <pre tabindex="0" aria-label="Scoped registration PHP source"><code data-source="examples/process.php">    $errors-&gt;register();
+          <figcaption>Scoped warning handling from <a href="https://github.com/coisa/error-handler/blob/master/examples/fast-forward.php">examples/fast-forward.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Scoped registration PHP source"><code data-source="examples/fast-forward.php">$errors-&gt;register();
 
-    try {
-        trigger_error('Scoped warning', E_USER_WARNING);
-    } finally {
-        $errors-&gt;unregister();
-    }</code></pre>
+try {
+    trigger_error('FastForward provider warning', E_USER_WARNING);
+} finally {
+    $errors-&gt;unregister();
+}</code></pre>
         </figure>
-        <p>Callbacks are process-wide. Use distinct handlers for nested scopes and unregister in reverse order. An unwinding <code>finally</code> runs before the uncaught-exception callback; unregistering there can prevent that handler from seeing the exception.</p>
-        <p>PHP cannot remove queued shutdown functions. Repeated register/unregister cycles enqueue callbacks. A successfully reported uncaught exception currently exits <code>0</code>; native compile-fatal reporting observes exit <code>255</code> and does not recover execution.</p>
+        <p>Callbacks are process-wide. Use distinct nested handlers and unregister in reverse order; out-of-order removal raises <code>LogicException</code>. Stable callback identities and one retained shutdown callback per instance avoid adding another shutdown callback on each registration cycle. Only the active owner handles shutdown; PHP retains queued callbacks until process exit.</p>
+        <p>A successfully reported globally uncaught throwable exits <code>1</code>. Direct reporting does not terminate. Native fatal errors remain fatal, and a fatal that aborts PHP's shutdown queue cannot be recovered by adding handlers. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the lifecycle contract</a> and <a href="https://github.com/coisa/error-handler/blob/master/examples/cli.php">CLI source</a>.</p>
       </section>
 
       <section id="php-errors" aria-labelledby="php-errors-title">
         <h2 id="php-errors-title">Supply PHP-error policy explicitly</h2>
-        <p><code>CallablePhpErrorHandler($callback)</code> adapts four unchanged values: code, message, filename and line. Inject the wrapper as the second <code>ErrorHandler</code> argument. The existing constructor remains typed to interfaces; this adapter adds no registration, mask check, conversion, output or automatic discovery.</p>
+        <p><code>CallablePhpErrorHandler($callback)</code> passes code, message, filename and line unchanged. Inject its interface instance as the second core argument. The callback owns mask/conversion policy:</p>
         <figure>
-          <figcaption>Application mask/conversion policy from <a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">examples/php-errors.php</a> · explicit reporting installs no callbacks</figcaption>
+          <figcaption>Application mask/conversion policy from <a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">examples/php-errors.php</a> · imports and application setup are in the complete source</figcaption>
           <pre tabindex="0" aria-label="Application PHP-error policy source"><code data-source="examples/php-errors.php">        if (error_reporting() &amp; $code) {
             throw ErrorException::fromPhpError($message, $code, $code, $filename, $line);
         }</code></pre>
         </figure>
-        <p>Callback failures propagate unchanged. The interface returns <code>void</code>: false/null results are ignored and do not restore native PHP fall-through. No fifth error-context argument is supplied. Verify that the selected source contains this additive API, then read <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the full API contract</a>.</p>
+        <p>All three core constructor inputs accept their matching interface or a callable. Existing interface objects retain identity and take precedence over <code>__invoke()</code>. The reporter is required; omitted or null PHP-error and shutdown inputs keep their defaults. Construction invokes no callback and installs nothing.</p>
+        <p>The void interface ignores false/null callback results; they do not restore native PHP fall-through. There is no fifth error-context argument. A custom PHP callback owns suppression/conversion; the default adapter honors suppression. The complete PHP-error recipe supplies all three callbacks and pairs active shutdown notification with cleanup.</p>
       </section>
 
       <section id="adapters" aria-labelledby="adapters-title">
         <h2 id="adapters-title">Compose adapters deliberately</h2>
         <div class="table-scroll" tabindex="0" role="region" aria-label="Built-in reporting adapters">
           <table>
-            <thead><tr><th scope="col">Adapter</th><th scope="col">Existing behavior</th></tr></thead>
+            <thead><tr><th scope="col">Adapter</th><th scope="col">Responsibility</th></tr></thead>
             <tbody>
-              <tr><td><code>CallableThrowableHandler</code></td><td>Invokes one configured reporter.</td></tr>
-              <tr><td><code>CallablePhpErrorHandler</code></td><td>Invokes one four-argument application callback; ignores its return and leaves mask/conversion policy explicit.</td></tr>
-              <tr><td><code>LogThrowableHandler</code></td><td>Logs the exact message and original exception once through an explicit application PSR-3 logger.</td></tr>
-              <tr><td><code>ThrowableHandlerAggregate</code></td><td>Calls reporters in order; a failure stops later deliveries and propagates.</td></tr>
-              <tr><td><code>BestEffortThrowableHandlerAggregate</code></td><td>Opt-in adapter: attempts every reporter slot, then exposes the original and all ordered failures through one aggregate exception.</td></tr>
-              <tr><td><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Converts enabled PHP errors; honors the reporting mask and suppression.</td></tr>
-              <tr><td><code>CallableShutdownHandler</code><br><code>PhpLastErrorShutdownHandler</code></td><td>Adapts an application shutdown callback or forwards a matching last fatal/compile/core error.</td></tr>
-              <tr><td><code>DispatchThrowableHandler</code><br><code>DispatchErrorEventThrowableHandler</code></td><td>Dispatches a raw throwable or an <code>ErrorEvent</code> through application-owned PSR-14.</td></tr>
+              <tr><td><code>CallableThrowableHandler</code></td><td>Adapts one application reporter.</td></tr>
+              <tr><td><code>LogThrowableHandler</code></td><td>Logs exact messages and original exception context through PSR-3.</td></tr>
+              <tr><td><code>ThrowableHandlerAggregate</code></td><td>Delivers in order and stops on the first failure.</td></tr>
+              <tr><td><code>BestEffortThrowableHandlerAggregate</code></td><td>Attempts every slot, then exposes collected reporter failures.</td></tr>
+              <tr><td><code>CallablePhpErrorHandler</code><br><code>ThrowErrorExceptionPhpErrorHandler</code></td><td>Applies explicit PHP-error policy or the default masked conversion.</td></tr>
+              <tr><td><code>CallableShutdownHandler</code><br><code>PhpLastErrorShutdownHandler</code></td><td>Adapts shutdown work or forwards an observed fatal error without recovery.</td></tr>
+              <tr><td><code>DispatchThrowableHandler</code><br><code>DispatchErrorEventThrowableHandler</code></td><td>Dispatches an original throwable or an ErrorEvent through application PSR-14.</td></tr>
             </tbody>
           </table>
         </div>
-        <p>Both listener providers and callable listeners are demonstrated in <a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">the event example</a>. <code>LogErrorEventListener</code> passes the event string to an application PSR-3 logger, at ERROR by default. Configuring raw and wrapped routes creates separate deliveries.</p>
+        <p>The <a href="https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php">event example</a> includes providers, callable listeners and PSR-3 logging. Listener providers select listeners; the application dispatcher executes them. Raw and wrapped routes are separate deliveries, and the recipe records one private log entry without configuring a callable reporter. Verify delivery after invocation; see <a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">optional discovery and native fallback</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">API contracts</a> for failure boundaries.</p>
       </section>
 
       <section id="filtering" aria-labelledby="filtering-title">
         <h2 id="filtering-title">Select diagnostic branches explicitly</h2>
-        <p><code>FilteringThrowableHandler($reporter, $predicate)</code> evaluates a required boolean predicate once. A match forwards the original throwable once; a nonmatch skips only that delegate. Predicate/delegate failures propagate without retry; non-boolean results raise <code>TypeError</code>. Invert policy in the application's predicate.</p>
+        <p><code>FilteringThrowableHandler($reporter, $predicate)</code> evaluates a required boolean predicate once. True forwards the same throwable once; false skips only that delegate. Predicate/delegate failures propagate, and non-boolean results raise <code>TypeError</code>.</p>
         <figure>
-          <figcaption>Severity selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">examples/filtering.php</a> · the example also retains a general diagnostic branch</figcaption>
-          <pre tabindex="0" aria-label="Application filtering predicate PHP source"><code data-source="examples/filtering.php">    static fn(Throwable $error): bool =&gt; $error instanceof ErrorException &amp;&amp; E_USER_DEPRECATED === $error-&gt;getSeverity(),</code></pre>
+          <figcaption>Severity selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">examples/filtering.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Application filtering predicate PHP source"><code data-source="examples/filtering.php">    static fn(Throwable $error): bool =&gt; $error instanceof ErrorException
+        &amp;&amp; E_USER_DEPRECATED === $error-&gt;getSeverity(),</code></pre>
         </figure>
-        <p>This opt-in adapter adds no discovery, output, callback registration, recursion guard or response policy. A nonmatch is not recovery or redaction: built-in empty capture still falls back to diagnostic text. See <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the API guide</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP composition</a>.</p>
+        <p>This explicit decorator adds no output, registration or automatic aggregate membership. A nonmatch is not recovery and does not select an HTTP body. Rendering remains a separate boundary after the middleware's reporting call.</p>
       </section>
 
       <section id="best-effort" aria-labelledby="best-effort-title">
         <h2 id="best-effort-title">Attempt every reporter and retain every failure</h2>
-        <p><code>BestEffortThrowableHandlerAggregate</code> takes a fixed reporter list. Each invocation attempts every slot once, in order, with the same original throwable. Duplicate slots are separate attempts. Zero/all-success passes return normally; any failure, including partial success, produces one <code>AggregateReportingException</code> after all attempts.</p>
+        <p><code>BestEffortThrowableHandlerAggregate</code> attempts its fixed reporter slots in order with the same original. Any failure produces one <code>AggregateReportingException</code> after all attempts; zero/all-success passes return normally.</p>
         <figure>
-          <figcaption>Terminal handling from <a href="https://github.com/coisa/error-handler/blob/master/examples/best-effort.php">examples/best-effort.php</a> · synthetic reporters and imports appear in the complete source</figcaption>
-          <pre tabindex="0" aria-label="Best-effort reporter terminal handling PHP source"><code data-source="examples/best-effort.php">$reporter = new BestEffortThrowableHandlerAggregate($audit, $archive, $backup);
-$recordedFailure = null;
-
-try {
-    $reporter-&gt;handleThrowable($original);
-} catch (AggregateReportingException $failure) {
+          <figcaption>Application terminal handling from <a href="https://github.com/coisa/error-handler/blob/master/examples/best-effort.php">examples/best-effort.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Best-effort reporting PHP source"><code data-source="examples/best-effort.php">} catch (AggregateReportingException $failure) {
     $recordedFailure = [
         'original' =&gt; $failure-&gt;getOriginalThrowable(),
         'failures' =&gt; $failure-&gt;getFailures(),
     ];
 }</code></pre>
         </figure>
-        <p>The original also remains the previous cause; reporter failures retain their order and object identities. The fixed summary does not make the cause, failures or exception string public-safe. Applications own terminal handling and durable delivery. This opt-in adapter changes no fail-fast default, factory, callback lifecycle or HTTP response policy and adds no retry or reentry guard. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">the full contract</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">explicit composition</a>.</p>
+        <p>The original and ordered failure objects remain private diagnostics. The fixed summary is not a public redaction guarantee. This adapter does not change the default fail-fast aggregate or create an HTTP fallback: its reporting failure propagates before middleware rendering. Applications own terminal handling and durable delivery.</p>
       </section>
 
       <section id="container" aria-labelledby="container-title">
-        <h2 id="container-title">Keep the existing container boundary</h2>
-        <p><code>ErrorHandlerContainer</code> accepts an optional application PSR-11 parent. The parent's known services take priority; otherwise library aliases and factories resolve services. The default reporter aggregate is empty and silent, so supply a reporter explicitly.</p>
+        <h2 id="container-title">Use the required Interop provider</h2>
+        <p><code>ErrorHandlerServiceProvider</code> implements the Interop provider contract and reuses FastForward factories/autowiring. This bootstrap adds application dependencies and optional reporters:</p>
         <figure>
-          <figcaption>Resolution excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">examples/container.php</a> · application services are configured earlier</figcaption>
-          <pre tabindex="0" aria-label="Legacy container resolution PHP source"><code data-source="examples/container.php">$legacy = new ErrorHandlerContainer($application);
-
-$process = $legacy-&gt;get(ErrorHandler::class);</code></pre>
+          <figcaption>Base provider and optional reporter bootstrap from <a href="https://github.com/coisa/error-handler/blob/master/examples/fast-forward.php">examples/fast-forward.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="FastForward provider PHP source"><code data-source="examples/fast-forward.php">$services = container($application, ErrorHandlerServiceProvider::class);</code></pre>
         </figure>
-        <p><code>ConfigProvider</code> retains aliases, factories and Laminas discovery metadata. ServiceManager is an optional application integration, with a version compatible with that application's PHP.</p>
-        <p>Services are cached. Calling <code>ErrorHandlerFactory</code> explicitly creates a new core handler; a fresh middleware wrapper can still resolve the cached handler. Discovery and construction do not call <code>register()</code>.</p>
-        <p>The three service aliases select the throwable aggregate, captured-output stream factory and throwable response factory. They redirect container IDs; they do not create PHP class aliases or global singletons. Parent services take priority and retain the parent's lifetime. The <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container guide</a> maps every alias and factory, explains required/optional overrides and provides service-resolution troubleshooting.</p>
-        <p>The <a href="https://github.com/coisa/error-handler/issues/90">container-cause repair</a> preserves the original throwable through factory/alias wrapper chains. The two public exception factories copy integer codes and use <code>0</code> for string codes, retaining the original SQLSTATE on the cause. Check the selected source/release and the <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container guide</a> before relying on this repair.</p>
+        <p>FastForward caches services. The base reporting alias selects a fail-fast aggregate, silent when no optional reporter is available. Explicit Log, Filtering, Callable PHP-error and BestEffort adapters are not discovered merely by registering their concrete classes.</p>
+        <p>For a required reporter, renderer or other replacement, merge library maps with application definitions last in one <code>AggregateServiceProvider</code>, only when such a failure must prevent construction. Separate providers use first-success resolution and can fall back on PSR construction errors; their short bootstrap is not a required-override guarantee.</p>
+        <p>Legacy <code>ErrorHandlerContainer</code>, <code>ConfigProvider</code>, Laminas discovery and old container factories are removed. Follow <a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">the provider guide</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">migration map</a>. Core handlers remain independently constructible.</p>
       </section>
 
       <section id="interop" aria-labelledby="interop-title">
-        <h2 id="interop-title">Select an optional response provider</h2>
-        <p>The optional Interop providers are available from published 2.5.0. Select <code>coisa/error-handler:^2.5</code>; an application using PHP 8.3+ can install <code>fast-forward/container:^1.9</code> as its own runtime dependency. Supply PSR-17 response/stream factories and a private <code>ThrowableHandlerInterface</code> reporter, then choose JSON explicitly:</p>
+        <h2 id="interop-title">Negotiate responses with one provider</h2>
+        <p><code>ErrorHandlerServiceProvider(bool $debug = false)</code> supplies lifecycle services and a pure request-aware renderer. Each current request selects from plain text, JSON or Symfony HTML through its <code>Accept</code> header. Missing or unsupported preferences use the generic body. Equal wildcard preferences favor plain text, then JSON, then HTML; zero-quality choices are excluded.</p>
         <figure>
-          <figcaption>Public JSON selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · the complete recipe provides application services and imports</figcaption>
-          <pre tabindex="0" aria-label="Interop JSON provider PHP source"><code data-source="examples/provider-json.php">    $services = container(
-        JsonErrorHandlerServiceProvider::class,
-        ErrorHandlerServiceProvider::class,
-        $application,
-    );</code></pre>
-        </figure>
-        <p>Each provider declares only its own services. Register JSON before the separate base provider so its response alias wins over legacy capture. The JSON profile composes one private report before pure rendering for the existing 2.x middleware. Public JSON is the default. A constructor bool, passed from trusted Config values before container construction, enables development details deliberately; no request header or environment name enables them. Use strict typing and real bool values rather than casting the string <code>"false"</code>.</p>
-        <figure>
-          <figcaption>Explicit development HTML selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php">examples/provider-whoops.php</a> · application services and page configuration appear in the full source</figcaption>
-          <pre tabindex="0" aria-label="Interop Whoops provider PHP source"><code data-source="examples/provider-whoops.php">$services = container(new AggregateServiceProvider(
-    new ErrorHandlerServiceProvider(),
-    new WhoopsErrorHandlerServiceProvider(),
+          <figcaption>Trusted configuration and application-first composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Request-aware provider PHP source"><code data-source="examples/provider-json.php">$services = container(
     $application,
-));</code></pre>
+    new ErrorHandlerServiceProvider(debug: $settings-&gt;get('error_handler.debug', false)),
+);</code></pre>
         </figure>
-        <p>The Whoops profile has no constructor arguments and declares only its page and HTML/reporting services. The application composes the independent maps in one aggregate: base, Whoops, application. Later definitions select HTML and application page overrides; the base supplies fresh scopes. Install optional <code>filp/whoops:^2.18.7</code> wherever development HTML is selected. The default <code>PrettyPageHandler</code> service is lazy and cached. The configured recipe reads Config and binds a prepared page through <code>ServiceFactory</code>. Sequential renders retain configuration and replace current diagnostic data; the Run, response and stream are fresh. Selected key hiding is not complete redaction. Read the <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">container failure boundaries</a>: concrete factory errors may trigger autowiring fallback, and separate providers without Whoops may report an original twice through legacy capture. This choice does not infer debug mode or negotiate Accept.</p>
+        <p>The Config key belongs to this application example. Pass a real boolean; casting the string <code>"false"</code> enables PHP truthiness. Debug permits diagnostic JSON and Symfony HTML, but does not force HTML. Request headers never activate debug. Negotiated responses merge <code>Accept</code> into <code>Vary</code>.</p>
+        <p>Symfony supplies both public and diagnostic HTML by default. Public mode omits the original message, source and trace. Debug exposes diagnostics and adds <code>Cache-Control: no-store</code>. JSON-only requests do not construct an HTML renderer or a Whoops page.</p>
         <figure>
-          <figcaption>Fresh scope from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">the same executable recipe</a> · factory service under <code>ServiceProvider\Factory</code></figcaption>
+          <figcaption>Optional application-selected Whoops integration from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php">examples/provider-whoops.php</a> · the full source supplies an explicit negotiating-map override</figcaption>
+          <pre tabindex="0" aria-label="Explicit Whoops application bootstrap PHP source"><code data-source="examples/provider-whoops.php">$services = container($application, new ErrorHandlerServiceProvider(debug: 'public' !== $mode));</code></pre>
+        </figure>
+        <p>Installing optional <code>filp/whoops:^2.18.7</code> alone never changes the default. This recipe's development modes explicitly replace the HTML candidate with Whoops while retaining JSON and generic candidates. Public mode keeps Symfony. The provider exposes <code>PrettyPageHandler</code> as a lazy service; configure a page first and bind it through <code>ServiceFactory</code> when desired.</p>
+        <p>A configured Whoops page is cached sequentially: configuration stays and current diagnostic data replaces prior data. Each render uses a fresh unregistered Run, response and body. Concrete page-factory failures can trigger FastForward autowiring fallback; map order does not provide universal failure propagation or concurrent isolation.</p>
+        <figure>
+          <figcaption>Fresh HTTP scope from <a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">examples/provider-json.php</a> · imports and application setup are in the complete source</figcaption>
           <pre tabindex="0" aria-label="Fresh Interop middleware scope PHP source"><code data-source="examples/provider-json.php">$middlewareFactory = $services-&gt;get(ErrorHandlerMiddlewareFactory::class);
 
 $middleware = $middlewareFactory($services);</code></pre>
         </figure>
-        <p>Each factory invocation creates a distinct core handler and middleware. The process alias and directly resolved middleware remain cached; lookup does not register callbacks. The base <code>ErrorHandlerServiceProvider</code> retains legacy capture defaults and requires the application's reporter. The core still supports PHP 7.4 and the legacy container/ConfigProvider. Fresh objects do not remove PHP's existing shutdown-queue limits.</p>
-        <p>For a required replacement of a library-defined service, combine base, JSON and application definitions in that order in one <code>AggregateServiceProvider</code>; the last definition wins. Separate providers prioritize the first successful resolution. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">the provider guide</a> for complete maps, Config, runtime installation and override semantics. Applications own emission and any reporter output.</p>
+        <p>Invoke this factory for distinct handlers and middleware in independent nested scopes. Repeated middleware <code>get()</code> calls remain cached; the process handler stays separate. Lookup and construction install no callbacks. Read <a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">provider definitions, required overrides and failure limits</a>.</p>
+      </section>
+
+      <section id="terminal" aria-labelledby="terminal-title">
+        <h2 id="terminal-title">Explicit Symfony terminal diagnostics</h2>
+        <p><code>SymfonyCliThrowableHandler()</code> uses Symfony's CliErrorRenderer and writes to stderr. Inject a Console OutputInterface to reuse an application destination; ConsoleOutput uses its error channel and writes raw text. Construction installs no callbacks and reporting chooses no exit status or SAPI. The provider enables it only with <code>cli: true</code>.</p>
+        <figure>
+          <figcaption>Explicit terminal destination from <a href="https://github.com/coisa/error-handler/blob/master/examples/symfony-cli.php">examples/symfony-cli.php</a></figcaption>
+          <pre tabindex="0" aria-label="Explicit terminal diagnostic PHP source"><code data-source="examples/symfony-cli.php">$terminal = new SymfonyCliThrowableHandler($output);
+$errors = new ErrorHandler($terminal);</code></pre>
+        </figure>
+        <p>Use either Console's exception renderer or an outer Error Handler catch. The complete recipe disables Console's exception catch and reports once. See <a href="https://github.com/coisa/error-handler/blob/master/docs/cli.md">terminal reporting, private diagnostics and exit-status ownership</a>.</p>
       </section>
 
       <section id="http" aria-labelledby="http-title">
-        <h2 id="http-title">Separate HTTP responsibilities</h2>
-        <p>The PSR-15 middleware registers its lifecycle handler, invokes downstream, delegates caught throwables to a response factory and unregisters in <code>finally</code>. It does not independently report before rendering.</p>
-        <p>The built-in stream factory reports while capturing output. Empty output and the string <code>"0"</code> fall back to the throwable's diagnostic string. A global <code>ThrowableHandlerInterface</code> binding also selects this renderer's reporter: private logging or a filtering nonmatch can leave empty output and trigger that fallback. Keep process reporting and public response construction explicit. The built-in response factory also uses a valid exception message as its reason phrase; a silent or filtered reporter does not create a safe public response.</p>
-        <p>If the reporter closes capture and returns, the stream factory uses the same diagnostic fallback without reading or closing caller-owned buffers at or below its entry depth or invoking their output callbacks. Missing capture with no caller buffer also reaches fallback. This boundary cannot undo the reporter's own writes, flushes or buffer changes; reporters must balance their buffers.</p>
-        <p>In a checkout/release containing the <a href="https://github.com/coisa/error-handler/issues/89">reason-phrase repair</a>, CR, LF, NUL, DEL and other forbidden control bytes omit the reason argument so the application's PSR-17 implementation can select its default. Valid horizontal tabs, visible ASCII and opaque high bytes remain unchanged. Empty messages are still passed explicitly, retaining the existing implementation-specific behavior. This prevents an invalid status line; the original throwable, reporting count and diagnostic body fallback remain unchanged.</p>
+        <h2 id="http-title">Report once, then render explicitly</h2>
+        <p>Middleware requires one scoped object implementing both lifecycle and throwable reporting. It registers, calls downstream, reports a caught throwable, passes the same throwable and current ServerRequestInterface to a pure response renderer and unregisters in <code>finally</code>. Reporter failure prevents rendering; renderer failures propagate after callback restoration. Successful downstream responses pass through unchanged.</p>
+        <p>The default provider negotiates from the current request. Its fallback <code>GenericThrowableStreamFactory</code> returns <code>Internal Server Error</code> independently of reporter output. Integer error codes <code>400–599</code> are preserved, other integers/string codes use <code>500</code>, and PSR-17 supplies reason phrases. Keep diagnostics private: an echoed reporter can still corrupt emission outside the returned response.</p>
+        <p>If an explicit public renderer closes capture and returns, the capture factory uses the generic body without reading or closing caller-owned buffers or invoking their output callbacks. Missing capture at native depth zero also uses that body. The factory cannot undo the renderer's own writes, flushes or buffer changes.</p>
         <figure>
-          <figcaption>Application safe-renderer excerpt from <a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">examples/http.php</a> · this is an explicit application adapter</figcaption>
-          <pre tabindex="0" aria-label="Application-owned safe response PHP source"><code data-source="examples/http.php">            $this-&gt;reporter-&gt;handleThrowable($error);
+          <figcaption>Pure JSON composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">examples/http-json.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Explicit JSON response composition PHP source"><code data-source="examples/http-json.php">$errors = new ErrorHandler($reporter);
 
-            return $this-&gt;messages-&gt;createResponse(500)-&gt;withBody(
-                $this-&gt;messages-&gt;createStream('Internal Server Error'),
-            );</code></pre>
+$serializer = new Serializer([new ProblemNormalizer(true)], [new JsonEncoder()]);
+
+$json = new JsonThrowableResponseFactory($messages, $messages, $serializer, $debug);
+
+$middleware = new ErrorHandlerMiddleware($errors, $json);</code></pre>
         </figure>
-        <p>The application supplies PSR-17 factories, private diagnostic delivery and its emitter. The legacy status policy accepts integer codes from <code>400</code> through <code>500</code> inclusive; other integers and all string codes, including SQLSTATE, become <code>500</code>. Use application-owned mapping for domain errors.</p>
-        <p>For a fixed public response, choose the complete recipe's <code>safe</code> mode: its application response factory reports privately once, then creates the response. The middleware does not add that report. If the reporter or PSR-17 factory throws, response creation fails after callback restoration; the application owns the terminal policy.</p>
+        <p>The pure JSON factory uses Symfony Serializer and returns <code>application/problem+json</code> with Problem Details: <code>type</code>, PSR-17 <code>title</code>, HTTP <code>status</code> and generic <code>detail</code>. Negotiation also supports <code>application/json</code> with the same shape. Explicit debug adds original-message detail, class and trace without argument values or objects, substitutes invalid UTF-8 and sets <code>Cache-Control: no-store</code>. Messages and paths can still expose secrets. No client header or environment name enables debug automatically.</p>
         <figure>
-          <figcaption>Opt-in JSON composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">examples/http-json.php</a> · imports and the private reporter appear in the complete source</figcaption>
-          <pre tabindex="0" aria-label="Explicit JSON response composition PHP source"><code data-source="examples/http-json.php">$json = new JsonThrowableResponseFactory($messages, $messages, $debug);
+          <figcaption>Pure renderer after trusted selection from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">examples/http-whoops.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Explicit development HTML composition PHP source"><code data-source="examples/http-whoops.php">$errors = new ErrorHandler($reporter);
 
-$responses = new ReportingThrowableResponseFactory($reporter, $json);
-
-$middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
+$middleware = new ErrorHandlerMiddleware($errors, $renderer);</code></pre>
         </figure>
-        <p>Available from published 2.5.0 with <code>coisa/error-handler:^2.5</code>, the pure JSON factory returns <code>application/json</code> with <code>{"error":"Request failed"}</code>, preserves integer codes <code>400–599</code> and otherwise uses <code>500</code>. It does not report or capture output. The explicit decorator reports the original once before rendering; reporter failure prevents rendering, and failures propagate after middleware restores callbacks. Use a private reporter that does not print. Defaults remain unchanged.</p>
-        <p>The optional third boolean defaults to <code>false</code>. An explicit trusted development configuration can enable class/message/file/line and trace metadata, without arguments or objects; debug sets <code>Cache-Control: no-store</code> and replaces invalid UTF-8. Messages and paths still contain diagnostic details. No environment/request autodetection enables it, and the recipe uses a private reporter without output. PHP 7.4 debug use needs the optional JSON extension, included by PHP 8.</p>
+        <p>The trusted application choice made earlier in this recipe selects public Symfony HTML or optional <code>WhoopsThrowableResponseFactory</code>. Its manual third argument remains <code>callable(): PrettyPageHandler</code>. It returns <code>text/html; charset=UTF-8</code> and <code>no-store</code> without emission, native headers, registration or controlled quit. Whoops source/globals/traces are development disclosures; selected key hiding is not comprehensive redaction.</p>
+        <p><code>ReportingThrowableResponseFactory</code> remains an explicit utility for pipelines that have not already reported. The provider never selects it after middleware reporting. Every response factory requires <code>createResponseFromThrowable(Throwable, ServerRequestInterface)</code>, including fixed renderers. Middleware forwards the current request unchanged; direct callers must provide it.</p>
+        <h3>Public and diagnostic Symfony HTML</h3>
         <figure>
-          <figcaption>Shared reporting composition from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">examples/http-whoops.php</a> · a trusted development choice selects the pure HTML renderer earlier</figcaption>
-          <pre tabindex="0" aria-label="Explicit development HTML reporting PHP source"><code data-source="examples/http-whoops.php">$responses = new ReportingThrowableResponseFactory($reporter, $renderer);
-
-$errors = new ErrorHandler($reporter);
-
-$middleware = new ErrorHandlerMiddleware($errors, $responses);</code></pre>
+          <figcaption>Direct HTML rendering after one explicit private report from <a href="https://github.com/coisa/error-handler/blob/master/examples/http-html.php">examples/http-html.php</a></figcaption>
+          <pre tabindex="0" aria-label="Request-aware direct HTML rendering PHP source"><code data-source="examples/http-html.php">$errors-&gt;handleThrowable($failure);
+$response = $renderer-&gt;createResponseFromThrowable($failure, $request);</code></pre>
         </figure>
-        <p>The optional <code>WhoopsThrowableResponseFactory</code> takes two PSR-17 factories and a callable creating a fresh configured <code>PrettyPageHandler</code>. Install <code>filp/whoops:^2.18.7</code> only where development HTML is used. Each render owns a new, unregistered Run, returns HTML without emission/exit and sets <code>text/html; charset=UTF-8</code> plus <code>no-store</code>. It preserves integer codes 400–599 and delegates the reason to PSR-17. Core/container defaults remain unchanged.</p>
-        <p>Applications select this renderer through trusted development configuration and keep the private reporting decorator for 2.x. Default Whoops diagnostic pages can expose sensitive globals; hiding selected keys does not redact messages, traces, source or every secret. No request/Accept negotiation or automatic debug activation is supplied. Verify the selected checkout/release contains this additive API.</p>
-        <p>See <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">the HTTP guide</a> for success/failure restoration, capture limitations and the complete application composition.</p>
+        <p><code>HtmlThrowableResponseFactory($responses, $streams, bool $debug = false)</code> uses Symfony's public rendering API. The request does not authorize diagnostics. Public mode uses a generic page; explicit debug provides a styled diagnostic document. It neither reports nor emits the response.</p>
+        <h3>Use output capture only for a separate public renderer</h3>
+        <figure>
+          <figcaption>Explicit public output capture from <a href="https://github.com/coisa/error-handler/blob/master/examples/output-capture.php">examples/output-capture.php</a> · imports and application setup are in the complete source</figcaption>
+          <pre tabindex="0" aria-label="Explicit public output capture PHP source"><code data-source="examples/output-capture.php">$publicRenderer = new CallableThrowableHandler(static function (): void {
+    echo 'Public failure page';
+});
+
+$streams = new ThrowableStreamFactory(new Psr17Factory(), $publicRenderer);</code></pre>
+        </figure>
+        <p>This explicit stream adapter captures deliberately public output; it must not invoke the private reporter again. Empty output uses the generic body and <code>"0"</code> is preserved. If no buffer remains above the caller's entry depth, it uses the generic body instead of reading existing caller output. Cleanup removes reachable removable scopes, stops without progress/protected buffers and preserves a primary renderer failure. Native exit/fatal effects remain unrecoverable. The application owns response emission and terminal policy; see <a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP boundaries</a>.</p>
       </section>
 
       <section id="examples" aria-labelledby="examples-title">
         <h2 id="examples-title">Run the complete recipes</h2>
-        <p>Every excerpt above is checked against its executable source. Read all fourteen complete sources together in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">2.x cookbook</a>, with imports, readable spacing and every executable branch. Both the complete cookbook and the excerpts are checked against source. The recipes use synthetic input and keep their application dependencies explicit.</p>
+        <p>Every displayed excerpt is checked against executable source. The <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">complete cookbook</a> contains the complete programs, with imports, application setup and every branch; only their leading license headers are omitted. Synthetic records and response objects do not certify real transport delivery.</p>
         <ul class="recipe-list">
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/direct.php">direct.php</a><span>Explicit reporting without installing native callbacks.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact/empty messages and original exception context.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/process.php">process.php</a><span>Warnings, scoped restoration, uncaught behavior and custom shutdown.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/handlers.php">handlers.php</a><span>Callable/aggregate order, failure propagation, conversion and suppression.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">php-errors.php</a><span>Explicit four-argument callbacks and application-owned PHP-error policy.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">filtering.php</a><span>Explicit severity selection with the same original throwable and a general diagnostic branch.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/best-effort.php">best-effort.php</a><span>Ordered attempts through partial success, preserving the original and every reporter failure.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/events.php">events.php</a><span>Raw and wrapped dispatch, providers/listeners and PSR-3 logging.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/container.php">container.php</a><span>Parent services, all seven factories, ConfigProvider and cached/fresh cores.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http.php">http.php</a><span>Capture/empty/zero fallback, safe application responses and callback restoration.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">http-json.php</a><span>Generic/development JSON, HTTP error statuses and one explicit private report.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">http-whoops.php</a><span>Trusted development HTML, fresh configured Whoops pages and a generic public path.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">provider-json.php</a><span>Optional Interop/FastForward JSON profile, explicit Config bool and fresh middleware scope; PHP 8.3+.</span></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php">provider-whoops.php</a><span>Optional Whoops profile, lazy default/configured pages, private reporting and two fresh middleware scopes; PHP 8.3+.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/reporters.php">reporters.php</a><span>Direct reporting and ordered aggregate delivery without native registration.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/cli.php">cli.php</a><span>Process bootstrap for warnings and uncaught failure with exit status 1.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/custom-handlers.php">custom-handlers.php</a><span>Explicit PHP-error and shutdown adapters with application-owned policy.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php">event-dispatcher.php</a><span>PSR-14 raw/wrapped events, listener providers and application logging.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/fast-forward.php">fast-forward.php</a><span>Required Interop/FastForward integration and optional reporter discovery.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/scopes.php">scopes.php</a><span>Cached factory services, fresh nested handlers/middleware and process restoration.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/logging.php">logging.php</a><span>Direct PSR-3 delivery, exact messages and original exception context.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/filtering.php">filtering.php</a><span>Boolean severity selection while retaining a general diagnostic branch.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/php-errors.php">php-errors.php</a><span>Four unchanged PHP-error arguments and explicit mask/conversion policy.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/best-effort.php">best-effort.php</a><span>Ordered reporting through partial success, retaining original and all failures.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-middleware.php">http-middleware.php</a><span>One private report, generic response and restored process callbacks.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-rendering.php">http-rendering.php</a><span>An application-owned pure JSON stream, independent of diagnostics.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/output-capture.php">output-capture.php</a><span>A separate deliberately public echo-based renderer.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-html.php">http-html.php</a><span>Public/debug Symfony HTML with the required current request and one explicit report.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-json.php">http-json.php</a><span>Public/debug JSON and one private middleware report.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php">http-whoops.php</a><span>Public Symfony HTML and explicitly selected development Whoops.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-json.php">provider-json.php</a><span>Single provider, current-request JSON negotiation and fresh scopes.</span></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php">provider-whoops.php</a><span>Lazy default/configured pages, sequential reuse and fresh HTTP scopes.</span></li>
         </ul>
-        <p>Run process/fatal/HTTP scenarios through <code>php examples/verify.php</code> from the source checkout. Add <code>--with-fast-forward</code> on PHP 8.3+ with FastForward and Whoops installed to include JSON and HTML provider modes. Its bounded child runner checks actual exit, output and callback contracts. Read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">the verifier guide</a> before running failure experiments.</p>
-        <p>Choose recipes by their application prerequisites in the <a href="https://github.com/coisa/error-handler/blob/master/docs/examples.md">cookbook</a>. The verifier reports the passed scenarios and actual PHP version; recording reporters and returned response objects do not establish real transport delivery.</p>
+        <p>Run <code>php examples/verify.php</code> from the configured source checkout. FastForward is a runtime dependency; there is no optional FastForward verifier flag. The development graph supplies Whoops for its HTML modes. The bounded runner checks the selected modes' exact exit/stdout/stderr; read <a href="https://github.com/coisa/error-handler/blob/master/examples/verify.md">its operating guide</a> before native failure experiments.</p>
+        <p>Run <code>php tests/Documentation/site.php</code> for source/link/anchor and complete-cookbook parity. These commands do not start a server or publish documentation. Record the actual PHP/dependency graph and candidate SHA with results.</p>
       </section>
 
       <section id="sources" aria-labelledby="sources-title">
         <h2 id="sources-title">Continue in the source guides</h2>
         <ul>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Core API and process lifecycle</a></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/container.md">Legacy container, ConfigProvider and optional Interop providers</a></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP output and application rendering</a></li>
-          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Native checks, bounded probes and evidence limits</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/api.md">Core API, reporters and process lifecycle</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/fast-forward.md">Interop provider, required overrides and fresh scopes</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/http.md">HTTP defaults, pure JSON/Whoops and explicit capture</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/migration.md">Migration from 2.x</a></li>
+          <li><a href="https://github.com/coisa/error-handler/blob/master/docs/testing.md">Native checks, bounded fixtures and evidence limits</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/resources/skills/coisa-error-handler/SKILL.md">Portable consumer skill</a> and <a href="https://github.com/coisa/error-handler/blob/master/docs/agent-skill.md">optional installation</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/CHANGELOG.md">Published release history</a></li>
           <li><a href="https://github.com/coisa/error-handler/blob/master/docs/releases.md">Release fragments, reviewed version PRs and publication</a></li>
         </ul>
       </section>
-      <footer>Source-backed guidance for <a href="https://github.com/coisa/error-handler">coisa/error-handler</a>, under the <a href="https://github.com/coisa/error-handler/blob/master/LICENSE">MIT license</a>. Choose the source version matching your installed package.</footer>
+      <footer>Source-backed guidance for <a href="https://github.com/coisa/error-handler">coisa/error-handler</a>, under the <a href="https://github.com/coisa/error-handler/blob/master/LICENSE">MIT license</a>. Choose documentation matching the installed package version.</footer>
     </main>
   </div>
 </body>
