@@ -35,6 +35,13 @@ the checkout's own graph, follow its
 [dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md)
 and run commands from that checkout root.
 
+For event logging, the default `php examples/event-dispatcher.php` keeps the full
+event-string policy. Run `php examples/event-dispatcher.php structured` to use the
+existing callable listener and throwable reporter, retaining the original object
+in PSR-3 `context['exception']`. Both modes produce one private log record. The
+structured mode also verifies its exact message, level and application context.
+It does not modify the default listener or attach another reporter automatically.
+
 The source checkout supplies application implementations through development
 dependencies. In a disposable application, add
 `nyholm/psr7:^1.8.2` and `fast-forward/event-dispatcher:^1.0` for HTTP/event recipes.

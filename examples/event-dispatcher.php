@@ -21,6 +21,7 @@ use CoiSA\ErrorHandler\EventDispatcher\Listener\LogErrorEventListener;
 use CoiSA\ErrorHandler\EventDispatcher\Listener\ThrowableCallableListener;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ErrorEventListenerProvider;
 use CoiSA\ErrorHandler\EventDispatcher\ListenerProvider\ThrowableListenerProvider;
+use CoiSA\ErrorHandler\Handler\LogThrowableHandler;
 use CoiSA\ErrorHandler\ServiceProvider\ErrorHandlerServiceProvider;
 use FastForward\Config\ArrayConfig;
 use FastForward\EventDispatcher\ServiceProvider\EventDispatcherServiceProvider;
@@ -32,11 +33,17 @@ use function FastForward\Container\container;
 
 require __DIR__ . '/bootstrap.php';
 
+$mode = $argv[1] ?? 'legacy';
+if (!in_array($mode, ['legacy', 'structured'], true)) {
+    throw new InvalidArgumentException('Choose legacy or structured event logging.');
+}
+
 $deliveries = [];
+$reported = [];
 
 $logger = new class extends AbstractLogger {
     /**
-     * @var list<string> synthetic private log records; replace with an application logger
+     * @var list<array{mixed, string, array<string, mixed>}> synthetic private records
      */
     public array $records = [];
 
@@ -51,21 +58,34 @@ $logger = new class extends AbstractLogger {
      */
     public function log($level, $message, array $context = []): void
     {
-        $this->records[] = $level . ': ' . (string) $message;
+        $this->records[] = [$level, (string) $message, $context];
     }
 };
 
 $throwables = new ThrowableListenerProvider(
-    new ThrowableCallableListener(static function (Throwable $error) use (&$deliveries): void {
+    // @param Throwable $error the unchanged diagnostic also retained for the context assertion
+    new ThrowableCallableListener(static function (Throwable $error) use (&$deliveries, &$reported): void {
         $deliveries[] = 'throwable: ' . $error->getMessage();
+        $reported[] = $error;
     }),
 );
 $events = new ErrorEventListenerProvider(
+    // @param ErrorEventInterface $event the wrapper carrying the same original throwable
     new ErrorEventCallableListener(static function (ErrorEventInterface $event) use (&$deliveries): void {
         $deliveries[] = 'event: ' . $event->getThrowable()->getMessage();
     }),
 );
-$events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
+if ('structured' === $mode) {
+    $reporter = new LogThrowableHandler($logger, LogLevel::CRITICAL, ['channel' => 'errors']);
+    $events->attach(new ErrorEventCallableListener(
+        /** @param ErrorEventInterface $event the wrapper retaining the original diagnostic */
+        static function (ErrorEventInterface $event) use ($reporter): void {
+            $reporter->handleThrowable($event->getThrowable());
+        },
+    ));
+} else {
+    $events->attach(new LogErrorEventListener($logger, LogLevel::CRITICAL));
+}
 
 $configuration = new ArrayConfig([
     ListenerProviderInterface::class => [$throwables, $events],
@@ -83,5 +103,22 @@ try {
     $errors->unregister();
 }
 
+if ('structured' === $mode) {
+    $original = $reported[0] ?? null;
+    $record = $logger->records[0] ?? null;
+    if (
+        null === $original || 1 !== count($reported) || null === $record || 1 !== count($logger->records)
+        || LogLevel::CRITICAL !== $record[0] || 'Synthetic warning' !== $record[1]
+        || 2 !== count($record[2]) || 'errors' !== ($record[2]['channel'] ?? null)
+        || $original !== ($record[2]['exception'] ?? null)
+    ) {
+        throw new RuntimeException('Expected one structured log retaining the original throwable.');
+    }
+}
+
 echo implode(PHP_EOL, $deliveries) . PHP_EOL;
 printf("Private log records: %d\n", count($logger->records));
+
+if ('structured' === $mode) {
+    echo 'Structured exception context: original throwable' . PHP_EOL;
+}

@@ -24,6 +24,9 @@ The verifier covers every recipe and documented mode. JSON public/debug, Symfony
 Symfony CLI direct/provider/Console ownership, manual HTML public/development and HTML provider public/Whoops-default/configured are included
 without an extra FastForward flag: the container is a runtime dependency of this
 major. The event recipe uses FastForward's published provider/configuration API. The
+default event mode preserves full-string logging; its `structured` mode uses the
+existing callable listener and throwable reporter and verifies the original
+exception context, selected level, exact message and one private record. The
 documented development graph supplies Console and optional Whoops for those tests.
 Middleware recipes report the original once before pure rendering; the direct
 HTML pipeline reports explicitly once and supplies its current request. A
