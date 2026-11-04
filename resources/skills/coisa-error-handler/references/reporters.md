@@ -132,7 +132,7 @@ callable listeners.
 Configuring both raw and wrapped adapters causes separate deliveries; choose that
 deliberately. Dispatcher/listener failures propagate and are not retried.
 
-The [checkout event recipe](https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php)
+The [checkout event recipe](https://github.com/artificenerd/error-handler/blob/master/examples/event-dispatcher.php)
 uses `fast-forward/event-dispatcher:^1.0`: configure its EventDispatcherServiceProvider
 with FastForward ArrayConfig under `ListenerProviderInterface::class`, listing the
 Error Handler listener-provider objects. Compose that configuration and provider
@@ -151,7 +151,7 @@ the application dispatcher/configuration and private synthetic logger. See its
 [command and dependencies](../examples/README.md#structured-event-logging).
 The bridge forwards logger failures unchanged and adds no retry. The selected
 dispatcher still owns its outward failure behavior; see the
-[FastForward integration limits](https://github.com/coisa/error-handler/blob/master/docs/testing.md#fastforward-event-dispatcher-integration-limits).
+[FastForward integration limits](https://github.com/artificenerd/error-handler/blob/master/docs/testing.md#fastforward-event-dispatcher-integration-limits).
 Registering native PHP callbacks is a separate application decision.
 
 Use the consumer's existing PHPUnit doubles or synthetic recording collaborators.

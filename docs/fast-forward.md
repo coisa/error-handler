@@ -22,7 +22,7 @@ successful Composer resolution as a complete runtime check. See
 [test evidence](testing.md#coverage-and-current-evidence).
 
 The development checkout includes it in `require`. After installing
-the checkout dependencies, run the complete [example](https://github.com/coisa/error-handler/blob/master/examples/fast-forward.php):
+the checkout dependencies, run the complete [example](https://github.com/artificenerd/error-handler/blob/master/examples/fast-forward.php):
 
 ```sh
 php examples/fast-forward.php
@@ -32,7 +32,7 @@ It reports one warning and restores the prior PHP callbacks. Pass the library
 provider class and application provider directly to `container()`. This example
 adds a callable reporter for the library's optional reporter discovery. Its
 `bootstrap.php` selects the checkout or application autoloader as described in
-[example setup](https://github.com/coisa/error-handler/blob/master/examples/README.md):
+[example setup](https://github.com/artificenerd/error-handler/blob/master/examples/README.md):
 
 ```php
 <?php
@@ -165,8 +165,8 @@ The explicit ErrorHandlerFactory remains responsible for optional defaults and
 fresh scopes; this does not require a container to autowire arbitrary union types.
 Interface instances take precedence over their callable capability. No callback
 is executed or registered during construction. See [adapter contracts](api.md#callable-php-error-policy)
-and the [logging](https://github.com/coisa/error-handler/blob/master/examples/logging.php), [filtering](https://github.com/coisa/error-handler/blob/master/examples/filtering.php)
-and [PHP-error](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php) examples.
+and the [logging](https://github.com/artificenerd/error-handler/blob/master/examples/logging.php), [filtering](https://github.com/artificenerd/error-handler/blob/master/examples/filtering.php)
+and [PHP-error](https://github.com/artificenerd/error-handler/blob/master/examples/php-errors.php) examples.
 
 Some autowiring containers advertise `CallableThrowableHandler` through `has()`
 even when its required callable cannot be constructed. Optional discovery skips
@@ -234,7 +234,7 @@ support constructor autowiring, as FastForward's `container()` does.
 The [usage cookbook](examples.md) exposes complete examples for every built-in adapter:
 PSR-14 dispatch and PSR-3 logging, private HTTP reporting, controlled JSON rendering,
 custom PHP/shutdown handlers, direct reporter composition and nested scopes.
-The cookbook includes each complete program. The [documentation site](https://coisa.github.io/error-handler/#examples)
+The cookbook includes each complete program. The [documentation site](https://artificenerd.github.io/error-handler/#examples)
 links the same sources and displays checked excerpts.
 
 ## HTTP scopes and fresh instances
@@ -351,7 +351,7 @@ $services = container(
 The Config key belongs to this application example; the library reads no
 environment variable or configuration key automatically. Avoid casting the
 string `"false"` to bool, which enables PHP truthiness. The
-[JSON provider recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php)
+[JSON provider recipe](https://github.com/artificenerd/error-handler/blob/master/examples/provider-json.php)
 shows public/debug modes and `Accept: application/json` with one private report.
 The provider also exposes the concrete JSON renderer for explicit application
 composition; selecting a concrete renderer directly bypasses negotiation. JSON uses
@@ -368,7 +368,7 @@ Reporter and renderer failures retain the [HTTP boundaries](http.md).
 ## Development HTML configuration
 
 Symfony HTML is the default in public and debug modes. To select Whoops instead,
-install optional `filp/whoops:^2.18.7` in the application. The [public/default/configured recipe](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php)
+install optional `filp/whoops:^2.18.7` in the application. The [public/default/configured recipe](https://github.com/artificenerd/error-handler/blob/master/examples/provider-whoops.php)
 uses the same provider with `Accept: text/html` and an explicit application
 override of the negotiating HTML candidate in its development modes. Public mode retains Symfony HTML. The default provider never
 auto-selects Whoops based on package availability.

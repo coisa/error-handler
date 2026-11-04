@@ -8,7 +8,7 @@ release to receive fixes.
 
 ## Report a vulnerability privately
 
-Use the repository's [private vulnerability reporting channel](https://github.com/coisa/error-handler/security/advisories/new).
+Use the repository's [private vulnerability reporting channel](https://github.com/artificenerd/error-handler/security/advisories/new).
 Keep suspected vulnerabilities out of public issues until disclosure has been coordinated.
 
 Include:
@@ -23,5 +23,5 @@ application records with synthetic examples.
 
 ## Ordinary bugs and feature requests
 
-Use [repository issues](https://github.com/coisa/error-handler/issues) for bugs
+Use [repository issues](https://github.com/artificenerd/error-handler/issues) for bugs
 without a security impact and for feature proposals.

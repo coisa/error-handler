@@ -13,8 +13,8 @@ development autoload map.
 
 To use the cookbook below, select a matching inspected source checkout and keep
 its complete `examples/` directory, including
-[`bootstrap.php`](https://github.com/coisa/error-handler/blob/master/examples/bootstrap.php)
-and [`check.php`](https://github.com/coisa/error-handler/blob/master/examples/check.php).
+[`bootstrap.php`](https://github.com/artificenerd/error-handler/blob/master/examples/bootstrap.php)
+and [`check.php`](https://github.com/artificenerd/error-handler/blob/master/examples/check.php).
 The bootstrap selects the Composer autoloader and loads the assertion helper;
 copying only an individual recipe is insufficient. From an existing application,
 run a checkout recipe against that application's graph:
@@ -32,7 +32,7 @@ second: Synthetic failure
 
 Use the same autoloader selection for the other individual recipes. When using
 the checkout's own graph, follow its
-[dependency setup](https://github.com/coisa/error-handler/blob/master/CONTRIBUTING.md)
+[dependency setup](https://github.com/artificenerd/error-handler/blob/master/CONTRIBUTING.md)
 and run commands from that checkout root.
 
 For event logging, the default `php examples/event-dispatcher.php` keeps the full

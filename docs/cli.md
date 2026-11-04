@@ -43,7 +43,7 @@ and `setAutoExit(false)` on its Console application. Catch once around
 `run()`, report the original once and choose the command's exit status there.
 Do not report and then let Console render the same failure again.
 
-The [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/symfony-cli.php)
+The [complete recipe](https://github.com/artificenerd/error-handler/blob/master/examples/symfony-cli.php)
 has direct, provider and Console modes. It uses `BufferedOutput` only to verify
 the synthetic diagnostic without sending it to a terminal. The
 [bundled consumer program](../resources/skills/coisa-error-handler/examples/symfony-cli.php)

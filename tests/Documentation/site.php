@@ -6,7 +6,7 @@
  * This source file is subject to the license that is bundled
  * with this source code in the file LICENSE.
  *
- * @link      https://github.com/coisa/error-handler
+ * @link      https://github.com/artificenerd/error-handler
  *
  * @copyright Copyright (c) 2022-2026 Felipe Sayão Lobato Abreu <github@mentordosnerds.com.br>
  * @license   https://opensource.org/licenses/MIT MIT License
@@ -67,7 +67,7 @@ foreach ($document->getElementsByTagName('a') as $link) {
             throw new \RuntimeException('Missing site anchor: ' . $href);
         }
     } elseif (str_starts_with($href, 'https://')) {
-        $prefix = 'https://github.com/coisa/error-handler/blob/master/';
+        $prefix = 'https://github.com/artificenerd/error-handler/blob/master/';
         if (str_starts_with($href, $prefix) && !is_file($root . '/' . substr($href, \strlen($prefix)))) {
             throw new \RuntimeException('Missing repository link target: ' . $href);
         }

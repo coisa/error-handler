@@ -6,7 +6,7 @@ compatibility: CoiSA Error Handler 3.x API; PHP ^8.3, Composer 2 and required fa
 metadata:
   author: Felipe Sayão Lobato Abreu
   api-baseline: "3.x"
-  source_url: https://github.com/coisa/error-handler
+  source_url: https://github.com/artificenerd/error-handler
 ---
 
 # CoiSA Error Handler
@@ -157,5 +157,5 @@ This procedure does not authorize deployment, publication, global installation
 or production diagnostics.
 
 For suspected security issues, follow the source repository's
-[security policy](https://github.com/coisa/error-handler/security/policy) and use
+[security policy](https://github.com/artificenerd/error-handler/security/policy) and use
 its private reporting channel. Use ordinary issues for non-security bugs and features.

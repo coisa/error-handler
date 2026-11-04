@@ -2,7 +2,7 @@
 
 Read when an application wants the library's JSON renderer or explicitly chooses
 the request-aware provider. The library requires PHP `^8.3`; follow the
-[migration guide](https://github.com/coisa/error-handler/blob/master/docs/migration.md)
+[migration guide](https://github.com/artificenerd/error-handler/blob/master/docs/migration.md)
 when upgrading from the 2.x middleware composition.
 
 ## Inspect the selected installation

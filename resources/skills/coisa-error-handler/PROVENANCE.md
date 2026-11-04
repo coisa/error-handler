@@ -1,6 +1,6 @@
 # Source and rights
 
-This package belongs to [coisa/error-handler](https://github.com/coisa/error-handler).
+This package belongs to [coisa/error-handler](https://github.com/artificenerd/error-handler).
 Its reusable instructions, references and application examples are original
 project material under the bundled MIT license. Preserve the source identity,
 namespace and license when copying it. Third-party implementations are installed

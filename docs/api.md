@@ -17,7 +17,7 @@ try {
 ```
 
 For process-wide uncaught handling, keep the handler registered through termination,
-as in [the CLI example](https://github.com/coisa/error-handler/blob/master/examples/cli.php). PHP executes finally before dispatching
+as in [the CLI example](https://github.com/artificenerd/error-handler/blob/master/examples/cli.php). PHP executes finally before dispatching
 an uncaught exception, so unregistering there returns responsibility to the previous
 handler. Direct `handleThrowable()` delivers the original object and returns; the
 registered uncaught callback exits 1 when reporting returns normally.
@@ -49,7 +49,7 @@ Callbacks receive one Throwable, four PHP-error arguments, or no shutdown
 arguments respectively; their return values are ignored. Explicit adapter objects
 remain useful when another API requires an interface. Null and omitted options
 retain the default policies below, including shutdown reporting through the same
-ErrorHandler. The [complete callback recipe](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php) supplies
+ErrorHandler. The [complete callback recipe](https://github.com/artificenerd/error-handler/blob/master/examples/php-errors.php) supplies
 all three callables and pairs active shutdown notification with cleanup.
 
 The default `ThrowErrorExceptionPhpErrorHandler` honors `error_reporting()` and
@@ -114,7 +114,7 @@ It is not automatically attached when a logger is available in the container.
 Construct it explicitly or bind `ThrowableHandlerInterface` using the
 [merged-provider override](fast-forward.md#required-overrides).
 
-See [the complete logging example](https://github.com/coisa/error-handler/blob/master/examples/logging.php). Unlike this direct
+See [the complete logging example](https://github.com/artificenerd/error-handler/blob/master/examples/logging.php). Unlike this direct
 adapter, `LogErrorEventListener` retains its event-string message policy.
 
 For structured logging through an `ErrorEvent`, compose `ErrorEventCallableListener`
@@ -140,7 +140,7 @@ No output, default filtering policy, registration or automatic aggregate discove
 is added. A skipped report does not recover the operation, change PHP suppression
 or choose the HTTP response. Rendering remains a separate public
 boundary regardless of whether a diagnostic reporter forwards the event.
-See [the filtering example](https://github.com/coisa/error-handler/blob/master/examples/filtering.php); select PHP severity via
+See [the filtering example](https://github.com/artificenerd/error-handler/blob/master/examples/filtering.php); select PHP severity via
 ErrorException::getSeverity(), not an arbitrary exception code.
 
 ## Callable PHP-error policy
@@ -153,7 +153,7 @@ There is no fifth errcontext argument, automatic mask check, conversion or outpu
 
 The callback owns suppression/conversion policy and its failures propagate
 unchanged. Through ErrorHandler, a thrown ErrorException follows the normal
-reporting boundary; other failures propagate. The [complete PHP-error example](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php)
+reporting boundary; other failures propagate. The [complete PHP-error example](https://github.com/artificenerd/error-handler/blob/master/examples/php-errors.php)
 explicitly checks `error_reporting() & $code` before converting an enabled error.
 
 Pass the callable directly as the second ErrorHandler argument, or keep the
@@ -276,7 +276,7 @@ If any reporter throws, including partial success, one
 returns the nonempty ordered list of identical reporter failures. Its constructor
 requires the original, one failure and optional remaining failures. The summary is
 fixed, but stored causes/failures and exception strings remain private diagnostics.
-Use the [complete recipe](https://github.com/coisa/error-handler/blob/master/examples/best-effort.php) for explicit terminal handling.
+Use the [complete recipe](https://github.com/artificenerd/error-handler/blob/master/examples/best-effort.php) for explicit terminal handling.
 
 No retry, deduplication, reentry guard or durable transport is added. Native
 termination can prevent later attempts. Default provider composition stays

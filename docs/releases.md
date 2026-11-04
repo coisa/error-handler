@@ -1,6 +1,6 @@
 # Release notes and reviewed releases
 
-The [Changelog workflow](https://github.com/coisa/error-handler/blob/master/.github/workflows/changelog.yml)
+The [Changelog workflow](https://github.com/artificenerd/error-handler/blob/master/.github/workflows/changelog.yml)
 uses [Fast Forward Changelog](https://github.com/php-fast-forward/changelog) for
 independent release notes, PR checks and a reviewed version PR. Git tags are the
 version authority for `coisa/error-handler`; there is no separate npm manifest
@@ -102,7 +102,7 @@ Classify entries by behavior under Added, Changed, Deprecated, Removed, Fixed
 or Security, in that order, omitting empty categories. The category describes
 the change; fragment `type` separately selects its SemVer impact. Keep Markdown
 paragraphs, lists and code fences intact. A verified delivering PR is linked
-inline as `([#123](https://github.com/coisa/error-handler/pull/123))`. Without
+inline as `([#123](https://github.com/artificenerd/error-handler/pull/123))`. Without
 verified PR evidence, leave only the description; do not add author thanks,
 issues or commit hashes as substitutes.
 

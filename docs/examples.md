@@ -1,6 +1,6 @@
 # Executable cookbook
 
-These complete examples use PHP `^8.3`. The development dependencies include Nyholm PSR-7 and FastForward EventDispatcher; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](https://github.com/coisa/error-handler/blob/master/examples/README.md).
+These complete examples use PHP `^8.3`. The development dependencies include Nyholm PSR-7 and FastForward EventDispatcher; applications own their PSR implementations and Composer lockfiles. FastForward Container is a required runtime dependency. See [example setup](https://github.com/artificenerd/error-handler/blob/master/examples/README.md).
 
 These are source-checkout programs: Composer archives omit the top-level
 `examples/` directory. Keep the complete directory, including its bootstrap and
@@ -8,12 +8,12 @@ assertion helper, and follow the setup guide above.
 For the installed package, use the [bundled application examples](../resources/skills/coisa-error-handler/examples/README.md)
 with the application's explicit autoloader.
 
-Run `php examples/verify.php` to verify every recipe and documented mode in bounded children. The CLI recipe deliberately exits 1. The [static site](https://coisa.github.io/error-handler/#examples) links these programs and displays checked excerpts. Every complete entry is checked byte-for-byte against source, omitting only its leading license header. Duplicate, changed or missing recipes fail validation; examples do not prove delivery to real transports.
+Run `php examples/verify.php` to verify every recipe and documented mode in bounded children. The CLI recipe deliberately exits 1. The [static site](https://artificenerd.github.io/error-handler/#examples) links these programs and displays checked excerpts. Every complete entry is checked byte-for-byte against source, omitting only its leading license header. Duplicate, changed or missing recipes fail validation; examples do not prove delivery to real transports.
 
 <a id="cli"></a>
 ## Process bootstrap
 
-Report a warning and an uncaught exception, then exit 1. [Source](https://github.com/coisa/error-handler/blob/master/examples/cli.php).
+Report a warning and an uncaught exception, then exit 1. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/cli.php).
 
 <!-- source: examples/cli.php -->
 ```php
@@ -42,7 +42,7 @@ throw new RuntimeException('Example uncaught exception; exit status is 1.');
 <a id="fast-forward"></a>
 ## Interop service provider
 
-Resolve real FastForward definitions without installing callbacks during lookup. [Source](https://github.com/coisa/error-handler/blob/master/examples/fast-forward.php).
+Resolve real FastForward definitions without installing callbacks during lookup. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/fast-forward.php).
 
 <!-- source: examples/fast-forward.php -->
 ```php
@@ -111,7 +111,7 @@ try {
 <a id="reporters"></a>
 ## Callable reporters and ordered composition
 
-Deliver the same throwable in order; the existing aggregate remains fail-fast. [Source](https://github.com/coisa/error-handler/blob/master/examples/reporters.php).
+Deliver the same throwable in order; the existing aggregate remains fail-fast. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/reporters.php).
 
 <!-- source: examples/reporters.php -->
 ```php
@@ -161,7 +161,7 @@ the application dispatcher's [failure boundaries](testing.md#fastforward-event-d
 The [installed-package program](../resources/skills/coisa-error-handler/examples/event-logging.php)
 shows a complete structured route with only the wrapped event delivery.
 See [optional discovery and fallback](fast-forward.md) before relying on the
-default reporter. [Source](https://github.com/coisa/error-handler/blob/master/examples/event-dispatcher.php).
+default reporter. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/event-dispatcher.php).
 
 <!-- source: examples/event-dispatcher.php -->
 ```php
@@ -282,7 +282,7 @@ if ('structured' === $mode) {
 <a id="http-middleware"></a>
 ## PSR-15 middleware with the provider
 
-Report once, render a generic response and restore the process handler. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-middleware.php).
+Report once, render a generic response and restore the process handler. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/http-middleware.php).
 
 <!-- source: examples/http-middleware.php -->
 ```php
@@ -359,7 +359,7 @@ printf("Reported: %d\n", count($reported));
 <a id="http-rendering"></a>
 ## Explicit JSON streams
 
-Return application-owned JSON without echo or buffering. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-rendering.php).
+Return application-owned JSON without echo or buffering. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/http-rendering.php).
 
 <!-- source: examples/http-rendering.php -->
 ```php
@@ -443,7 +443,7 @@ printf("Private reports: %d\n", count($privateDiagnostics));
 <a id="custom-handlers"></a>
 ## Application PHP-error and shutdown handlers
 
-Supply explicit interface implementations and a shutdown callback. [Source](https://github.com/coisa/error-handler/blob/master/examples/custom-handlers.php).
+Supply explicit interface implementations and a shutdown callback. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/custom-handlers.php).
 
 <!-- source: examples/custom-handlers.php -->
 ```php
@@ -526,7 +526,7 @@ printf("PHP errors: %d | Shutdown notifications: %d\n", count($phpErrors->messag
 <a id="scopes"></a>
 ## Fresh handlers and nested middleware
 
-Use factory services for a new scope; ordinary lookups remain cached. [Source](https://github.com/coisa/error-handler/blob/master/examples/scopes.php).
+Use factory services for a new scope; ordinary lookups remain cached. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/scopes.php).
 
 <!-- source: examples/scopes.php -->
 ```php
@@ -636,7 +636,7 @@ printf("HTTP %d | Reports: %d\n", $response->getStatusCode(), $reported);
 <a id="output-capture"></a>
 ## Explicit public output capture
 
-Capture a separate public renderer, preserving the string zero. [Source](https://github.com/coisa/error-handler/blob/master/examples/output-capture.php).
+Capture a separate public renderer, preserving the string zero. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/output-capture.php).
 
 <!-- source: examples/output-capture.php -->
 ```php
@@ -666,7 +666,7 @@ printf("Captured body: %s\n", (string) $body);
 <a id="logging"></a>
 ## Direct PSR-3 logging
 
-Log exact messages with the original exception context. [Source](https://github.com/coisa/error-handler/blob/master/examples/logging.php).
+Log exact messages with the original exception context. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/logging.php).
 
 <!-- source: examples/logging.php -->
 ```php
@@ -725,7 +725,7 @@ echo 'direct PSR-3 logging, exact messages and original context passed' . PHP_EO
 <a id="filtering"></a>
 ## Filtering
 
-Select per invocation without changing the event or defaults. [Source](https://github.com/coisa/error-handler/blob/master/examples/filtering.php).
+Select per invocation without changing the event or defaults. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/filtering.php).
 
 <!-- source: examples/filtering.php -->
 ```php
@@ -791,7 +791,7 @@ echo 'explicit filtering, severity selection and original-object delivery passed
 ## Callable PHP-error conversion
 
 Pass three callbacks directly to ErrorHandler, retaining four original PHP-error arguments,
-application-owned mask policy and explicit active shutdown notification. [Source](https://github.com/coisa/error-handler/blob/master/examples/php-errors.php).
+application-owned mask policy and explicit active shutdown notification. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/php-errors.php).
 
 <!-- source: examples/php-errors.php -->
 ```php
@@ -877,7 +877,7 @@ echo 'callable PHP errors: four arguments, explicit mask policy and conversion p
 <a id="best-effort"></a>
 ## Best-effort reporting
 
-Attempt every fixed slot in order, then retain the original and all reporter failures. [Source](https://github.com/coisa/error-handler/blob/master/examples/best-effort.php).
+Attempt every fixed slot in order, then retain the original and all reporter failures. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/best-effort.php).
 
 <!-- source: examples/best-effort.php -->
 ```php
@@ -965,7 +965,7 @@ echo 'best-effort order, original cause and all reporter failures passed' . PHP_
 
 ## Built-in JSON responses
 
-Public and explicitly enabled debug JSON preserve HTTP error codes. Middleware reports privately once, then uses the pure factory. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-json.php).
+Public and explicitly enabled debug JSON preserve HTTP error codes. Middleware reports privately once, then uses the pure factory. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/http-json.php).
 
 <!-- source: examples/http-json.php -->
 ```php
@@ -1091,7 +1091,7 @@ echo 'HTTP JSON ' . $mode . ': explicit payload, status preservation and one pri
 <a id="http-html"></a>
 ## Public and diagnostic Symfony HTML
 
-Report explicitly once, then render with the required current request. Public mode hides diagnostic details; trusted debug enables Symfony diagnostics. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-html.php).
+Report explicitly once, then render with the required current request. Public mode hides diagnostic details; trusted debug enables Symfony diagnostics. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/http-html.php).
 
 <!-- source: examples/http-html.php -->
 ```php
@@ -1151,7 +1151,7 @@ echo 'HTTP HTML ' . $mode . ': Symfony rendering and one original report passed'
 
 ## Explicit development HTML
 
-Trusted configuration selects public Symfony HTML or explicit optional Whoops HTML. The application owns diagnostic policy; no request enables it. [Source](https://github.com/coisa/error-handler/blob/master/examples/http-whoops.php).
+Trusted configuration selects public Symfony HTML or explicit optional Whoops HTML. The application owns diagnostic policy; no request enables it. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/http-whoops.php).
 
 <!-- source: examples/http-whoops.php -->
 ```php
@@ -1270,7 +1270,7 @@ echo 'HTTP Whoops ' . $mode . ': explicit renderer selection and one private rep
 
 ## JSON negotiation with the single provider
 
-Compose base, JSON and application maps explicitly, with a real bool for debug and a fresh middleware scope. [Source](https://github.com/coisa/error-handler/blob/master/examples/provider-json.php).
+Compose base, JSON and application maps explicitly, with a real bool for debug and a fresh middleware scope. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/provider-json.php).
 
 <!-- source: examples/provider-json.php -->
 ```php
@@ -1395,7 +1395,7 @@ echo 'Interop JSON ' . $mode . ': configured provider, fresh scope and one priva
 
 ## Public HTML and explicit Whoops negotiation
 
-Compose independent maps in one aggregate, configure the page service and reuse it sequentially while creating distinct request scopes. [Source](https://github.com/coisa/error-handler/blob/master/examples/provider-whoops.php).
+Compose independent maps in one aggregate, configure the page service and reuse it sequentially while creating distinct request scopes. [Source](https://github.com/artificenerd/error-handler/blob/master/examples/provider-whoops.php).
 
 <!-- source: examples/provider-whoops.php -->
 ```php
@@ -1614,7 +1614,7 @@ echo 'public' === $mode
 
 Choose explicit terminal reporting, an opt-in provider or one outer Console exception catch.
 The BufferedOutput is a synthetic destination; omit it for stderr in an application.
-[Source](https://github.com/coisa/error-handler/blob/master/examples/symfony-cli.php).
+[Source](https://github.com/artificenerd/error-handler/blob/master/examples/symfony-cli.php).
 
 <!-- source: examples/symfony-cli.php -->
 ```php
