@@ -23,6 +23,9 @@ updates:
         dependency-type: development
         patterns:
           - "*"
+    labels:
+      - dependencies
+      - php
 
   - package-ecosystem: github-actions
     directory: /
@@ -36,3 +39,6 @@ updates:
       github-actions:
         patterns:
           - "*"
+    labels:
+      - dependencies
+      - github-actions
