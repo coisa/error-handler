@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 The entries for 1.0.0 and 2.0.0 were reconstructed from their published Git tags.
 
+## [3.0.2] - 2026-11-15
+
+### Changed
+
+- Group Dependabot dependency updates by ecosystem and dependency type. ([#131](https://github.com/coisa/error-handler/pull/131))
+
 ## [3.0.1] - 2026-10-28
 
 ### Added
@@ -412,6 +418,7 @@ This version is marked as a prerelease on GitHub.
 
 - A Composer library requiring PHP `^7.1`, with Apache 2.0 licensing.
 
+[3.0.2]: https://github.com/coisa/error-handler/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/coisa/error-handler/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/coisa/error-handler/compare/v2.5.5...v3.0.0
 [2.5.5]: https://github.com/coisa/error-handler/compare/v2.5.4...v2.5.5
