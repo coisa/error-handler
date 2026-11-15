@@ -14,6 +14,18 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    groups:
+      composer-production:
+        dependency-type: production
+        patterns:
+          - "*"
+      composer-development:
+        dependency-type: development
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+      - php
 
   - package-ecosystem: github-actions
     directory: /
@@ -23,3 +35,10 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    labels:
+      - dependencies
+      - github-actions
